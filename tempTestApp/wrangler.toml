@@ -1,0 +1,11 @@
+name = "hello-cf-app"
+compatibility_date = "2024-09-01"
+pages_build_output_dir = "public"
+
+# D1 database binding.
+# After running `wrangler d1 create hello-cf-db`, copy the
+# database_id it prints and paste it below.
+[[d1_databases]]
+binding = "DB"                # accessed in code as env.DB
+database_name = "hello-cf-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
