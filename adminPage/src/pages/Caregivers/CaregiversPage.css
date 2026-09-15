@@ -1,0 +1,22 @@
+.caregivers-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.caregivers-page__actions {
+  padding-top: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+.caregivers-page__body {
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.caregivers-page__loading {
+  color: var(--color-ink-soft);
+  font-size: var(--fs-sm);
+  padding: var(--space-5) 0;
+}

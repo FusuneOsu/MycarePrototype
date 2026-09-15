@@ -1,0 +1,34 @@
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+.status-pill--available {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status-pill--on-duty {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.status-pill--off-duty {
+  background: var(--color-neutral-soft);
+  color: var(--color-neutral);
+}
+
+.status-pill--on-leave {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-pill--neutral {
+  background: var(--color-neutral-soft);
+  color: var(--color-neutral);
+}

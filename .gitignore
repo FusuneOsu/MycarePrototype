@@ -141,3 +141,48 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Production / Build outputs
+# (Vite uses 'dist', Create React App uses 'build')
+dist/
+build/
+out/
+
+# Cloudflare Pages / Wrangler local development cache
+.cloudflare/
+.wrangler/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.json
+
+# Optional: Cloudflare Wrangler configuration secrets
+# (Keep wrangler.json / wrangler.toml in git, but ignore local overrides if used)
+wrangler.user.toml
+
+# Editor / System files
+.DS_Store
+.idea/
+.vscode/
+*.suo   
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
