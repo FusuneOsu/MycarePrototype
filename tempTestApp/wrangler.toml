@@ -8,4 +8,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"                # accessed in code as env.DB
 database_name = "hello-cf-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "c719fe25-e607-4567-8455-ed556d23b534"

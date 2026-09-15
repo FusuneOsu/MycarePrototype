@@ -10,6 +10,6 @@
     "db:init:remote": "wrangler d1 execute hello-cf-db --remote --file=./schema.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.90.0"
+    "wrangler": "^4.131.2"
   }
 }
