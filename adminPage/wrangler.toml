@@ -7,4 +7,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "mycarePrototypeRDBMS"
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "1944c5c6-7c20-4425-be39-122bc98adc8a"
