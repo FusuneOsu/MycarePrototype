@@ -1,0 +1,4 @@
+.assignment-reporting-step__radio-row {
+  display: flex;
+  gap: var(--space-5);
+}

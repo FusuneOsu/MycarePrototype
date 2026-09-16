@@ -3,12 +3,12 @@ import PTORequestButton from '../PTORequestButton/PTORequestButton.jsx';
 import AvailabilityUpdateButton from '../AvailabilityUpdateButton/AvailabilityUpdateButton.jsx';
 import './CaregiverActionBar.css';
 
-function CaregiverActionBar() {
+function CaregiverActionBar({ onNewCaregiverClick }) {
   return (
     <div className="caregiver-action-bar">
       <AvailabilityUpdateButton />
       <PTORequestButton />
-      <NewCaregiverButton />
+      <NewCaregiverButton onClick={onNewCaregiverClick} />
     </div>
   );
 }

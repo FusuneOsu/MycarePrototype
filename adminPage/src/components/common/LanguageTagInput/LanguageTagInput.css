@@ -1,0 +1,92 @@
+.language-tag-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.language-tag-input__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 32px;
+}
+
+.language-tag-input__placeholder {
+  font-size: var(--fs-sm);
+  color: var(--color-ink-faint);
+  padding: var(--space-1) 0;
+}
+
+.language-tag-input__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.language-tag-input__chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--color-primary-dark);
+  font-size: 1rem;
+  line-height: 1;
+  padding: var(--space-1);
+  border-radius: 50%;
+  display: inline-flex;
+}
+
+.language-tag-input__chip-remove:hover {
+  background: rgba(31, 78, 69, 0.16);
+}
+
+.language-tag-input__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.language-tag-input__preset-select {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+.language-tag-input__custom {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.language-tag-input__custom input {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  min-width: 160px;
+}
+
+.language-tag-input__custom button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-ink);
+}
+
+.language-tag-input__custom button:hover:not(:disabled) {
+  background: var(--color-surface-sunken);
+}
+
+.language-tag-input__custom button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

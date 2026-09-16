@@ -1,0 +1,4 @@
+.caregiver-details-step__radio-row {
+  display: flex;
+  gap: var(--space-5);
+}
