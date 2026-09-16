@@ -1,0 +1,28 @@
+Want the manager-name field to show a live suggestion list (autocomplete) as you type, or is plain free-text + auto-fill-on-match good enough for now?
+-> I want it to show a live suggestion list but that will be for future development
+
+Next up, let's do the "Appointments section. 
+
+1. create a "patients" list. this will not be shown in the "post-op patients" section for now, only hidden for us to see in SQL database. create sample patients list for appointments only. I mean this is rapid prototyping so no need to worry. also add date added for patients (randomize and say some are added today, some last week I want it to show like a graph for future dashboard development later down the line. Also suggest me some other things which I can add do dashboard overview as a date-based graph display like "+/-XXX number of YYY today" other than patients I mentioned)
+
+2. Same like the manager-name field, I want appointments tab to have a patient search input field to show a live suggestion list based on the patients table. 
+
+3. Patients preferred language. system will recommend patient's preferred language to caregiver's fluent languages
+
+4. Appointment type -> Home Visit, caregiver center only for now. for home visit, admin can enter exact location where it will integrate OpenStreetMap so either can enter an address or pinpoint a location and it will save it to SQL database (How will you store typed in address vs pinpoint? because one has exact address and latter has latitude longitude). for care center just pinpoint some random locations in Kuala Lumpur or Selangor as care center location where it will be a fixed location selected by dropdown
+
+4. Caregiver gender preference -> male, female, no preference
+
+5. Booking Type -> One time booking / Recurring booking
+
+One time booking -> date of appointment(select date using calendar), start time, end time(dropdown select) -> then it will show duration automatically
+
+Recurring booking -> improvise for me on how this booking will become
+
+6. Task for caregiver -> there is a "+ add task" button. can write task. task can be removed by clicking "X" 
+
+7. Special Instructions for caregiver -> a textbox for custom caregiver Instructions. set limit whatever you want but enough to type a sentence for instrctions 
+
+All I mentioned above will be for "add appointment" button function. Appointments will be displayed in a calendar, where the "appointment" tab will be able to show based on current month, current week or current day and in the specific day will show the appointment set if any. 
+
+can also filter by caregiver(input name/id), patient name(name/patient id), status(caregiver assigned, scheduled, in progress, cancelled, missed, completed, no caregiver assigned), appointment type as well as be able to filter by "conflicted" appointments. make a few sample appointments which are conflicted where the admin will be able to see the conflicts and resolve it, and also see in "appointments" section 
