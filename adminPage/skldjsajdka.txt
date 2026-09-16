@@ -9,7 +9,7 @@ Next up, let's do the "Appointments section.
 
 3. Patients preferred language. system will recommend patient's preferred language to caregiver's fluent languages
 
-4. Appointment type -> Home Visit, caregiver center only for now. for home visit, admin can enter exact location where it will integrate OpenStreetMap so either can enter an address or pinpoint a location and it will save it to SQL database (How will you store typed in address vs pinpoint? because one has exact address and latter has latitude longitude). for care center just pinpoint some random locations in Kuala Lumpur or Selangor as care center location where it will be a fixed location selected by dropdown
+4. Appointment type -> Home Visit, caregiver center only for now. for home visit, admin can enter exact location where it will integrate OpenStreetMap API maps so either can enter an address or pinpoint a location and it will save it to SQL database (How will you store typed in address vs pinpoint? because one has exact address and latter has latitude longitude). for care center just pinpoint some random locations in Kuala Lumpur or Selangor as care center location where it will be a fixed location selected by dropdown
 
 4. Caregiver gender preference -> male, female, no preference
 
