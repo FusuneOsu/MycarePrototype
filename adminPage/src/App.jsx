@@ -6,6 +6,9 @@ import AppointmentsPage from './pages/Appointments/AppointmentsPage.jsx';
 import CaregiversPage from './pages/Caregivers/CaregiversPage.jsx';
 import PostOpPatientsPage from './pages/PostOpPatients/PostOpPatientsPage.jsx';
 import PatientRequestPage from './pages/PatientRequest/PatientRequestPage.jsx';
+import WhatsAppDemoPage from './pages/WhatsAppDemo/WhatsAppDemoPage.jsx';
+import PaymentsDemoPage from './pages/PaymentsDemo/PaymentsDemoPage.jsx';
+import RequestsPage from './pages/Requests/RequestsPage.jsx';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -28,9 +31,12 @@ function App() {
       <Route element={<AppLayout onLogout={() => setIsAuthenticated(false)} />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
+        <Route path="/requests" element={<RequestsPage />} />
         <Route path="/caregivers" element={<CaregiversPage />} />
         <Route path="/post-op-patients" element={<PostOpPatientsPage />} />
         <Route path="/requests/:requestId" element={<PatientRequestPage />} />
+        <Route path="/whatsapp" element={<WhatsAppDemoPage />} />
+        <Route path="/payments" element={<PaymentsDemoPage />} />
       </Route>
     </Routes>
   );

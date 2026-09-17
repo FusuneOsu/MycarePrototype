@@ -38,6 +38,7 @@ function PatientRequestPage() {
   const [assignmentStatus, setAssignmentStatus] = useState(storedRequest.assignmentStatus || 'Pending assignment');
   const [receiptStatus, setReceiptStatus] = useState(storedRequest.receiptStatus || 'Receipt pending');
   const [payoutStatus, setPayoutStatus] = useState(storedRequest.payoutStatus || 'Awaiting payment');
+  const [paymentMessage, setPaymentMessage] = useState('');
 
   useEffect(() => {
     const syncRequest = (event) => {
@@ -60,6 +61,33 @@ function PatientRequestPage() {
     window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next));
     setStoredRequest(next);
     setAssignmentStatus(next.assignmentStatus);
+  };
+
+  const createPaymentLink = async () => {
+    setPaymentMessage('Creating secure payment link...');
+    try {
+      const response = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: storedRequest.id,
+          patientId: storedRequest.patientId,
+          amountCents: 12000,
+          currency: 'myr',
+          description: `${storedRequest.careType} for ${storedRequest.patientName}`,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Payment link could not be created.');
+      if (result.demo) {
+        setPaymentMessage('Demo mode: add STRIPE_SECRET_KEY to create a real Stripe test link.');
+        return;
+      }
+      setPaymentMessage('Payment link created.');
+      window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      setPaymentMessage(error.message);
+    }
   };
 
   return (
@@ -109,6 +137,8 @@ function PatientRequestPage() {
             <div className="patient-request-amount"><span>Patient service amount</span><strong>{storedRequest.serviceAmount}</strong></div>
             <div className="patient-request-payment-row"><span>Receipt from WhatsApp</span><StatusPill status={receiptStatus} /></div>
             <div className="patient-request-payment-row"><span>Caregiver payout</span><strong>{storedRequest.caregiverPayment}</strong></div>
+            <button type="button" className="patient-request-secondary" onClick={createPaymentLink}>Create patient payment link</button>
+            {paymentMessage && <p className="patient-request-helper">{paymentMessage}</p>}
             <button type="button" className="patient-request-secondary" onClick={() => { const next = { ...storedRequest, receiptStatus: 'Receipt verified' }; window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next)); setStoredRequest(next); setReceiptStatus(next.receiptStatus); }}>Mark receipt verified</button>
             <button type="button" className="patient-request-primary" disabled={receiptStatus !== 'Receipt verified' || assignmentStatus !== 'Caregiver assigned'} onClick={() => { const next = { ...storedRequest, payoutStatus: 'Paid to caregiver' }; window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next)); setStoredRequest(next); setPayoutStatus(next.payoutStatus); }}>{payoutStatus === 'Paid to caregiver' ? 'Caregiver paid' : 'Release caregiver payment'}</button>
           </article>

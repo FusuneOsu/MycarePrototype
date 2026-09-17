@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/common/Sidebar/Sidebar.jsx';
+import WhatsAppRequestPopup from '../components/common/WhatsAppRequestPopup.jsx';
 import './AppLayout.css';
 
 function AppLayout({ onLogout }) {
@@ -9,6 +10,7 @@ function AppLayout({ onLogout }) {
       <main className="app-layout__content">
         <Outlet />
       </main>
+      <WhatsAppRequestPopup />
     </div>
   );
 }

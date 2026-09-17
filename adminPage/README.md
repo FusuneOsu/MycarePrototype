@@ -50,6 +50,19 @@ Nothing here talks to a database yet — `src/data/mockCaregivers.js` is the
 data source. That's intentional so you can review the UI before any
 backend work.
 
+## Stripe test payments
+
+The patient request detail page includes a Stripe Checkout test flow through
+`POST /api/payments/create-checkout`. Without a Stripe key, it stays in demo
+mode. To enable Stripe test links on Cloudflare, add the secret:
+
+```bash
+npx wrangler secret put STRIPE_SECRET_KEY
+```
+
+Set the Stripe webhook endpoint to `/api/payments/webhook`. Add webhook
+signature verification before using this endpoint with real payment records.
+
 ## 2. Cloudflare account setup (one-time)
 
 You'll need:
