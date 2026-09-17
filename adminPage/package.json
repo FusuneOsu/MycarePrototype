@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5173",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -17,6 +17,7 @@
     "db:seed:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./db/seed.sql"
   },
   "dependencies": {
+    "mycare-caregiver": "file:../caregiverPage",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

@@ -18,6 +18,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+button,
+input,
+select,
+textarea {
+  border-radius: var(--radius-sm);
+}
+
+button {
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
 #root {
   min-height: 100vh;
 }
