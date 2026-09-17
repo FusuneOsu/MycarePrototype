@@ -94,3 +94,28 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 @media (max-width: 980px) { .auth { grid-template-columns: 1fr; }.intro { min-height: 310px; padding: 28px 32px; }.intro-copy { margin-top: 40px; }.intro-copy h1 { font-size: 39px; }.note { display: none; }.auth-card { padding: 42px 0; }.stats, .grid, .route, .report-grid { grid-template-columns: repeat(2, 1fr); }.grid, .route, .report-grid { grid-template-columns: 1fr; } }
 @media (max-width: 680px) { .side { width: 65px; flex-basis: 65px; padding: 18px 8px; }.side .brand { padding: 0 4px 30px; }.side .brand span, .label, .nav button span, .profile > div, .language, .logout { display: none; }.nav button { justify-content: center; padding: 12px 0; }.profile { justify-content: center; padding: 11px 0 18px; }.main { padding: 24px 16px; }.top-profile strong { display: none; }.stats { gap: 10px; }.stat { padding: 14px; }.stat h2 { font-size: 23px; }.patient-list-head, .history-header { display: none; }.patient-row { grid-template-columns: 1fr auto; }.patient-row > *:not(.patient):not(.arrow), .history-row > span:not(:first-child):not(:last-child) { display: none; }.detail-grid { grid-template-columns: 1fr; }.page-intro { gap: 10px; }.page-intro h2 { font-size: 19px; }.route-summary { padding: 16px; }.history-row { grid-template-columns: 1fr auto; } }
 @media (min-width: 681px) { .side { position: fixed; inset: 0 auto 0 0; height: 100vh; overflow: hidden; }.main { margin-left: 246px; min-height: 100vh; overflow-y: auto; height: 100vh; } }
+
+.map-panel .map {
+	height: 295px;
+}
+
+.map-panel .legend {
+	display: flex;
+	gap: 17px;
+	padding: 14px 20px;
+	color: var(--muted);
+	font-size: 11px;
+}
+
+.map-panel .legend span::before {
+	content: '';
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	margin-right: 6px;
+	border-radius: 50%;
+	background: var(--green);
+}
+
+.map-panel .legend .blue::before { background: var(--blue); }
+.map-panel .legend .coral::before { background: var(--coral); }
