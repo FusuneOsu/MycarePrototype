@@ -34,6 +34,14 @@ function CaregiversPage() {
     setCaregivers((prev) => [newCaregiver, ...prev]);
   };
 
+  const handleAvailabilityChange = (caregiverId, availability) => {
+    setCaregivers((prev) =>
+      prev.map((caregiver) =>
+        caregiver.id === caregiverId ? { ...caregiver, availability } : caregiver,
+      ),
+    );
+  };
+
   return (
     <div className="caregivers-page">
       <div className="caregivers-page__header">
@@ -58,7 +66,11 @@ function CaregiversPage() {
               options={options}
               resultCount={filteredCaregivers.length}
             />
-            <CaregiverTable caregivers={filteredCaregivers} onSeeMore={handleSeeMore} />
+            <CaregiverTable
+              caregivers={filteredCaregivers}
+              onSeeMore={handleSeeMore}
+              onAvailabilityChange={handleAvailabilityChange}
+            />
           </>
         )}
       </div>

@@ -1,7 +1,8 @@
-import StatusPill from '../StatusPill/StatusPill.jsx';
 import './CaregiverTable.css';
 
-function CaregiverTable({ caregivers, onSeeMore }) {
+const AVAILABILITY_OPTIONS = ['Available', 'On Duty', 'Off Duty', 'On Leave'];
+
+function CaregiverTable({ caregivers, onSeeMore, onAvailabilityChange }) {
   if (caregivers.length === 0) {
     return (
       <div className="caregiver-table__empty">
@@ -31,7 +32,20 @@ function CaregiverTable({ caregivers, onSeeMore }) {
               <td>{caregiver.gender}</td>
               <td>{caregiver.center}</td>
               <td>
-                <StatusPill status={caregiver.availability} />
+                <select
+                  className="caregiver-table__availability"
+                  value={caregiver.availability}
+                  aria-label={`Availability for ${caregiver.name}`}
+                  onChange={(event) =>
+                    onAvailabilityChange(caregiver.id, event.target.value)
+                  }
+                >
+                  {AVAILABILITY_OPTIONS.map((availability) => (
+                    <option key={availability} value={availability}>
+                      {availability}
+                    </option>
+                  ))}
+                </select>
               </td>
               <td className="caregiver-table__actions">
                 <button
