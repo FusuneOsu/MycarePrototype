@@ -2,6 +2,18 @@
   "name": "mycare-prototype",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "admin:dev": "npm --prefix adminPage run dev",
+    "admin:build": "npm --prefix adminPage run build",
+    "admin:pages:dev": "npm --prefix adminPage run pages:dev",
+    "admin:pages:deploy": "npm --prefix adminPage run pages:deploy",
+    "admin:db:create": "npm --prefix adminPage run db:create",
+    "admin:db:schema:local": "npm --prefix adminPage run db:schema:local",
+    "admin:db:schema:remote": "npm --prefix adminPage run db:schema:remote",
+    "admin:db:seed:local": "npm --prefix adminPage run db:seed:local",
+    "admin:db:seed:remote": "npm --prefix adminPage run db:seed:remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.2"
   }
 }
