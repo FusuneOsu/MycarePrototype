@@ -1,6 +1,10 @@
 {
   "name": "mycare-prototype",
   "private": true,
+    "workspaces": [
+    "adminPage",
+    "caregiverPage"
+  ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "admin:dev": "npm --prefix adminPage run dev",
@@ -11,7 +15,9 @@
     "admin:db:schema:local": "npm --prefix adminPage run db:schema:local",
     "admin:db:schema:remote": "npm --prefix adminPage run db:schema:remote",
     "admin:db:seed:local": "npm --prefix adminPage run db:seed:local",
-    "admin:db:seed:remote": "npm --prefix adminPage run db:seed:remote"
+    "admin:db:seed:remote": "npm --prefix adminPage run db:seed:remote",
+    "build": "npm run build -w caregiverPage && npm run build -w adminPage && node copy-caregiver-into-admin.js"
+
   },
   "devDependencies": {
     "wrangler": "^4.131.2"
