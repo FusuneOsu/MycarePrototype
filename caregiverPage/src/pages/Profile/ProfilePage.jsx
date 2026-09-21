@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Avatar } from '../../components/common.jsx';
 import { dismissChangeRequest, fieldLabel } from '../../data/profileChanges.js';
 import { formatRating } from '../../../../shared/bookingHistory.js';
+import { Tabs } from '../../../../shared/ui/index.js';
 
 const show = (value) => (Array.isArray(value) ? value.join(', ') : value) || '—';
 const date = (value) => {
@@ -69,11 +70,7 @@ export default function ProfilePage({ profile, onEdit, onRefresh, onNotify }) {
       </div>
     </div>
 
-    <div className="profile-tabs" role="tablist">
-      {TABS.map((item) => <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={tab === item.id ? 'profile-tab profile-tab--on' : 'profile-tab'} onClick={() => setTab(item.id)}>
-        {item.label}{flagged(item.fields) && <i className="profile-tab-dot" aria-label="needs attention" />}
-      </button>)}
-    </div>
+    <Tabs fill label="Profile sections" value={tab} onChange={setTab} tabs={TABS.map((item) => ({ id: item.id, label: item.label, flagged: flagged(item.fields) }))} />
 
     <div className="profile-panel" role="tabpanel">
       {tab === 'personal' && <div className="detail-grid">

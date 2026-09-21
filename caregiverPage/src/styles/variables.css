@@ -1,15 +1,22 @@
+/*
+ * Caregiver variable names, mapped onto the shared design tokens
+ * (shared/ui/tokens.css). The caregiver workspace is the reference design, so
+ * these values are unchanged — they now just live in one place for both apps.
+ */
+@import '../../../shared/ui/tokens.css';
+
 :root {
-  --ink: #172a36;
-  --muted: #71818a;
-  --line: #dce9e5;
-  --paper: #f4faf7;
-  --white: #fff;
-  --green: #128a69;
-  --dark: #09684f;
-  --mint: #dff3eb;
-  --blue: #1766a3;
-  --navy: #123d61;
-  --coral: #e98069;
-  --gold: #b77a35;
-  --shadow: 0 18px 50px #1e4b4417;
+  --ink: var(--ui-ink);
+  --muted: var(--ui-muted);
+  --line: var(--ui-line);
+  --paper: var(--ui-paper);
+  --white: var(--ui-surface);
+  --green: var(--ui-green);
+  --dark: var(--ui-green-dark);
+  --mint: var(--ui-mint);
+  --blue: var(--ui-blue);
+  --navy: var(--ui-navy);
+  --coral: var(--ui-coral);
+  --gold: var(--ui-gold);
+  --shadow: var(--ui-shadow);
 }

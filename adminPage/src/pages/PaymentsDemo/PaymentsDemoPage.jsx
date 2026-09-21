@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
+import { Button, Card, CellStack, Pill, SectionHeader, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
 import './PaymentsDemoPage.css';
 
 const initialPayments = [
@@ -11,8 +12,49 @@ const initialPayments = [
 
 export default function PaymentsDemoPage() {
   const [payments, setPayments] = useState(initialPayments);
-  const verify = (id) => setPayments((items) => items.map((item) => item.id === id ? { ...item, patientStatus: 'Receipt verified', caregiverStatus: 'Ready to pay' } : item));
-  const payout = (id) => setPayments((items) => items.map((item) => item.id === id ? { ...item, caregiverStatus: 'Paid to caregiver' } : item));
+  const verify = (id) => setPayments((items) => items.map((item) => (item.id === id ? { ...item, patientStatus: 'Receipt verified', caregiverStatus: 'Ready to pay' } : item)));
+  const payout = (id) => setPayments((items) => items.map((item) => (item.id === id ? { ...item, caregiverStatus: 'Paid to caregiver' } : item)));
 
-  return <div className="payments-demo-page"><Topbar title="Payments" subtitle="Demo the patient payment and caregiver payout workflow." /><div className="payments-demo-page__body"><div className="payments-demo-page__banner"><div><p className="payments-demo-page__eyebrow">Mock payment gateway</p><h2>Payment operations</h2><p>Review receipts, verify patient payments, and release caregiver payouts.</p></div><span className="payments-demo-page__test-badge">TEST MODE · NO REAL CHARGES</span></div><div className="payments-demo-page__stats"><div><span>Awaiting receipts</span><strong>1</strong></div><div><span>Ready to pay caregivers</span><strong>1</strong></div><div><span>Completed payouts</span><strong>1</strong></div></div><section className="payments-demo-table"><div className="payments-demo-table__head"><span>Payment</span><span>Patient</span><span>Amount</span><span>Patient status</span><span>Caregiver payout</span><span>Action</span></div>{payments.map((payment) => <div className="payments-demo-table__row" key={payment.id}><span><strong>{payment.id}</strong><small>{payment.date}</small></span><span>{payment.patient}<small>Caregiver: {payment.caregiver}</small></span><strong>{payment.amount}</strong><StatusPill status={payment.patientStatus} /><StatusPill status={payment.caregiverStatus} /><span className="payments-demo-table__actions">{payment.patientStatus !== 'Receipt verified' && payment.patientStatus !== 'Paid' && <button type="button" onClick={() => verify(payment.id)}>Verify receipt</button>}{payment.caregiverStatus === 'Ready to pay' && <button type="button" onClick={() => payout(payment.id)}>Pay caregiver</button>}{payment.caregiverStatus === 'Paid to caregiver' && <span className="payments-demo-table__complete">Complete</span>}</span></div>)}</section><p className="payments-demo-page__note">Demo only. This screen does not connect to Stripe or move money.</p></div></div>;
+  const awaitingReceipts = payments.filter((item) => item.patientStatus === 'Payment link sent').length;
+  const readyToPay = payments.filter((item) => item.caregiverStatus === 'Ready to pay').length;
+  const completed = payments.filter((item) => item.caregiverStatus === 'Paid to caregiver').length;
+
+  return (
+    <div className="payments-demo-page">
+      <Topbar title="Payments" subtitle="Demo the patient payment and caregiver payout workflow." />
+
+      <StatGrid>
+        <StatCard label="Awaiting receipts" value={awaitingReceipts} note="Payment link sent to patient" icon="◌" tone="gold" />
+        <StatCard label="Ready to pay caregivers" value={readyToPay} note="Receipt verified" icon="RM" />
+        <StatCard label="Completed payouts" value={completed} note="Paid to caregiver" icon="✓" />
+      </StatGrid>
+
+      <Card padded>
+        <SectionHeader
+          eyebrow="Mock payment gateway"
+          title="Payment operations"
+          intro="Review receipts, verify patient payments, and release caregiver payouts."
+          actions={<Pill tone="warning">Test mode · no real charges</Pill>}
+        />
+
+        <Table columns={['Payment', 'Patient', 'Amount', 'Patient status', 'Caregiver payout', '']} label="Payments">
+          {payments.map((payment) => (
+            <tr key={payment.id}>
+              <td><CellStack primary={payment.id} secondary={payment.date} /></td>
+              <td><CellStack primary={payment.patient} secondary={`Caregiver: ${payment.caregiver}`} /></td>
+              <td><strong>{payment.amount}</strong></td>
+              <td><StatusPill status={payment.patientStatus} /></td>
+              <td><StatusPill status={payment.caregiverStatus} /></td>
+              <td className="ui-table__actions">
+                {payment.patientStatus !== 'Receipt verified' && payment.patientStatus !== 'Paid' && <Button size="sm" onClick={() => verify(payment.id)}>Verify receipt</Button>}
+                {payment.caregiverStatus === 'Ready to pay' && <Button variant="primary" size="sm" onClick={() => payout(payment.id)}>Pay caregiver</Button>}
+                {payment.caregiverStatus === 'Paid to caregiver' && <span className="ui-table__muted">Complete</span>}
+              </td>
+            </tr>
+          ))}
+        </Table>
+        <p className="payments-demo-page__note">Demo only. This screen does not connect to Stripe or move money.</p>
+      </Card>
+    </div>
+  );
 }

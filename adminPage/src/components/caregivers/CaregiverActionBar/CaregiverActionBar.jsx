@@ -1,16 +1,15 @@
-import NewCaregiverButton from '../NewCaregiverButton/NewCaregiverButton.jsx';
-import PTORequestButton from '../PTORequestButton/PTORequestButton.jsx';
-import './CaregiverActionBar.css';
+import { Button } from '../../../../../shared/ui/index.js';
 
 function CaregiverActionBar({ onNewCaregiverClick, onShareLinkClick }) {
+  // PTO requests are not wired up to a flow yet.
+  const requestPto = () => window.alert('PTO Request: not wired up yet.');
+
   return (
-    <div className="caregiver-action-bar">
-      <button type="button" className="caregiver-action-bar__link" onClick={onShareLinkClick}>
-        Share application link
-      </button>
-      <PTORequestButton />
-      <NewCaregiverButton onClick={onNewCaregiverClick} />
-    </div>
+    <>
+      <Button variant="secondary" onClick={onShareLinkClick}>Share application link</Button>
+      <Button variant="secondary" onClick={requestPto}>PTO Request</Button>
+      <Button variant="primary" size="sm" onClick={onNewCaregiverClick}>+ New Caregiver</Button>
+    </>
   );
 }
 

@@ -49,36 +49,6 @@
   font-size: var(--fs-xs);
 }
 
-.caregiver-detail-modal__tabs {
-  display: flex;
-  gap: var(--space-1);
-  margin-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
-}
-
-.caregiver-detail-modal__tab {
-  flex: none;
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--color-ink-soft);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  white-space: nowrap;
-}
-
-.caregiver-detail-modal__tab:hover {
-  color: var(--color-primary-dark);
-}
-
-.caregiver-detail-modal__tab--on {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-primary-dark);
-  font-weight: var(--fw-semibold);
-}
-
 .caregiver-detail-modal__panel {
   min-height: 260px;
 }
@@ -128,35 +98,6 @@
   font: inherit;
   font-size: var(--fs-sm);
   resize: vertical;
-}
-
-.caregiver-detail-modal__btn {
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-}
-
-.caregiver-detail-modal__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.caregiver-detail-modal__btn--primary {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #FFFFFF;
-}
-
-.caregiver-detail-modal__btn--danger {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-}
-
-.caregiver-detail-modal__btn--danger:hover:not(:disabled) {
-  background: var(--color-danger-soft);
 }
 
 .caregiver-detail-modal__stats {

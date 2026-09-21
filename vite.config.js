@@ -50,6 +50,16 @@ export default defineConfig({
         '^/caregiver(?:/|$)': {
           target: 'http://localhost:5174',
           changeOrigin: true,
+          ws: true,
+          // A browser dropping the proxied connection (tab closed mid-load,
+          // HMR socket reset) must not take the whole admin dev server down —
+          // unhandled ECONNRESET errors here used to crash it.
+          configure: (proxy) => {
+            const ignore = () => {};
+            proxy.on('error', (error) => console.warn(`[caregiver proxy] ${error.code || error.message}`));
+            proxy.on('proxyReqWs', (_proxyReq, _req, socket) => socket.on('error', ignore));
+            proxy.on('open', (proxySocket) => proxySocket.on('error', ignore));
+          },
         },
       },
     } : {}),

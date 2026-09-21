@@ -1,76 +1,79 @@
 /*
-  Design tokens for the myCare admin prototype.
-  Every component should pull colors, spacing, radii and type sizes
-  from these variables instead of hard-coding values, so the whole
-  app stays visually consistent as more pages are added.
-*/
+ * Admin variable names, mapped onto the shared design tokens
+ * (shared/ui/tokens.css) so every admin stylesheet uses the same palette,
+ * type scale and shapes as the caregiver workspace. Prefer the --ui-* tokens
+ * in new CSS; these aliases exist so older styles keep working.
+ */
+@import '../../../shared/ui/tokens.css';
+
 :root {
   /* Palette */
-  --color-bg: #F4FAF7;
-  --color-surface: #FFFFFF;
-  --color-surface-sunken: #EEF8F4;
+  --color-bg: var(--ui-paper);
+  --color-surface: var(--ui-surface);
+  --color-surface-sunken: var(--ui-surface-sunken);
 
-  --color-ink: #172A36;
-  --color-ink-soft: #52666E;
-  --color-ink-faint: #71818A;
+  --color-ink: var(--ui-ink);
+  --color-ink-soft: var(--ui-ink-soft);
+  --color-ink-faint: var(--ui-muted);
 
-  --color-border: #DCE9E5;
-  --color-border-strong: #CBDCD7;
+  --color-border: var(--ui-line);
+  --color-border-strong: var(--ui-line-strong);
 
-  --color-primary: #128A69;
-  --color-primary-dark: #123D61;
-  --color-primary-soft: #DFF3EB;
+  --color-primary: var(--ui-green);
+  --color-primary-dark: var(--ui-green-dark);
+  --color-primary-soft: var(--ui-mint);
+  --color-navy: var(--ui-navy);
 
-  --color-accent: #E98069;
-  --color-accent-dark: #B66458;
-  --color-accent-soft: #F8E3D8;
+  --color-accent: var(--ui-coral);
+  --color-accent-dark: var(--ui-coral-dark);
+  --color-accent-soft: var(--ui-coral-soft);
 
-  --color-danger: #B5484B;
-  --color-danger-soft: #F7E4E3;
+  --color-danger: var(--ui-danger);
+  --color-danger-soft: var(--ui-danger-soft);
 
-  --color-success: #2F7A4F;
-  --color-success-soft: #E4F1E8;
+  --color-success: var(--ui-green-dark);
+  --color-success-soft: var(--ui-mint);
 
-  --color-warning: #B8863A;
-  --color-warning-soft: #F6ECDA;
+  --color-warning: var(--ui-gold);
+  --color-warning-soft: var(--ui-gold-soft);
 
-  --color-neutral: #64767A;
-  --color-neutral-soft: #E9EDEE;
+  --color-neutral: var(--ui-neutral);
+  --color-neutral-soft: var(--ui-neutral-soft);
 
-  /* Typography */
-  --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Typography — the caregiver scale: 14px body, bold (700) emphasis */
+  --font-ui: var(--ui-font);
 
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.8125rem;
-  --fs-base: 0.9375rem;
-  --fs-md: 1.0625rem;
-  --fs-lg: 1.375rem;
-  --fs-xl: 1.75rem;
+  --fs-xs: var(--ui-text-xs);
+  --fs-sm: var(--ui-text-sm);
+  --fs-base: var(--ui-text-base);
+  --fs-md: var(--ui-text-lg);
+  --fs-lg: var(--ui-text-2xl);
+  --fs-xl: var(--ui-text-3xl);
 
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
+  --fw-regular: var(--ui-weight-regular);
+  --fw-medium: var(--ui-weight-bold);
+  --fw-semibold: var(--ui-weight-bold);
+  --fw-bold: var(--ui-weight-bold);
 
   /* Spacing scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
+  --space-1: var(--ui-space-1);
+  --space-2: var(--ui-space-2);
+  --space-3: var(--ui-space-3);
+  --space-4: var(--ui-space-4);
   --space-5: 24px;
   --space-6: 32px;
-  --space-7: 48px;
+  --space-7: var(--ui-space-7);
 
   /* Radii & elevation */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 8px;
-  --radius-pill: 999px;
+  --radius-sm: var(--ui-radius-sm);
+  --radius-md: var(--ui-radius);
+  --radius-lg: var(--ui-radius);
+  --radius-pill: var(--ui-radius-pill);
 
-  --shadow-card: 0 18px 50px rgba(30, 75, 68, 0.09);
-  --shadow-popover: 0 18px 45px rgba(18, 61, 97, 0.12);
+  --shadow-card: var(--ui-shadow);
+  --shadow-popover: var(--ui-shadow-pop);
 
   /* Layout */
-  --sidebar-width: 246px;
+  --sidebar-width: var(--ui-sidebar-width);
   --topbar-height: 64px;
 }

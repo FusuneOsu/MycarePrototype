@@ -1,0 +1,85 @@
+/*
+ * My CareGivers design tokens — the single source of colour, type, spacing
+ * and shape for every page in both apps.
+ *
+ * Values come from the caregiver workspace, which is the reference design.
+ * Each app's own variables.css maps its older variable names onto these, so
+ * existing CSS keeps working while pointing at one palette.
+ */
+:root {
+  /* Ink & surfaces */
+  --ui-ink: #172a36;
+  --ui-ink-soft: #52666e;
+  --ui-muted: #71818a;
+  --ui-faint: #849399;
+  --ui-label: #99a9af;
+  --ui-paper: #f4faf7;
+  --ui-surface: #ffffff;
+  --ui-surface-sunken: #f8fbfa;
+  --ui-surface-tint: #f0f8f5;
+  --ui-sidebar: #fafdfe;
+
+  /* Lines */
+  --ui-line: #dce9e5;
+  --ui-line-soft: #edf2f1;
+  --ui-line-strong: #cbdcd7;
+
+  /* Brand */
+  --ui-green: #128a69;
+  --ui-green-dark: #09684f;
+  --ui-mint: #dff3eb;
+  --ui-mint-soft: #f4fbf8;
+  --ui-navy: #123d61;
+
+  /* Accents & status */
+  --ui-blue: #1766a3;
+  --ui-blue-soft: #d8e9f4;
+  --ui-coral: #e98069;
+  --ui-coral-dark: #b66458;
+  --ui-coral-soft: #f8e3d8;
+  --ui-gold: #b77a35;
+  --ui-gold-soft: #fbf1e3;
+  --ui-danger: #b5484b;
+  --ui-danger-soft: #f7e4e3;
+  --ui-neutral: #647780;
+  --ui-neutral-soft: #eef3f2;
+
+  /* Type */
+  --ui-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ui-font-display: 'Fraunces', Georgia, serif;
+  --ui-text-2xs: 10px;
+  --ui-text-xs: 11px;
+  --ui-text-sm: 12px;
+  --ui-text-md: 13px;
+  --ui-text-base: 14px;
+  --ui-text-lg: 15px;
+  --ui-text-xl: 17px;
+  --ui-text-2xl: 22px;
+  --ui-text-3xl: 28px;
+  --ui-text-display: clamp(25px, 3vw, 32px);
+  --ui-weight-regular: 400;
+  --ui-weight-bold: 700;
+  --ui-tracking-tight: -0.04em;
+  --ui-tracking-caps: 0.1em;
+
+  /* Space */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 22px;
+  --ui-space-6: 30px;
+  --ui-space-7: 48px;
+
+  /* Shape & depth */
+  --ui-radius-sm: 7px;
+  --ui-radius: 8px;
+  --ui-radius-lg: 12px;
+  --ui-radius-pill: 999px;
+  --ui-shadow: 0 18px 50px #1e4b4417;
+  --ui-shadow-pop: 0 18px 45px #123d611f;
+  --ui-focus-ring: 3px solid #128a6944;
+
+  /* Layout */
+  --ui-sidebar-width: 246px;
+}

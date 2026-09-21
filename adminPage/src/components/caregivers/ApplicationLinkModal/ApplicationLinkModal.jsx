@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from '../../common/Modal/Modal.jsx';
+import { Button, Input } from '../../../../../shared/ui/index.js';
 import './ApplicationLinkModal.css';
 
 // The caregiver app opens straight into the application form when ?apply=1 is set.
@@ -32,17 +33,12 @@ function ApplicationLinkModal({ isOpen, onClose }) {
         Share this link on WhatsApp or your website. It opens the application form directly. Applications appear in the Caregivers list as Pending approval.
       </p>
       <div className="application-link__row">
-        <input className="application-link__input" readOnly value={link} onFocus={(event) => event.target.select()} aria-label="Application link" />
-        <button type="button" className="application-link__btn" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+        <Input readOnly value={link} onFocus={(event) => event.target.select()} aria-label="Application link" />
+        <Button variant="primary" size="sm" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Button>
       </div>
-      <a
-        className="application-link__whatsapp"
-        href={`https://wa.me/?text=${encodeURIComponent(message)}`}
-        target="_blank"
-        rel="noreferrer"
-      >
+      <Button href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer">
         Share on WhatsApp
-      </a>
+      </Button>
     </Modal>
   );
 }

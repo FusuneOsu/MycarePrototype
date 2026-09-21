@@ -47,8 +47,8 @@ export const mockBedInventory = [
 ];
 
 export const mockDischargeBreakdown = [
-  { label: 'Previously discharged', value: 42, color: '#2F6F63' },
-  { label: 'Currently active', value: 58, color: '#C97A3D' },
+  { label: 'Previously discharged', value: 42, color: 'var(--ui-green)' },
+  { label: 'Currently active', value: 58, color: 'var(--ui-gold)' },
 ];
 
 export const mockPtoRequests = [

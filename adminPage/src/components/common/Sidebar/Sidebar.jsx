@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import './Sidebar.css';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Sidebar as UiSidebar } from '../../../../../shared/ui/index.js';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '⌂', end: true },
@@ -10,39 +10,23 @@ const NAV_ITEMS = [
   { to: '/payments', label: 'Payments', icon: 'RM' },
 ];
 
-function Sidebar({ onLogout }) {
-  return (
-    <aside className="sidebar">
-      <div className="sidebar__brand">
-        <img className="sidebar__brand-logo" src={`${import.meta.env.BASE_URL}logo.jpg`} alt="My CareGivers logo" />
-        <span className="sidebar__brand-name">myCare Admin</span>
-      </div>
+const isActive = (item, pathname) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`));
 
-      <div className="sidebar__section-label">Workspace</div>
-      <nav className="sidebar__nav">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) =>
-              isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link'
-            }
-          >
-            <span className="sidebar__link-icon" aria-hidden="true">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-      <div className="sidebar__bottom">
-        <div className="sidebar__profile">
-          <span className="sidebar__avatar">AD</span>
-          <span><strong>Admin User</strong><small>Administrator</small></span>
-        </div>
-        <div className="sidebar__language"><span>English</span><button type="button" className="sidebar__toggle" aria-label="Toggle language" /></div>
-        <button type="button" className="sidebar__logout" onClick={onLogout}>↪ &nbsp; Log out</button>
-      </div>
-    </aside>
+/** The shared system sidebar, wired to the admin app's routes. */
+function Sidebar({ onLogout }) {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <UiSidebar
+      logoSrc={`${import.meta.env.BASE_URL}logo.jpg`}
+      brandName="myCare Admin"
+      items={NAV_ITEMS.map((item) => ({ key: item.to, label: item.label, icon: item.icon, active: isActive(item, pathname), onSelect: () => navigate(item.to) }))}
+      profile={{ initials: 'AD', name: 'Admin User', role: 'Administrator' }}
+      language="English"
+      onToggleLanguage={() => {}}
+      onLogout={onLogout}
+    />
   );
 }
 

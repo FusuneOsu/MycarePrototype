@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
-import './RequestsPage.css';
+import { Button, Card, CellStack, SectionHeader, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
 
 const requests = [
   { id: 'WA-REQ-1001', source: 'WhatsApp', patient: 'Nur Aisyah Rahman', care: 'Post-operative home care', location: 'Kuala Lumpur', date: '28 Sep 2026 · 10:00', status: 'New' },
@@ -11,11 +11,68 @@ const requests = [
   { id: 'WEB-REQ-0995', source: 'Website', patient: 'Sofia Hassan', care: 'Medication reminders', location: 'Cheras', date: '30 Sep 2026 · 11:00', status: 'Rejected' },
 ];
 
+const count = (status) => requests.filter((request) => request.status === status).length;
+
 export default function RequestsPage() {
   const navigate = useNavigate();
   const [source, setSource] = useState('All');
   const [status, setStatus] = useState('All');
   const filtered = useMemo(() => requests.filter((request) => (source === 'All' || request.source === source) && (status === 'All' || request.status === status)), [source, status]);
 
-  return <div className="requests-page"><Topbar title="Requests" subtitle="Review every patient request before turning it into a booking." /><div className="requests-page__body"><div className="requests-page__intro"><div><p className="requests-page__eyebrow">Central intake queue</p><h2>Patient requests</h2><p>WhatsApp and website requests follow the same review and assignment workflow.</p></div><div className="requests-page__filters"><select value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filter by source"><option>All</option><option>WhatsApp</option><option>Website</option></select><select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by status"><option>All</option><option>New</option><option>In Review</option><option>Booked</option><option>Rejected</option></select></div></div><div className="requests-page__summary"><div><span>New</span><strong>{requests.filter((request) => request.status === 'New').length}</strong></div><div><span>In review</span><strong>{requests.filter((request) => request.status === 'In Review').length}</strong></div><div><span>Booked</span><strong>{requests.filter((request) => request.status === 'Booked').length}</strong></div><div><span>Sources</span><strong>WhatsApp + Website</strong></div></div><section className="requests-table"><div className="requests-table__head"><span>Request</span><span>Patient</span><span>Care requested</span><span>Location</span><span>Preferred visit</span><span>Status</span><span /></div>{filtered.map((request) => <button type="button" className="requests-table__row" key={request.id} onClick={() => navigate(`/requests/${request.id}`)}><span><strong>{request.id}</strong><small>{request.source}</small></span><span>{request.patient}</span><span>{request.care}</span><span>{request.location}</span><span>{request.date}</span><StatusPill status={request.status} /><span className="requests-table__arrow">›</span></button>)}</section></div></div>;
+  return (
+    <div className="requests-page">
+      <Topbar title="Requests" subtitle="Review every patient request before turning it into a booking." />
+
+      <StatGrid>
+        <StatCard label="New" value={count('New')} note="Waiting for first review" icon="◌" />
+        <StatCard label="In review" value={count('In Review')} note="Being matched to a caregiver" icon="◷" tone="gold" />
+        <StatCard label="Booked" value={count('Booked')} note="Turned into appointments" icon="✓" />
+        <StatCard label="Sources" value="2" note="WhatsApp and website" icon="▣" />
+      </StatGrid>
+
+      <Card padded>
+        <SectionHeader
+          eyebrow="Central intake queue"
+          title="Patient requests"
+          intro="WhatsApp and website requests follow the same review and assignment workflow."
+          actions={(
+            <>
+              <Select size="sm" value={source} onChange={(event) => setSource(event.target.value)} aria-label="Filter by source">
+                <option value="All">All sources</option>
+                <option>WhatsApp</option>
+                <option>Website</option>
+              </Select>
+              <Select size="sm" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter by status">
+                <option value="All">All statuses</option>
+                <option>New</option>
+                <option>In Review</option>
+                <option>Booked</option>
+                <option>Rejected</option>
+              </Select>
+            </>
+          )}
+        />
+
+        <Table
+          columns={['Request', 'Patient', 'Care requested', 'Location', 'Preferred visit', 'Status', '']}
+          label="Patient requests"
+          empty={filtered.length === 0 && 'No requests match these filters.'}
+        >
+          {filtered.map((request) => (
+            <tr key={request.id} onClick={() => navigate(`/requests/${request.id}`)} style={{ cursor: 'pointer' }}>
+              <td><CellStack primary={request.id} secondary={request.source} /></td>
+              <td>{request.patient}</td>
+              <td className="ui-table__muted">{request.care}</td>
+              <td>{request.location}</td>
+              <td className="ui-table__muted">{request.date}</td>
+              <td><StatusPill status={request.status} /></td>
+              <td className="ui-table__actions">
+                <Button variant="link" onClick={(event) => { event.stopPropagation(); navigate(`/requests/${request.id}`); }}>Open ›</Button>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      </Card>
+    </div>
+  );
 }

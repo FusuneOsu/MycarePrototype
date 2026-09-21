@@ -1,27 +1,55 @@
-import './StatusPill.css';
+import { Pill } from '../../../../../shared/ui/index.js';
 
-const STATUS_CLASS = {
-  Available: 'status-pill--available',
-  'On Duty': 'status-pill--on-duty',
-  'Off Duty': 'status-pill--off-duty',
-  'On Leave': 'status-pill--on-leave',
+/**
+ * Maps every status used in the admin app onto one of the shared pill tones,
+ * so the same word always looks the same on every page.
+ */
+const TONE = {
+  // Availability
+  Available: 'success',
+  'On Duty': 'info',
+  'Off Duty': 'neutral',
+  'On Leave': 'warning',
   // Account lifecycle — see data/caregiverAccounts.js
-  Active: 'status-pill--available',
-  'Pending approval': 'status-pill--pending',
-  'Not approved': 'status-pill--rejected',
-  Rejected: 'status-pill--rejected',
-  Suspended: 'status-pill--on-leave',
-  Deactivated: 'status-pill--off-duty',
-  // Document states on the profile
-  Verified: 'status-pill--available',
-  Submitted: 'status-pill--on-duty',
-  Missing: 'status-pill--rejected',
-  'Profile update pending': 'status-pill--on-leave',
+  Active: 'success',
+  'Pending approval': 'pending',
+  'Not approved': 'danger',
+  Rejected: 'danger',
+  Suspended: 'warning',
+  Deactivated: 'neutral',
+  'Profile update pending': 'warning',
+  // Documents
+  Verified: 'success',
+  Submitted: 'info',
+  Missing: 'danger',
+  // Requests, appointments and payments
+  New: 'info',
+  'In Review': 'warning',
+  Booked: 'success',
+  'Pending assignment': 'pending',
+  'Caregiver assigned': 'success',
+  Scheduled: 'info',
+  'In progress': 'warning',
+  Completed: 'success',
+  Cancelled: 'neutral',
+  Missed: 'danger',
+  'No caregiver assigned': 'danger',
+  'Payment link sent': 'info',
+  'Receipt pending': 'pending',
+  'Receipt verified': 'success',
+  'Receipt submitted': 'info',
+  Paid: 'success',
+  'Awaiting payout': 'pending',
+  'Awaiting payment': 'pending',
+  'Ready to pay': 'info',
+  'Paid to caregiver': 'success',
+  // PTO
+  Approved: 'success',
+  Pending: 'pending',
 };
 
 function StatusPill({ status }) {
-  const modifier = STATUS_CLASS[status] ?? 'status-pill--neutral';
-  return <span className={`status-pill ${modifier}`}>{status}</span>;
+  return <Pill tone={TONE[status] ?? 'neutral'}>{status}</Pill>;
 }
 
 export default StatusPill;

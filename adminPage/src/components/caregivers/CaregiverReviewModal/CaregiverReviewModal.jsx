@@ -3,6 +3,7 @@ import Modal from '../../common/Modal/Modal.jsx';
 import StatusPill from '../StatusPill/StatusPill.jsx';
 import { ACCOUNT_STATUS } from '../../../data/caregiverAccounts.js';
 import { documentSlots, fieldLabel, RETURN_REASONS } from '../../../../../shared/caregiverStore.js';
+import { Button, Textarea } from '../../../../../shared/ui/index.js';
 import './CaregiverReviewModal.css';
 
 const show = (value) => (Array.isArray(value) ? value.join(', ') : value) || '—';
@@ -27,8 +28,26 @@ function CaregiverReviewModal({ isOpen, onClose, caregiver, onDecision }) {
   const waitingOnApplicant = caregiver.accountStatus === ACCOUNT_STATUS.moreInfo && Boolean(application);
   const showApplication = Boolean(application) && caregiver.accountStatus !== ACCOUNT_STATUS.active;
 
+  const footer = (
+    <>
+      <Button onClick={onClose}>Close</Button>
+      {pendingChange && (
+        <>
+          <Button variant="danger" disabled={!note.trim()} title={note.trim() ? undefined : 'Give a reason first'} onClick={() => onDecision({ kind: 'change', action: 'reject', note })}>Reject update</Button>
+          <Button variant="primary" size="sm" onClick={() => onDecision({ kind: 'change', action: 'approve' })}>Approve update</Button>
+        </>
+      )}
+      {needsAccountDecision && (
+        <>
+          <Button variant="danger" disabled={!note.trim()} title={note.trim() ? undefined : 'Give a reason first'} onClick={() => onDecision({ kind: 'account', action: 'return', note })}>Not approved</Button>
+          <Button variant="primary" size="sm" onClick={() => onDecision({ kind: 'account', action: 'approve' })}>Approve</Button>
+        </>
+      )}
+    </>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Review · ${caregiver.name}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Review · ${caregiver.name}`} size="lg" footer={footer}>
       <div className="review-modal">
         {showApplication && (
           <>
@@ -78,9 +97,7 @@ function CaregiverReviewModal({ isOpen, onClose, caregiver, onDecision }) {
                     <span className="review-modal__label">{slot.label}</span>
                     <span className="review-modal__value">
                       {file ? (
-                        <button type="button" className="review-modal__file" title="Prototype: files are not stored yet">
-                          {file.name}
-                        </button>
+                        <Button size="sm" title="Prototype: files are not stored yet">{file.name}</Button>
                       ) : (
                         <span className="review-modal__missing">
                           {slot.required ? 'Missing (required)' : 'Not provided'}
@@ -133,9 +150,8 @@ function CaregiverReviewModal({ isOpen, onClose, caregiver, onDecision }) {
                 ))}
               </div>
             )}
-            <textarea
+            <Textarea
               id="review-reason"
-              className="review-modal__textarea"
               rows={3}
               value={note}
               onChange={(event) => setNote(event.target.value)}
@@ -144,51 +160,6 @@ function CaregiverReviewModal({ isOpen, onClose, caregiver, onDecision }) {
           </section>
         )}
 
-        <div className="review-modal__actions">
-          <button type="button" className="review-modal__btn" onClick={onClose}>Close</button>
-
-          {pendingChange && (
-            <>
-              <button
-                type="button"
-                className="review-modal__btn review-modal__btn--danger"
-                disabled={!note.trim()}
-                title={note.trim() ? undefined : 'Give a reason first'}
-                onClick={() => onDecision({ kind: 'change', action: 'reject', note })}
-              >
-                Reject update
-              </button>
-              <button
-                type="button"
-                className="review-modal__btn review-modal__btn--primary"
-                onClick={() => onDecision({ kind: 'change', action: 'approve' })}
-              >
-                Approve update
-              </button>
-            </>
-          )}
-
-          {needsAccountDecision && (
-            <>
-              <button
-                type="button"
-                className="review-modal__btn review-modal__btn--danger"
-                disabled={!note.trim()}
-                title={note.trim() ? undefined : 'Give a reason first'}
-                onClick={() => onDecision({ kind: 'account', action: 'return', note })}
-              >
-                Not approved
-              </button>
-              <button
-                type="button"
-                className="review-modal__btn review-modal__btn--primary"
-                onClick={() => onDecision({ kind: 'account', action: 'approve' })}
-              >
-                Approve
-              </button>
-            </>
-          )}
-        </div>
       </div>
     </Modal>
   );

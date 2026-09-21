@@ -90,18 +90,16 @@ function CaregiversPage() {
 
   return (
     <div className="caregivers-page">
-      <div className="caregivers-page__header">
-        <Topbar
-          title="Caregivers"
-          subtitle="View, search and manage every caregiver across your centers."
-        />
-        <div className="caregivers-page__actions">
+      <Topbar
+        title="Caregivers"
+        subtitle="View, search and manage every caregiver across your centers."
+        actions={(
           <CaregiverActionBar
             onNewCaregiverClick={() => setIsNewCaregiverOpen(true)}
             onShareLinkClick={() => setIsLinkOpen(true)}
           />
-        </div>
-      </div>
+        )}
+      />
 
       <div className="caregivers-page__body">
         {loading ? (

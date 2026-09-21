@@ -4,6 +4,7 @@ import { listBookableCaregivers, listCaregiverAccounts } from '../../data/caregi
 import { canonicalCaregiverId, formatRating } from '../../../../shared/bookingHistory.js';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
+import { Button, Card, Field, SectionHeader, Select } from '../../../../shared/ui/index.js';
 import './PatientRequestPage.css';
 
 const request = {
@@ -98,60 +99,71 @@ function PatientRequestPage() {
     }
   };
 
+  const verifyReceipt = () => {
+    const next = { ...storedRequest, receiptStatus: 'Receipt verified' };
+    window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next));
+    setStoredRequest(next);
+    setReceiptStatus(next.receiptStatus);
+  };
+
+  const releasePayment = () => {
+    const next = { ...storedRequest, payoutStatus: 'Paid to caregiver' };
+    window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next));
+    setStoredRequest(next);
+    setPayoutStatus(next.payoutStatus);
+  };
+
   return (
     <div className="patient-request-page">
-      <Topbar title="Patient request" subtitle="Review the WhatsApp intake before assigning care." />
-      <div className="patient-request-page__body">
-        <div className="patient-request-page__back-row">
-          <button type="button" className="patient-request-page__back" onClick={() => navigate('/appointments')}>
-            ← Back to appointments
-          </button>
-          <span className="patient-request-page__request-id">WhatsApp request · {request.id}</span>
-        </div>
+      <Topbar
+        title="Patient request"
+        subtitle="Review the WhatsApp intake before assigning care."
+        actions={<Button onClick={() => navigate('/requests')}>← Back to requests</Button>}
+      />
 
-        <section className="patient-request-page__grid">
-          <article className="patient-request-card patient-request-card--wide">
-            <div className="patient-request-card__heading">
-              <div><p className="patient-request-card__eyebrow">New patient request</p><h2>{request.patientName}</h2></div>
-              <StatusPill status={assignmentStatus} />
-            </div>
-            <div className="patient-request-details">
-              <div><span>Patient ID</span><strong>{storedRequest.patientId}</strong></div>
-              <div><span>WhatsApp number</span><strong>{storedRequest.phone}</strong></div>
-              <div><span>Preferred language</span><strong>{storedRequest.language}</strong></div>
-              <div><span>Care requested</span><strong>{storedRequest.careType}</strong></div>
-              <div><span>Requested date</span><strong>{storedRequest.requestedDate}</strong></div>
-              <div><span>Preferred time</span><strong>{storedRequest.preferredTime}</strong></div>
-              <div className="patient-request-details__full"><span>Location</span><strong>{storedRequest.location}</strong></div>
-            </div>
-            <div className="patient-request-note"><span>Patient notes</span><p>{storedRequest.notes}</p></div>
-          </article>
+      <section className="patient-request-page__grid">
+        <Card padded className="patient-request-card--wide">
+          <SectionHeader eyebrow={`WhatsApp request · ${request.id}`} title={request.patientName} actions={<StatusPill status={assignmentStatus} />} />
+          <div className="patient-request-details">
+            <div><span>Patient ID</span><strong>{storedRequest.patientId}</strong></div>
+            <div><span>WhatsApp number</span><strong>{storedRequest.phone}</strong></div>
+            <div><span>Preferred language</span><strong>{storedRequest.language}</strong></div>
+            <div><span>Care requested</span><strong>{storedRequest.careType}</strong></div>
+            <div><span>Requested date</span><strong>{storedRequest.requestedDate}</strong></div>
+            <div><span>Preferred time</span><strong>{storedRequest.preferredTime}</strong></div>
+            <div className="patient-request-details__full"><span>Location</span><strong>{storedRequest.location}</strong></div>
+          </div>
+          <div className="patient-request-note"><span>Patient notes</span><p>{storedRequest.notes}</p></div>
+        </Card>
 
-          <article className="patient-request-card">
-            <div className="patient-request-card__heading"><div><p className="patient-request-card__eyebrow">Assignment</p><h2>Choose caregiver</h2></div></div>
-            <label className="patient-request-field">Available caregiver
-              <select value={selectedCaregiver} onChange={(event) => setSelectedCaregiver(event.target.value)}>
-                <option value="">Select a caregiver</option>
-                {assignedNotBookable && <option value={assigned.id} disabled>{assigned.name} · {assigned.accountStatus} (no longer bookable)</option>}
-                {bookable.map((caregiver) => <option key={caregiver.id} value={caregiver.id}>{caregiver.name} · {caregiver.center} · {formatRating(caregiver.bookingSummary)}{caregiver.source === 'application' ? ' · new' : ''}</option>)}
-              </select>
-            </label>
-            <button type="button" className="patient-request-primary" disabled={!selectedCaregiver} onClick={assignCaregiver}>Assign caregiver</button>
-            <p className="patient-request-helper">The patient will receive a WhatsApp confirmation after assignment.</p>
-          </article>
+        <Card padded>
+          <SectionHeader eyebrow="Assignment" title="Choose caregiver" />
+          <Field label="Available caregiver">
+            <Select value={selectedCaregiver} onChange={(event) => setSelectedCaregiver(event.target.value)}>
+              <option value="">Select a caregiver</option>
+              {assignedNotBookable && <option value={assigned.id} disabled>{assigned.name} · {assigned.accountStatus} (no longer bookable)</option>}
+              {bookable.map((caregiver) => <option key={caregiver.id} value={caregiver.id}>{caregiver.name} · {caregiver.center} · {formatRating(caregiver.bookingSummary)}{caregiver.source === 'application' ? ' · new' : ''}</option>)}
+            </Select>
+          </Field>
+          <Button variant="primary" block className="patient-request-action" disabled={!selectedCaregiver} onClick={assignCaregiver}>Assign caregiver</Button>
+          <p className="patient-request-helper">The patient will receive a WhatsApp confirmation after assignment.</p>
+        </Card>
 
-          <article className="patient-request-card">
-            <div className="patient-request-card__heading"><div><p className="patient-request-card__eyebrow">Payment</p><h2>Service payment</h2></div></div>
-            <div className="patient-request-amount"><span>Patient service amount</span><strong>{storedRequest.serviceAmount}</strong></div>
-            <div className="patient-request-payment-row"><span>Receipt from WhatsApp</span><StatusPill status={receiptStatus} /></div>
-            <div className="patient-request-payment-row"><span>Caregiver payout</span><strong>{storedRequest.caregiverPayment}</strong></div>
-            <button type="button" className="patient-request-secondary" onClick={createPaymentLink}>Create patient payment link</button>
+        <Card padded>
+          <SectionHeader eyebrow="Payment" title="Service payment" />
+          <div className="patient-request-amount"><span>Patient service amount</span><strong>{storedRequest.serviceAmount}</strong></div>
+          <div className="patient-request-payment-row"><span>Receipt from WhatsApp</span><StatusPill status={receiptStatus} /></div>
+          <div className="patient-request-payment-row"><span>Caregiver payout</span><strong>{storedRequest.caregiverPayment}</strong></div>
+          <div className="patient-request-actions">
+            <Button block onClick={createPaymentLink}>Create patient payment link</Button>
             {paymentMessage && <p className="patient-request-helper">{paymentMessage}</p>}
-            <button type="button" className="patient-request-secondary" onClick={() => { const next = { ...storedRequest, receiptStatus: 'Receipt verified' }; window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next)); setStoredRequest(next); setReceiptStatus(next.receiptStatus); }}>Mark receipt verified</button>
-            <button type="button" className="patient-request-primary" disabled={receiptStatus !== 'Receipt verified' || assignmentStatus !== 'Caregiver assigned'} onClick={() => { const next = { ...storedRequest, payoutStatus: 'Paid to caregiver' }; window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next)); setStoredRequest(next); setPayoutStatus(next.payoutStatus); }}>{payoutStatus === 'Paid to caregiver' ? 'Caregiver paid' : 'Release caregiver payment'}</button>
-          </article>
-        </section>
-      </div>
+            <Button block onClick={verifyReceipt}>Mark receipt verified</Button>
+            <Button variant="primary" block disabled={receiptStatus !== 'Receipt verified' || assignmentStatus !== 'Caregiver assigned'} onClick={releasePayment}>
+              {payoutStatus === 'Paid to caregiver' ? 'Caregiver paid' : 'Release caregiver payment'}
+            </Button>
+          </div>
+        </Card>
+      </section>
     </div>
   );
 }

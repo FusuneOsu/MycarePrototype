@@ -4,6 +4,7 @@ import StatusPill from '../StatusPill/StatusPill.jsx';
 import { ACCOUNT_STATUS } from '../../../data/caregiverAccounts.js';
 import { ACCOUNT_HOLDS } from '../../../../../shared/careVocabulary.js';
 import { formatRating } from '../../../../../shared/bookingHistory.js';
+import { Button, Tabs, Textarea } from '../../../../../shared/ui/index.js';
 import './CaregiverDetailModal.css';
 
 const TABS = ['Overview', 'Personal details', 'Skills', 'Availability', 'Documents', 'Bookings'];
@@ -46,20 +47,7 @@ function CaregiverDetailModal({ isOpen, onClose, caregiver, onHold, onRelease })
           <span className="caregiver-detail-modal__meta">{caregiver.id} · {caregiver.center || 'No center'} · {formatRating(summary)} · {summary.completed} completed</span>
         </div>
 
-        <div className="caregiver-detail-modal__tabs" role="tablist">
-          {TABS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              role="tab"
-              aria-selected={tab === name}
-              className={'caregiver-detail-modal__tab' + (tab === name ? ' caregiver-detail-modal__tab--on' : '')}
-              onClick={() => setTab(name)}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
+        <Tabs tabs={TABS.map((name) => ({ id: name, label: name }))} value={tab} onChange={setTab} label="Caregiver profile sections" />
 
         <div className="caregiver-detail-modal__panel" role="tabpanel">
           {tab === 'Overview' && (
@@ -87,9 +75,7 @@ function CaregiverDetailModal({ isOpen, onClose, caregiver, onHold, onRelease })
                 <section className="caregiver-detail-modal__section caregiver-detail-modal__hold">
                   <h3>Reactivate</h3>
                   <p className="caregiver-detail-modal__hint">Returns {caregiver.name.split(' ')[0]} to the booking pool as Active.</p>
-                  <button type="button" className="caregiver-detail-modal__btn caregiver-detail-modal__btn--primary" onClick={() => onRelease(caregiver)}>
-                    Reactivate caregiver
-                  </button>
+                  <Button variant="primary" size="sm" onClick={() => onRelease(caregiver)}>Reactivate caregiver</Button>
                 </section>
               )}
 
@@ -105,21 +91,16 @@ function CaregiverDetailModal({ isOpen, onClose, caregiver, onHold, onRelease })
                       </label>
                     ))}
                   </div>
-                  <textarea
+                  <Textarea
                     className="caregiver-detail-modal__textarea"
                     rows={2}
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
                     placeholder="Reason (required) — shown to the caregiver"
                   />
-                  <button
-                    type="button"
-                    className="caregiver-detail-modal__btn caregiver-detail-modal__btn--danger"
-                    disabled={!reason.trim()}
-                    onClick={() => onHold(caregiver, holdState, reason.trim())}
-                  >
+                  <Button variant="danger" disabled={!reason.trim()} onClick={() => onHold(caregiver, holdState, reason.trim())}>
                     {holdState === 'Suspended' ? 'Suspend caregiver' : 'Deactivate caregiver'}
-                  </button>
+                  </Button>
                 </section>
               )}
             </>
