@@ -58,3 +58,18 @@ INSERT INTO patient_requests (
     'Medication reminders', 'No preference', 'Medication management', 'Cheras',
     'Cheras, Kuala Lumpur', date('now', '+2 day'), '11:00', '12:00', NULL, 7000, 5000);
 
+INSERT INTO bookings (
+  id, request_id, patient_name, caregiver_id, scheduled_at, duration_mins,
+  location, service_type, status, rate_cents
+) VALUES
+  ('BK-5001', 'WA-REQ-0998', 'Nadia Ismail', 'CG-1006', datetime('now', '-3 day', 'start of day', '+14 hours'), 60,
+    'Petaling Jaya, Selangor', 'Physiotherapy support', 'Service completed', 6000),
+  ('BK-5002', 'WEB-REQ-0995', 'Sofia Hassan', 'CG-1008', datetime('now', '+2 day', 'start of day', '+11 hours'), 60,
+    'Cheras, Kuala Lumpur', 'Medication management', 'Link sent (Unpaid)', 5000),
+  ('BK-5003', 'WA-REQ-1001', 'Nur Aisyah Rahman', 'CG-1001', datetime('now', 'start of day', '+10 hours'), 120,
+    '24 Jalan Damai, Kuala Lumpur', 'Post-surgery care', 'In progress', 9000),
+  ('BK-5004', NULL, 'Marcus Lee', 'CG-1002', datetime('now', '-1 day', 'start of day', '+9 hours'), 90,
+    'Subang Jaya, Selangor', 'Elderly care', 'Paid - Online', 8500),
+  ('BK-5005', NULL, 'Priya Balan', 'CG-1011', datetime('now', '-2 day', 'start of day', '+16 hours'), 60,
+    'Cheras, Kuala Lumpur', 'Post-surgery care', 'Missed', 7000);
+

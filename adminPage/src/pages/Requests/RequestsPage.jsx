@@ -7,8 +7,13 @@ import './RequestsPage.css';
 
 // Re-reads localStorage overrides on every render so an assignment made on
 // the request detail page shows up here immediately after navigating back.
+// Booked requests have moved to the Booking Records page, so they drop out
+// of this queue entirely instead of sitting here alongside active requests.
 function useRequestsWithAssignments() {
-  return useMemo(() => mockRequests.map((item) => getEffectiveRequest(item.id)), []);
+  return useMemo(
+    () => mockRequests.map((item) => getEffectiveRequest(item.id)).filter((request) => request.status !== 'Booked'),
+    [],
+  );
 }
 
 export default function RequestsPage() {

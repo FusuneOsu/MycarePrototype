@@ -2,6 +2,7 @@
 -- Cloudflare D1 schema for the myCare admin prototype.
 -- Run with: wrangler d1 execute mycarePrototypeRDBMS --file=./db/schema.sql
 
+DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS pto_requests;
 DROP TABLE IF EXISTS appointments;
 DROP TABLE IF EXISTS post_op_patients;
@@ -116,4 +117,27 @@ CREATE TABLE patient_requests (
 CREATE INDEX idx_requests_status ON patient_requests (status);
 CREATE INDEX idx_requests_zone ON patient_requests (zone);
 CREATE INDEX idx_requests_caregiver ON patient_requests (assigned_caregiver_id);
+
+-- Booking records (requests once a caregiver has been assigned) ---------
+-- A request moves out of the Requests queue and into here the moment it's
+-- assigned; status then progresses independently of patient_requests.status.
+CREATE TABLE bookings (
+  id                TEXT PRIMARY KEY,          -- e.g. 'BK-5001'
+  request_id        TEXT REFERENCES patient_requests (id),
+  patient_name      TEXT NOT NULL,
+  caregiver_id      TEXT NOT NULL REFERENCES caregivers (id),
+  scheduled_at      TEXT NOT NULL,             -- ISO datetime (date + start time)
+  duration_mins     INTEGER NOT NULL DEFAULT 60,
+  location          TEXT NOT NULL,
+  service_type      TEXT NOT NULL,             -- e.g. Post-surgery care, Elderly care
+  status            TEXT NOT NULL DEFAULT 'Caregiver assigned',
+    -- one of: Caregiver assigned, In progress, Service completed, Missed,
+    -- Cancelled, Link sent (Unpaid), Paid - Online, Paid - Collected Directly
+  rate_cents        INTEGER NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_bookings_caregiver ON bookings (caregiver_id);
+CREATE INDEX idx_bookings_status ON bookings (status);
 

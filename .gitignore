@@ -38,6 +38,9 @@ bower_components
 build/Release
 
 # Dependency directories
+
+# Local SQLite database used by `vite dev` to serve /api/* without wrangler
+adminPage/db/local.sqlite3
 node_modules/
 jspm_packages/
 
@@ -189,3 +192,4 @@ wrangler.user.toml
 
 C:\Users\sword\Desktop\MycarePrototype\MycarePrototype\text
 text
+ignored
