@@ -1,19 +1,40 @@
 {
   "name": "mycare-prototype",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "admin:dev": "npm --prefix adminPage run dev",
-    "admin:build": "npm --prefix adminPage run build",
-    "admin:pages:dev": "npm --prefix adminPage run pages:dev",
-    "admin:pages:deploy": "npm --prefix adminPage run pages:deploy",
-    "admin:db:create": "npm --prefix adminPage run db:create",
-    "admin:db:schema:local": "npm --prefix adminPage run db:schema:local",
-    "admin:db:schema:remote": "npm --prefix adminPage run db:schema:remote",
-    "admin:db:seed:local": "npm --prefix adminPage run db:seed:local",
-    "admin:db:seed:remote": "npm --prefix adminPage run db:seed:remote"
+    "dev:admin": "set VITE_APP_PAGE=admin&& vite dev",
+    "dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
+    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\"",
+    "build": "npm run build:admin && npm run build:caregiver",
+    "build:admin": "set VITE_APP_PAGE=admin&& vite build",
+    "build:caregiver": "set VITE_APP_PAGE=caregiver&& vite build",
+    "admin:pages:dev": "npm run build && wrangler pages dev -- npm run dev:admin",
+    "admin:pages:deploy": "npm run build && wrangler pages deploy dist",
+    "admin:db:create": "wrangler d1 create mycarePrototypeRDBMS",
+    "admin:db:schema:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/schema.sql",
+    "admin:db:schema:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql",
+    "admin:db:seed:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/seed.sql",
+    "admin:db:seed:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^8.2.2",
+    "oxlint": "^1.81.0",
+    "vite": "^8.3.0",
     "wrangler": "^4.131.2"
+  },
+  "allowScripts": {
+    "workerd@1.20260911.1": true,
+    "esbuild@0.28.1": true
   }
 }
