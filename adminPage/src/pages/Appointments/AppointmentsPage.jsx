@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import Modal from '../../components/common/Modal/Modal.jsx';
 import { mockCaregivers } from '../../data/mockCaregivers.js';
 import { mockPatients } from '../../data/mockPatients.js';
-import { mockAppointments } from '../../data/mockAppointments.js';
+import { getAllAppointments } from '../../data/mockAppointments.js';
+import { mockRequests, getEffectiveRequest } from '../../data/mockRequests.js';
+import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import './AppointmentsPage.css';
 
 const STATUS_OPTIONS = [
@@ -138,7 +141,8 @@ function getInitialForm(selectedDate) {
 }
 
 function AppointmentsPage() {
-  const [appointments, setAppointments] = useState(mockAppointments);
+  const navigate = useNavigate();
+  const [appointments, setAppointments] = useState(getAllAppointments);
   const [selectedView, setSelectedView] = useState('week');
   const [selectedDate, setSelectedDate] = useState(toISODate(new Date()));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -288,6 +292,13 @@ function AppointmentsPage() {
 
   const selectedDayCount = selectedDayAppointments.length;
 
+  // Read-only view of caregiver assignments made from the Requests flow —
+  // the calendar above is untouched; this just surfaces what's been booked.
+  const requestsWithAssignments = useMemo(
+    () => mockRequests.map((item) => getEffectiveRequest(item.id)),
+    []
+  );
+
   return (
     <div className="appointments-page">
       <Topbar
@@ -362,6 +373,32 @@ function AppointmentsPage() {
           <div className="appointments-page__stat appointments-page__stat--warning">
             <span>Conflicts</span>
             <strong>{selectedDateSummary.conflicts}</strong>
+          </div>
+        </div>
+
+        <div className="appointments-page__requests-panel">
+          <div className="appointments-page__requests-panel-header">
+            <h3>Patient requests</h3>
+            <span>Caregiver assignments made from the Requests queue</span>
+          </div>
+          <div className="appointments-page__requests-list">
+            {requestsWithAssignments.map((request) => (
+              <button
+                type="button"
+                key={request.id}
+                className="appointments-page__request-row"
+                onClick={() => navigate(`/requests/${request.id}`)}
+              >
+                <span className="appointments-page__request-row-main">
+                  <strong>{request.patientName}</strong>
+                  <small>{request.id} · {request.requestedDate}, {request.preferredTime}</small>
+                </span>
+                <span className="appointments-page__request-row-caregiver">
+                  {request.caregiverName || 'Unassigned'}
+                </span>
+                <StatusPill status={request.status} />
+              </button>
+            ))}
           </div>
         </div>
 

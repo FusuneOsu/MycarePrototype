@@ -180,3 +180,54 @@ export const mockAppointments = [
 export function fetchAppointments() {
   return Promise.resolve(mockAppointments);
 }
+
+// Bookings confirmed from the Requests flow (see mockRequests.js) live here,
+// keyed by request id, so re-assigning a request updates the same visit
+// instead of duplicating it. Kept separate from mockAppointments so the
+// existing calendar seed data stays untouched.
+const REQUEST_APPOINTMENTS_KEY = 'mycare.requestAppointments';
+
+function readRequestAppointments() {
+  try {
+    return JSON.parse(window.localStorage.getItem(REQUEST_APPOINTMENTS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+// Creates or updates the calendar visit tied to a patient request once a
+// caregiver is confirmed — this is what makes the booking show up in the
+// Appointments calendar. No payment step is required for this to happen.
+export function upsertAppointmentFromRequest(request, caregiver) {
+  const byRequestId = readRequestAppointments();
+  byRequestId[request.id] = {
+    id: `AP-${request.id}`,
+    patientId: request.patientId,
+    patientName: request.patientName,
+    caregiverId: caregiver.id,
+    caregiverName: caregiver.name,
+    date: request.requestedDateISO,
+    startTime: request.preferredStart,
+    endTime: request.preferredEnd,
+    status: 'Caregiver assigned',
+    appointmentType: 'Home Visit',
+    bookingType: 'One time',
+    caregiverGenderPreference: request.genderPreference,
+    locationMode: 'address',
+    locationText: request.location,
+    latitude: null,
+    longitude: null,
+    tasks: [],
+    specialInstructions: request.notes || '',
+    isConflict: false,
+    sourceRequestId: request.id,
+  };
+  window.localStorage.setItem(REQUEST_APPOINTMENTS_KEY, JSON.stringify(byRequestId));
+  return byRequestId[request.id];
+}
+
+// mockAppointments (calendar seed data) + any bookings confirmed via Requests.
+export function getAllAppointments() {
+  return [...mockAppointments, ...Object.values(readRequestAppointments())];
+}
+

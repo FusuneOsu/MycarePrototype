@@ -5,76 +5,90 @@
 // Extra fields (username, languages, travelMode, workAccommodations,
 // autoAssigned, managerName, managerId) mirror what the New Caregiver
 // wizard collects, so the "See more" detail popup has something to show.
+// `skills` stands in for the future caregiver_skills D1 table and is used
+// to match caregivers against a patient request's required specialization.
 
 export const mockCaregivers = [
   {
     id: 'CG-1001', name: 'Adam Tan', gender: 'Male', center: 'Petaling Jaya', availability: 'Available',
+    skills: ['Post-surgery care', 'Mobility assistance'],
     username: 'adam.tan', languages: ['English', 'Malay'], travelMode: 'Car',
     workAccommodations: 'Prefers morning shifts due to a standing evening commitment.',
     autoAssigned: 'Yes', managerName: 'Grace Lim', managerId: 'MGR-001',
   },
   {
     id: 'CG-1002', name: 'Nurul Huda', gender: 'Female', center: 'Subang Jaya', availability: 'On Duty',
+    skills: ['Elderly care', 'Medication management'],
     username: 'nurul.huda', languages: ['Malay', 'English'], travelMode: 'Public Transport',
     workAccommodations: 'Needs wheelchair-accessible client homes only.',
     autoAssigned: 'No', managerName: 'Daniel Wong', managerId: 'MGR-002',
   },
   {
     id: 'CG-1003', name: 'Adam Krishnan', gender: 'Male', center: 'Cheras', availability: 'Off Duty',
+    skills: ['Pediatric care'],
     username: 'adam.krishnan', languages: ['Tamil', 'English', 'Malay'], travelMode: 'Motorcycle',
     workAccommodations: '',
     autoAssigned: 'Yes', managerName: 'Aisyah Rahman', managerId: 'MGR-003',
   },
   {
     id: 'CG-1004', name: 'Siti Aminah', gender: 'Female', center: 'Petaling Jaya', availability: 'Available',
+    skills: ['Post-surgery care', 'Wound care'],
     username: 'siti.aminah', languages: ['Malay'], travelMode: 'Ride-sharing',
     workAccommodations: 'Requires a 15-minute break every 3 hours for a medical condition.',
     autoAssigned: 'No', managerName: 'Grace Lim', managerId: 'MGR-001',
   },
   {
     id: 'CG-1005', name: 'Wei Ling Chong', gender: 'Female', center: 'Ampang', availability: 'On Leave',
+    skills: ['Elderly care'],
     username: 'weiling.chong', languages: ['Chinese', 'English'], travelMode: 'Car',
     workAccommodations: '',
     autoAssigned: 'Yes', managerName: 'Kevin Pillai', managerId: 'MGR-004',
   },
   {
     id: 'CG-1006', name: 'Rajesh Kumar', gender: 'Male', center: 'Subang Jaya', availability: 'On Duty',
+    skills: ['Physiotherapy support', 'Mobility assistance'],
     username: 'rajesh.kumar', languages: ['Tamil', 'English'], travelMode: 'Car',
     workAccommodations: 'Travels with own equipment, needs parking access at site.',
     autoAssigned: 'No', managerName: 'Daniel Wong', managerId: 'MGR-002',
   },
   {
     id: 'CG-1007', name: 'Farah Aziz', gender: 'Female', center: 'Cheras', availability: 'Available',
+    skills: ['Post-surgery care', 'Elderly care'],
     username: 'farah.aziz', languages: ['Malay', 'Chinese'], travelMode: 'Public Transport',
     workAccommodations: '',
     autoAssigned: 'Yes', managerName: 'Aisyah Rahman', managerId: 'MGR-003',
   },
   {
     id: 'CG-1008', name: 'Adam Osei', gender: 'Male', center: 'Ampang', availability: 'Off Duty',
+    skills: ['Pediatric care', 'Medication management'],
     username: 'adam.osei', languages: ['English'], travelMode: 'Motorcycle',
     workAccommodations: 'Prefers not to be assigned back-to-back double shifts.',
     autoAssigned: 'No', managerName: 'Kevin Pillai', managerId: 'MGR-004',
   },
   {
     id: 'CG-1009', name: 'Mei Ling Ong', gender: 'Female', center: 'Petaling Jaya', availability: 'On Duty',
+    skills: ['Physiotherapy support'],
     username: 'meiling.ong', languages: ['Chinese', 'English', 'Malay'], travelMode: 'Car',
     workAccommodations: '',
     autoAssigned: 'Yes', managerName: 'Grace Lim', managerId: 'MGR-001',
   },
   {
     id: 'CG-1010', name: 'Hafiz Rahman', gender: 'Male', center: 'Ampang', availability: 'Available',
+    skills: ['Elderly care', 'Mobility assistance'],
     username: 'hafiz.rahman', languages: ['Malay', 'English'], travelMode: 'Ride-sharing',
     workAccommodations: 'Fasting-related schedule adjustments during Ramadan.',
     autoAssigned: 'No', managerName: 'Kevin Pillai', managerId: 'MGR-004',
   },
   {
     id: 'CG-1011', name: 'Priya Sharma', gender: 'Female', center: 'Cheras', availability: 'On Leave',
+    skills: ['Post-surgery care'],
     username: 'priya.sharma', languages: ['Tamil', 'English'], travelMode: 'Public Transport',
     workAccommodations: '',
     autoAssigned: 'Yes', managerName: 'Aisyah Rahman', managerId: 'MGR-003',
   },
   {
     id: 'CG-1012', name: 'Marcus D\u2019Souza', gender: 'Male', center: 'Subang Jaya', availability: 'Available',
+    skills: ['Wound care', 'Medication management'],
     username: 'marcus.dsouza', languages: ['English'], travelMode: 'Car',
     workAccommodations: 'Assigned centre must be within 20 minutes of Subang Jaya.',
     autoAssigned: 'No', managerName: 'Daniel Wong', managerId: 'MGR-002',

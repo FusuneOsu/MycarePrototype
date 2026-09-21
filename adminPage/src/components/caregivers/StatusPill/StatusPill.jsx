@@ -5,6 +5,7 @@ const STATUS_CLASS = {
   'On Duty': 'status-pill--on-duty',
   'Off Duty': 'status-pill--off-duty',
   'On Leave': 'status-pill--on-leave',
+  Busy: 'status-pill--on-leave',
 };
 
 function StatusPill({ status }) {
