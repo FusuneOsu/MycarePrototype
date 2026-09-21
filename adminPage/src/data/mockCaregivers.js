@@ -6,6 +6,8 @@
 // autoAssigned, managerName, managerId) mirror what the New Caregiver
 // wizard collects, so the "See more" detail popup has something to show.
 
+import { DEMO_CAREGIVER } from '../../../shared/demoCaregiver.js';
+
 export const mockCaregivers = [
   {
     id: 'CG-1001', name: 'Adam Tan', gender: 'Male', center: 'Petaling Jaya', availability: 'Available',
@@ -79,7 +81,12 @@ export const mockCaregivers = [
     workAccommodations: 'Assigned centre must be within 20 minutes of Subang Jaya.',
     autoAssigned: 'No', managerName: 'Daniel Wong', managerId: 'MGR-002',
   },
+  // The caregiver app's demo login \u2014 one record, shared by both apps.
+  DEMO_CAREGIVER,
 ];
+
+/** Directory records predate the application flow, so most have no stored email. */
+export const caregiverEmail = (caregiver) => caregiver.email || `${caregiver.username}@mycaregivers.com`;
 
 // Simulates an async fetch so swapping in a real API later is a one-line change.
 export function fetchCaregivers() {

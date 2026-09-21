@@ -35,3 +35,181 @@
   text-align: right;
   word-break: break-word;
 }
+
+.caregiver-detail-modal__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.caregiver-detail-modal__meta {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.caregiver-detail-modal__tab {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+}
+
+.caregiver-detail-modal__tab:hover {
+  color: var(--color-primary-dark);
+}
+
+.caregiver-detail-modal__tab--on {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary-dark);
+  font-weight: var(--fw-semibold);
+}
+
+.caregiver-detail-modal__panel {
+  min-height: 260px;
+}
+
+.caregiver-detail-modal__hint {
+  margin: 0 0 var(--space-3);
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+.caregiver-detail-modal__hold {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.caregiver-detail-modal__hold h3 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: var(--space-1);
+}
+
+.caregiver-detail-modal__choice {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.caregiver-detail-modal__choice label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.caregiver-detail-modal__textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  resize: vertical;
+}
+
+.caregiver-detail-modal__btn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.caregiver-detail-modal__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.caregiver-detail-modal__btn--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.caregiver-detail-modal__btn--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.caregiver-detail-modal__btn--danger:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+}
+
+.caregiver-detail-modal__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.caregiver-detail-modal__stats div {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.caregiver-detail-modal__stats strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+
+.caregiver-detail-modal__stats span {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__booking {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+
+.caregiver-detail-modal__booking strong,
+.caregiver-detail-modal__booking span,
+.caregiver-detail-modal__booking em {
+  display: block;
+}
+
+.caregiver-detail-modal__booking span {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__booking em {
+  margin-top: var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__stars {
+  flex: none;
+  color: var(--color-warning);
+  letter-spacing: 1px;
+}

@@ -50,3 +50,47 @@
   font-size: var(--fs-xs);
   color: var(--color-ink-soft);
 }
+
+.caregiver-filters__queue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  color: var(--color-ink);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  cursor: pointer;
+}
+
+.caregiver-filters__queue--on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.caregiver-filters__queue-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-warning);
+  color: #FFFFFF;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+}
+
+.caregiver-filters__queue--on .caregiver-filters__queue-count {
+  background: var(--color-primary);
+}
+
+.caregiver-filters__queue-action {
+  margin-left: auto;
+  color: var(--color-primary-dark);
+  font-weight: var(--fw-semibold);
+}

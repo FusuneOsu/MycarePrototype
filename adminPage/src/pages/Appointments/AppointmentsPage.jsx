@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import Modal from '../../components/common/Modal/Modal.jsx';
-import { mockCaregivers } from '../../data/mockCaregivers.js';
+import { isBookable, listCaregiverAccounts } from '../../data/caregiverAccounts.js';
+import { formatRating } from '../../../../shared/bookingHistory.js';
 import { mockPatients } from '../../data/mockPatients.js';
 import { mockAppointments } from '../../data/mockAppointments.js';
 import './AppointmentsPage.css';
@@ -154,10 +155,19 @@ function AppointmentsPage() {
     []
   );
 
+  // Every caregiver account; refreshed each time the booking modal opens so
+  // new approvals and suspensions are picked up without a reload.
+  const [caregiverPool, setCaregiverPool] = useState(listCaregiverAccounts);
+
+  // All caregivers, so existing appointments still resolve a name even if
+  // that caregiver has since been suspended.
   const caregiverMap = useMemo(
-    () => new Map(mockCaregivers.map((caregiver) => [caregiver.id, caregiver])),
-    []
+    () => new Map(caregiverPool.map((caregiver) => [caregiver.id, caregiver])),
+    [caregiverPool]
   );
+
+  // Who can be booked: Active caregivers, including newly approved applicants.
+  const bookableCaregivers = useMemo(() => caregiverPool.filter(isBookable), [caregiverPool]);
 
   const patientSuggestions = useMemo(() => {
     const query = form.patientSearch.trim().toLowerCase();
@@ -171,13 +181,17 @@ function AppointmentsPage() {
 
   const caregiverSuggestions = useMemo(() => {
     const query = form.caregiverId.trim().toLowerCase();
-    if (!query) return mockCaregivers.slice(0, 6);
+    if (!query) return bookableCaregivers.slice(0, 6);
 
-    return mockCaregivers.filter((caregiver) => {
-      const haystack = `${caregiver.name} ${caregiver.id}`.toLowerCase();
+    // Search by name or ID, and also by where they work and what they do.
+    return bookableCaregivers.filter((caregiver) => {
+      const haystack = [
+        caregiver.name, caregiver.id, caregiver.center, caregiver.gender,
+        ...(caregiver.coverageAreas || []), ...(caregiver.languages || []), ...(caregiver.specialisations || []),
+      ].join(' ').toLowerCase();
       return haystack.includes(query);
     }).slice(0, 6);
-  }, [form.caregiverId]);
+  }, [form.caregiverId, bookableCaregivers]);
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
@@ -218,6 +232,7 @@ function AppointmentsPage() {
   );
 
   const openAddModal = () => {
+    setCaregiverPool(listCaregiverAccounts());
     setForm(getInitialForm(selectedDate));
     setIsAddModalOpen(true);
   };
@@ -552,7 +567,7 @@ function AppointmentsPage() {
                 type="text"
                 value={form.caregiverId}
                 onChange={(event) => setForm((prev) => ({ ...prev, caregiverId: event.target.value }))}
-                placeholder="Search caregiver by name or ID"
+                placeholder="Search by name, ID, area, language or skill"
               />
               {form.caregiverId && (
                 <div className="appointments-page__autocomplete">
@@ -564,7 +579,8 @@ function AppointmentsPage() {
                       onClick={() => setForm((prev) => ({ ...prev, caregiverId: caregiver.id }))}
                     >
                       <strong>{caregiver.name}</strong>
-                      <span>{caregiver.id}</span>
+                      <span>{caregiver.id} · {caregiver.center}</span>
+                      <span>{caregiver.availability} · {formatRating(caregiver.bookingSummary)}</span>
                     </button>
                   ))}
                 </div>

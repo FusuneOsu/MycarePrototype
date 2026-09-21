@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
-import { mockCaregivers } from '../../data/mockCaregivers.js';
+import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { mockBedInventory, mockDischargeBreakdown, mockPtoRequests, mockTrendSeries } from '../../data/mockDashboard.js';
 import './DashboardPage.css';
 
@@ -18,6 +18,8 @@ function DashboardPage() {
   const [selectedDateRange, setSelectedDateRange] = useState('This week');
 
   const caregiverSummary = useMemo(() => {
+    // Active caregivers — includes approved applicants, excludes suspended ones.
+    const caregivers = listBookableCaregivers();
     const map = {
       Available: 0,
       'On Duty': 0,
@@ -25,20 +27,20 @@ function DashboardPage() {
       'On Leave': 0,
     };
 
-    mockCaregivers.forEach((caregiver) => {
+    caregivers.forEach((caregiver) => {
       if (map[caregiver.availability] !== undefined) {
         map[caregiver.availability] += 1;
       }
     });
 
     const available = map.Available;
-    const unavailable = mockCaregivers.length - available;
+    const unavailable = caregivers.length - available;
     return {
-      total: mockCaregivers.length,
+      total: caregivers.length,
       available,
       unavailable,
-      availablePercent: Math.round((available / mockCaregivers.length) * 100),
-      unavailablePercent: Math.round((unavailable / mockCaregivers.length) * 100),
+      availablePercent: Math.round((available / caregivers.length) * 100),
+      unavailablePercent: Math.round((unavailable / caregivers.length) * 100),
       breakdown: [
         { label: 'Available', value: available, color: STATUS_COLORS.available },
         { label: 'Not available', value: unavailable, color: '#DCE6E2' },

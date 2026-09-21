@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockCaregivers } from '../../data/mockCaregivers.js';
+import { listBookableCaregivers, listCaregiverAccounts } from '../../data/caregiverAccounts.js';
+import { canonicalCaregiverId, formatRating } from '../../../../shared/bookingHistory.js';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import './PatientRequestPage.css';
@@ -21,11 +22,12 @@ const request = {
 };
 
 const REQUEST_STORAGE_KEY = 'mycare.patientRequest.WA-REQ-1001';
-const DEMO_CAREGIVER = { id: 'CG-DEMO', name: 'Sarah Tan', center: 'Kuala Lumpur' };
 
 function readRequest() {
   try {
-    return { ...request, ...JSON.parse(window.localStorage.getItem(REQUEST_STORAGE_KEY) || '{}') };
+    const stored = { ...request, ...JSON.parse(window.localStorage.getItem(REQUEST_STORAGE_KEY) || '{}') };
+    // Older saves used a placeholder id for the demo caregiver (now CG-1013).
+    return stored.caregiverId ? { ...stored, caregiverId: canonicalCaregiverId(stored.caregiverId) } : stored;
   } catch {
     return request;
   }
@@ -54,9 +56,15 @@ function PatientRequestPage() {
     return () => window.removeEventListener('storage', syncRequest);
   }, []);
 
+  // The booking pool: Active caregivers only — approved applicants included,
+  // suspended/deactivated ones excluded — minus anyone on leave today.
+  const bookable = listBookableCaregivers().filter((caregiver) => caregiver.availability !== 'On Leave');
+  const assigned = storedRequest.caregiverId ? listCaregiverAccounts().find((item) => item.id === storedRequest.caregiverId) : null;
+  const assignedNotBookable = assigned && !bookable.some((item) => item.id === assigned.id);
+
   const assignCaregiver = () => {
     if (!selectedCaregiver) return;
-    const caregiver = selectedCaregiver === DEMO_CAREGIVER.id ? DEMO_CAREGIVER : mockCaregivers.find((item) => item.id === selectedCaregiver);
+    const caregiver = listCaregiverAccounts().find((item) => item.id === selectedCaregiver);
     const next = { ...storedRequest, caregiverId: selectedCaregiver, caregiverName: caregiver?.name, assignmentStatus: 'Caregiver assigned' };
     window.localStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify(next));
     setStoredRequest(next);
@@ -124,8 +132,8 @@ function PatientRequestPage() {
             <label className="patient-request-field">Available caregiver
               <select value={selectedCaregiver} onChange={(event) => setSelectedCaregiver(event.target.value)}>
                 <option value="">Select a caregiver</option>
-                <option value={DEMO_CAREGIVER.id}>{DEMO_CAREGIVER.name} · Demo caregiver</option>
-                {mockCaregivers.filter((caregiver) => caregiver.availability !== 'On Leave').map((caregiver) => <option key={caregiver.id} value={caregiver.id}>{caregiver.name} · {caregiver.center}</option>)}
+                {assignedNotBookable && <option value={assigned.id} disabled>{assigned.name} · {assigned.accountStatus} (no longer bookable)</option>}
+                {bookable.map((caregiver) => <option key={caregiver.id} value={caregiver.id}>{caregiver.name} · {caregiver.center} · {formatRating(caregiver.bookingSummary)}{caregiver.source === 'application' ? ' · new' : ''}</option>)}
               </select>
             </label>
             <button type="button" className="patient-request-primary" disabled={!selectedCaregiver} onClick={assignCaregiver}>Assign caregiver</button>

@@ -1,4 +1,5 @@
-export const caregiver = { name: 'Sarah Tan', initials: 'ST', role: 'Caregiver' };
+// Caregiver identity now comes from profileData.buildProfile() so the sidebar,
+// topbar and profile page cannot drift apart.
 
 export const patients = {
   mei: { name: 'Mei Ling', initials: 'ML', location: 'Taman Desa', distance: '1.2 km away', care: 'Medication check-in', time: '08:30 - 09:15', title: 'Morning medication & check-in', amount: 'RM 85.00', date: '23 Sep 2024', tone: 'mint' },
@@ -34,10 +35,11 @@ export const demoRequestPatient = {
   requestId: 'WA-REQ-1001',
 };
 
+/** The WhatsApp demo request, if the admin has assigned it to anyone. */
 export function getAssignedDemoRequest() {
   try {
     const request = JSON.parse(window.localStorage.getItem(DEMO_REQUEST_STORAGE_KEY) || 'null');
-    return request?.caregiverId === 'CG-DEMO' ? request : null;
+    return request?.caregiverId ? request : null;
   } catch {
     return null;
   }

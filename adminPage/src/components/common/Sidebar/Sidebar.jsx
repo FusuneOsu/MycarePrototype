@@ -14,7 +14,7 @@ function Sidebar({ onLogout }) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
-        <img className="sidebar__brand-logo" src="/logo.jpg" alt="My CareGivers logo" />
+        <img className="sidebar__brand-logo" src={`${import.meta.env.BASE_URL}logo.jpg`} alt="My CareGivers logo" />
         <span className="sidebar__brand-name">myCare Admin</span>
       </div>
 
