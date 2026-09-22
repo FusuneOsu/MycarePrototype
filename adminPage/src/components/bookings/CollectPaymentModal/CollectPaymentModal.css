@@ -1,0 +1,11 @@
+.collect-payment-modal__hint {
+  color: var(--color-ink-soft);
+  font-size: var(--fs-sm);
+  margin: 0 0 16px;
+}
+
+.collect-payment-modal__error {
+  color: var(--color-danger, #c0392b);
+  font-size: var(--fs-sm);
+  margin-top: 8px;
+}
