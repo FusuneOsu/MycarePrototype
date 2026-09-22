@@ -7,6 +7,7 @@ import { isBookable, listCaregiverAccounts } from '../../data/caregiverAccounts.
 import { formatRating } from '../../../../shared/bookingHistory.js';
 import { mockPatients } from '../../data/mockPatients.js';
 import { mockAppointments } from '../../data/mockAppointments.js';
+import { bookingsAsAppointments } from '../../data/bookingAppointments.js';
 import './AppointmentsPage.css';
 
 const STATUS_OPTIONS = [
@@ -141,7 +142,8 @@ function getInitialForm(selectedDate) {
 }
 
 function AppointmentsPage() {
-  const [appointments, setAppointments] = useState(mockAppointments);
+  // Calendar = confirmed bookings from patient requests + directly scheduled appointments.
+  const [appointments, setAppointments] = useState(() => [...bookingsAsAppointments(), ...mockAppointments]);
   const [selectedView, setSelectedView] = useState('week');
   const [selectedDate, setSelectedDate] = useState(toISODate(new Date()));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -251,7 +253,7 @@ function AppointmentsPage() {
 
     const durationMinutes = getDurationMinutes(form.startTime, form.endTime);
     const newAppointment = {
-      id: `AP-${String(Math.max(...appointments.map((item) => Number(item.id.replace(/\D/g, ''))), 3000) + 1)}`,
+      id: `AP-${String(Math.max(...appointments.filter((item) => item.id.startsWith('AP-')).map((item) => Number(item.id.replace(/\D/g, ''))), 3000) + 1)}`,
       patientId: patient.id,
       patientName: patient.name,
       caregiverId: caregiver ? caregiver.id : 'UNASSIGNED',

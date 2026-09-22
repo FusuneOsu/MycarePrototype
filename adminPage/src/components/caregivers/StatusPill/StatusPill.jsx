@@ -43,6 +43,9 @@ const TONE = {
   'Awaiting payment': 'pending',
   'Ready to pay': 'info',
   'Paid to caregiver': 'success',
+  // Bookings (Module 1)
+  Confirmed: 'success',
+  Rescheduled: 'warning',
   // PTO
   Approved: 'success',
   Pending: 'pending',

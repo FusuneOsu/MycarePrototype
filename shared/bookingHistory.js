@@ -1,11 +1,9 @@
 // Completed bookings and patient ratings, per caregiver.
 //
-// Seeded history stands in for the bookings table until Module 1 persists real
-// ones. The live WhatsApp demo request (WA-REQ-1001) is folded in as soon as the
-// assigned caregiver marks it complete in the caregiver app, so the loop from
-// assignment -> visit -> history is demonstrable end to end.
-
-export const DEMO_REQUEST_KEY = 'mycare.patientRequest.WA-REQ-1001';
+// Seeded history holds past visits with patient ratings. On top of that, any
+// booking the caregiver marks complete (shared/bookingStore.js) appears here
+// straight away, unrated until the patient rates it.
+import { BOOKING_STATUS, formatDuration, listBookings } from './bookingStore.js';
 
 // The caregiver app used to assign the demo request to a placeholder id. It is
 // the same person as CG-1013 (shared/demoCaregiver.js).
@@ -24,29 +22,24 @@ const SEEDED = [
   { id: 'BK-9009', caregiverId: 'CG-1006', patient: 'Wong Mei Fong', service: 'Physiotherapy support', date: '2026-09-10', duration: '1.5 hr', rating: 5, feedback: '' },
 ];
 
-function liveDemoBooking() {
-  try {
-    const request = JSON.parse(window.localStorage.getItem(DEMO_REQUEST_KEY) || 'null');
-    if (!request?.caregiverId || request.serviceStatus !== 'Completed') return null;
-    return {
-      id: request.id || 'WA-REQ-1001',
-      caregiverId: canonicalCaregiverId(request.caregiverId),
-      patient: request.patientName || 'Nur Aisyah Rahman',
-      service: request.careType || 'Post-operative home care',
-      date: '2026-09-28',
-      duration: '2 hr',
-      rating: null, // the patient has not rated this visit yet
+/** Bookings the caregiver has marked complete in the app (not yet rated by the patient). */
+function completedBookings(caregiverId) {
+  return listBookings({ caregiverId })
+    .filter((booking) => booking.status === BOOKING_STATUS.completed)
+    .map((booking) => ({
+      id: booking.id,
+      caregiverId: booking.caregiverId,
+      patient: booking.patientName,
+      service: booking.serviceType,
+      date: booking.date,
+      duration: formatDuration(booking.durationMins),
+      rating: null,
       feedback: '',
-    };
-  } catch {
-    return null;
-  }
+    }));
 }
 
 export function getBookingHistory(caregiverId) {
-  const live = liveDemoBooking();
-  return [...(live ? [live] : []), ...SEEDED]
-    .filter((booking) => booking.caregiverId === caregiverId)
+  return [...completedBookings(caregiverId), ...SEEDED.filter((booking) => booking.caregiverId === caregiverId)]
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 

@@ -19,28 +19,3 @@ export const history = [
   { patient: 'ahmad', duration: '1 hr', status: 'Paid' },
   { patient: 'lily', duration: '1.5 hr', status: 'Follow-up' },
 ];
-
-export const DEMO_REQUEST_STORAGE_KEY = 'mycare.patientRequest.WA-REQ-1001';
-export const demoRequestPatient = {
-  name: 'Nur Aisyah Rahman',
-  initials: 'NA',
-  location: 'Kuala Lumpur',
-  distance: '24 Jalan Damai',
-  care: 'Post-operative home care',
-  time: '10:00 - 12:00',
-  title: 'Post-operative home care',
-  amount: 'RM 90.00',
-  date: '28 Sep 2026',
-  tone: 'mint',
-  requestId: 'WA-REQ-1001',
-};
-
-/** The WhatsApp demo request, if the admin has assigned it to anyone. */
-export function getAssignedDemoRequest() {
-  try {
-    const request = JSON.parse(window.localStorage.getItem(DEMO_REQUEST_STORAGE_KEY) || 'null');
-    return request?.caregiverId ? request : null;
-  } catch {
-    return null;
-  }
-}

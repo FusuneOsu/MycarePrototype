@@ -13,8 +13,9 @@ import { Toast } from './components/common.jsx';
 import { getApplication, STATUS } from './data/applicationData.js';
 import { buildProfile } from './data/profileData.js';
 import { requestProfileChanges } from './data/profileChanges.js';
-import { demoRequestPatient, getAssignedDemoRequest, patients } from './data/caregiverData.js';
-import { canonicalCaregiverId } from '../../shared/bookingHistory.js';
+import { jobsFor } from './data/jobs.js';
+import NavigateSheet from './components/NavigateSheet.jsx';
+import { completeBooking, listNotifications, markNotificationsRead } from '../../shared/bookingStore.js';
 import { getAccountHold } from '../../shared/caregiverStore.js';
 import AccountHoldPage from './pages/AccountHold/AccountHoldPage.jsx';
 
@@ -26,18 +27,21 @@ export default function App() {
   const [account, setAccount] = useState(null);
   const [screen, setScreen] = useState(() => (opensApplication() ? 'apply' : 'auth')); // auth | apply | workspace
   const [page, setPage] = useState('dashboard');
-  const [selectedPatient, setSelectedPatient] = useState('mei');
+  const [selectedPatient, setSelectedPatient] = useState('');
   const [language, setLanguage] = useState('English');
   const [toast, setToast] = useState('');
-  const [demoRequest, setDemoRequest] = useState(getAssignedDemoRequest);
+  const [navigatingTo, setNavigatingTo] = useState(null);
   const [applicationVersion, setApplicationVersion] = useState(0);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingApplication, setEditingApplication] = useState(false);
 
+  // Bookings, approvals and notifications are written by the admin app on the
+  // same origin — pick up changes from another tab, or when this one regains focus.
   useEffect(() => {
-    const syncRequest = () => setDemoRequest(getAssignedDemoRequest());
-    window.addEventListener('storage', syncRequest);
-    return () => window.removeEventListener('storage', syncRequest);
+    const sync = () => setApplicationVersion((version) => version + 1);
+    window.addEventListener('storage', sync);
+    window.addEventListener('focus', sync);
+    return () => { window.removeEventListener('storage', sync); window.removeEventListener('focus', sync); };
   }, []);
 
   const notify = (message) => { setToast(message); window.clearTimeout(window.__careToast); window.__careToast = window.setTimeout(() => setToast(''), 2400); };
@@ -89,12 +93,13 @@ export default function App() {
     return <><AccountHoldPage hold={hold} name={profile.name} onLogout={signOut} onRefresh={refreshProfile} /><Toast message={toast} /></>;
   }
 
-  // Only show the WhatsApp request if the admin assigned it to *this* caregiver.
-  const myRequest = demoRequest && canonicalCaregiverId(demoRequest.caregiverId) === profile.caregiverId ? demoRequest : null;
-  const assignedPatients = myRequest ? { ...patients, demo: { ...demoRequestPatient, ...myRequest, amount: demoRequestPatient.amount } } : patients;
-  const content = page === 'dashboard' ? <DashboardPage patients={assignedPatients} onNavigate={navigate} onOpenPatient={openPatient} onNotify={notify} />
-    : page === 'jobs' ? <JobsPage patients={assignedPatients} onOpenPatient={openPatient} onNotify={notify} />
-    : page === 'detail' ? <JobDetailPage patient={assignedPatients[selectedPatient]} onBack={() => navigate('jobs')} onNotify={notify} onComplete={() => { const next = { ...demoRequest, serviceStatus: 'Completed', receiptStatus: 'Receipt submitted' }; window.localStorage.setItem('mycare.patientRequest.WA-REQ-1001', JSON.stringify(next)); setDemoRequest(next); }} />
+  // Jobs are the bookings the admin confirmed for this caregiver (Module 1).
+  const jobs = jobsFor(profile.caregiverId);
+  const notifications = listNotifications({ audience: 'caregiver', to: profile.caregiverId }).filter((item) => item.channel === 'System');
+  const readNotifications = () => { markNotificationsRead({ audience: 'caregiver', to: profile.caregiverId }); refreshProfile(); };
+  const content = page === 'dashboard' ? <DashboardPage jobs={jobs} onNavigate={navigate} onOpenPatient={openPatient} onNavigateTo={setNavigatingTo} />
+    : page === 'jobs' ? <JobsPage jobs={jobs} center={profile.center} onOpenPatient={openPatient} onNavigate={setNavigatingTo} />
+    : page === 'detail' ? <JobDetailPage job={jobs[selectedPatient]} onBack={() => navigate('jobs')} onNotify={notify} onNavigate={setNavigatingTo} onComplete={(id) => { completeBooking(id); refreshProfile(); }} />
     : page === 'profile' ? <ProfilePage profile={profile} onEdit={() => setEditingProfile(true)} onRefresh={refreshProfile} onNotify={notify} />
     : <ReportsPage onOpenHistory={openPatient} onNotify={notify} />;
 
@@ -111,7 +116,8 @@ export default function App() {
   };
 
   return <>
-    <WorkspaceLayout page={page} onNavigate={navigate} language={language} onLanguage={toggleLanguage} onLogout={signOut} onNotify={notify} profile={profile}>{content}</WorkspaceLayout>
+    <WorkspaceLayout page={page} onNavigate={navigate} language={language} onLanguage={toggleLanguage} onLogout={signOut} onNotify={notify} profile={profile} notifications={notifications} onReadNotifications={readNotifications} onOpenJob={openPatient}>{content}</WorkspaceLayout>
+    {navigatingTo && <NavigateSheet job={navigatingTo} onClose={() => setNavigatingTo(null)} />}
     {editingProfile && <ProfileEditModal profile={profile} onCancel={() => setEditingProfile(false)} onSubmit={submitProfileEdits} />}
     <Toast message={toast} />
   </>;

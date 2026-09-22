@@ -1,20 +1,61 @@
-/* Patient request layout. Cards, buttons and fields come from shared/ui. */
-.patient-request-page__grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; align-items: start; }
-.patient-request-card--wide { grid-row: span 2; }
-.patient-request-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
-.patient-request-details div { display: flex; justify-content: space-between; gap: 15px; padding: 10px 0; border-top: 1px solid var(--ui-line-soft); font-size: var(--ui-text-sm); }
-.patient-request-details__full { grid-column: 1 / -1; }
-.patient-request-details span, .patient-request-note > span, .patient-request-amount span { color: var(--ui-muted); font-size: var(--ui-text-sm); }
-.patient-request-details strong { color: var(--ui-ink); text-align: right; }
-.patient-request-note { margin-top: 18px; padding: 16px; border-radius: var(--ui-radius); background: var(--ui-surface-tint); }
-.patient-request-note p { margin: 6px 0 0; color: var(--ui-ink-soft); font-size: var(--ui-text-sm); line-height: 1.6; }
-.patient-request-action { margin-top: 16px; }
-.patient-request-actions { display: grid; gap: 10px; margin-top: 18px; }
-.patient-request-helper { margin: 10px 0 0; color: var(--ui-muted); font-size: var(--ui-text-xs); line-height: 1.5; }
-.patient-request-actions .patient-request-helper { margin: 0; }
-.patient-request-amount { display: flex; align-items: end; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--ui-line-soft); }
-.patient-request-amount strong { color: var(--ui-green-dark); font-size: var(--ui-text-2xl); letter-spacing: var(--ui-tracking-tight); }
-.patient-request-payment-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ui-line-soft); color: var(--ui-muted); font-size: var(--ui-text-sm); }
-.patient-request-payment-row strong { color: var(--ui-ink); }
-@media (max-width: 800px) { .patient-request-page__grid { grid-template-columns: 1fr; } .patient-request-card--wide { grid-row: auto; } }
-@media (max-width: 520px) { .patient-request-details { grid-template-columns: 1fr; } .patient-request-details__full { grid-column: auto; } }
+/* Patient request, caregiver finder and booking record. Cards, buttons, fields and tables come from shared/ui. */
+.patient-request-page__grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.patient-request-page__side { display: grid; gap: 18px; }
+.request-flash { margin-bottom: 18px; }
+
+/* Request details */
+.request-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.request-row { display: flex; justify-content: space-between; gap: 15px; padding: 10px 0; border-top: 1px solid var(--ui-line-soft); font-size: var(--ui-text-sm); }
+.request-row span { color: var(--ui-muted); }
+.request-row strong { color: var(--ui-ink); text-align: right; }
+.request-row--full { grid-column: 1 / -1; }
+.request-map-link { margin-left: 6px; color: var(--ui-green); font-size: var(--ui-text-xs); font-weight: var(--ui-weight-bold); white-space: nowrap; }
+.request-note { margin-top: 16px; padding: 16px; border-radius: var(--ui-radius); background: var(--ui-surface-tint); }
+.request-note span { color: var(--ui-muted); font-size: var(--ui-text-sm); }
+.request-note p { margin: 6px 0 0; color: var(--ui-ink-soft); font-size: var(--ui-text-sm); line-height: 1.6; }
+.request-reason { margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--ui-gold); border-radius: 0 var(--ui-radius) var(--ui-radius) 0; color: var(--ui-ink-soft); background: #fdf7ef; font-size: var(--ui-text-sm); }
+.request-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.request-reject { margin-top: 14px; }
+
+/* Caregiver finder */
+.finder-slot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.finder-slot .ui-field + .ui-field { margin-top: 0; }
+.finder-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin: 20px 0 14px; padding: 14px 16px; border-radius: var(--ui-radius); background: var(--ui-surface-sunken); }
+.finder-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.finder-filter__label { color: var(--ui-ink-soft); font-size: var(--ui-text-sm); font-weight: var(--ui-weight-bold); }
+.finder-count, .finder-hint { margin: 0 0 10px; color: var(--ui-muted); font-size: var(--ui-text-xs); line-height: 1.5; }
+.finder-hint { margin: 10px 0 0; }
+.finder-row--selected, .ui-table tbody tr.finder-row--selected:hover { background: var(--ui-mint); }
+.match-check { color: var(--ui-danger); font-size: var(--ui-text-xs); font-weight: var(--ui-weight-bold); }
+.match-check--ok { color: var(--ui-green-dark); }
+.finder-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 18px; padding: 16px 18px; border: 1px solid #cfe9df; border-radius: var(--ui-radius); background: var(--ui-surface-tint); }
+.finder-confirm > div:first-child { flex: 1 1 260px; }
+.finder-confirm strong, .finder-confirm span { display: block; }
+.finder-confirm span { margin-top: 3px; color: var(--ui-muted); font-size: var(--ui-text-sm); }
+.finder-confirm__price { text-align: right; }
+.finder-confirm__price strong { color: var(--ui-green-dark); font-size: var(--ui-text-2xl); letter-spacing: var(--ui-tracking-tight); }
+
+/* Booking record */
+.booking-form { margin-top: 14px; padding: 14px; border-radius: var(--ui-radius); background: var(--ui-surface-sunken); }
+.booking-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.booking-form__grid .ui-field + .ui-field { margin-top: 0; }
+.booking-subhead { margin: 20px 0 8px; padding-top: 14px; border-top: 1px solid var(--ui-line); font-size: var(--ui-text-md); }
+.booking-log { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--ui-ink-soft); font-size: var(--ui-text-xs); }
+.booking-log em { display: block; margin-top: 2px; color: var(--ui-muted); }
+
+/* Payment */
+.payment-amount { display: flex; align-items: end; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--ui-line-soft); }
+.payment-amount span, .payment-row span { color: var(--ui-muted); font-size: var(--ui-text-sm); }
+.payment-amount strong { color: var(--ui-green-dark); font-size: var(--ui-text-2xl); letter-spacing: var(--ui-tracking-tight); }
+.payment-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ui-line-soft); }
+.payment-actions { display: grid; gap: 10px; margin-top: 16px; }
+.payment-actions .finder-hint { margin: 0; }
+
+@media (max-width: 980px) {
+  .patient-request-page__grid { grid-template-columns: 1fr; }
+  .finder-slot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .request-grid, .finder-slot, .booking-form__grid { grid-template-columns: 1fr; }
+}

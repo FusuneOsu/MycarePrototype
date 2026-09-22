@@ -119,6 +119,7 @@
 .ui-input:focus, .ui-select:focus, .ui-textarea:focus { border-color: var(--ui-green); box-shadow: 0 0 0 3px #128a6922; }
 .ui-textarea { min-height: 88px; line-height: 1.6; resize: vertical; }
 .ui-input--sm, .ui-select--sm { width: auto; padding: 9px 11px; border-color: var(--ui-line); border-radius: var(--ui-radius-sm); background: var(--ui-surface); font-size: var(--ui-text-sm); }
+.ui-toolbar + .ui-table-wrap, .ui-toolbar + .ui-table-empty { margin-top: var(--ui-space-4); }
 .ui-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-2); }
 .ui-toolbar .ui-input--sm { flex: 1 1 200px; min-width: 160px; }
 .ui-check { display: inline-flex; align-items: center; gap: 7px; color: var(--ui-ink-soft); font-size: var(--ui-text-sm); font-weight: var(--ui-weight-bold); cursor: pointer; }
