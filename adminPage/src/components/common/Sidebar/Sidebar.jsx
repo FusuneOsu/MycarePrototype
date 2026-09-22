@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '⌂', end: true },
   { to: '/appointments', label: 'Appointments', icon: '▣' },
   { to: '/requests', label: 'Requests', icon: '◌' },
+  { to: '/bookings', label: 'Booking Records', icon: '☑' },
   { to: '/caregivers', label: 'Caregivers', icon: '▥' },
   { to: '/post-op-patients', label: 'Post-Op Patients', icon: '◫' },
   { to: '/payments', label: 'Payments', icon: 'RM' },

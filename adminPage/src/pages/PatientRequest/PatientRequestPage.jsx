@@ -11,6 +11,7 @@ import {
   matchCaregivers, navigationLinks, priceFor, rescheduleBooking, setRequestStatus, updateBookingPayment,
 } from '../../../../shared/bookingStore.js';
 import { Button, Card, CellStack, Field, Input, Pill, SectionHeader, Segmented, Select, Table, Tag, Textarea } from '../../../../shared/ui/index.js';
+import AssignCaregiverModal from '../../components/caregivers/AssignCaregiverModal/AssignCaregiverModal.jsx';
 import './PatientRequestPage.css';
 
 const DURATIONS = [45, 60, 90, 120, 180, 240];
@@ -311,6 +312,16 @@ function PatientRequestPage() {
 
   const bookable = request.status === REQUEST_STATUS.new || request.status === REQUEST_STATUS.review;
 
+  const markReceiptVerified = () => {
+    const next = writeRequestOverrides(requestId, { receiptStatus: 'Receipt verified' });
+    setStoredRequest({ ...storedRequest, ...next });
+  };
+
+  const releaseCaregiverPayment = () => {
+    const next = writeRequestOverrides(requestId, { payoutStatus: 'Paid to caregiver' });
+    setStoredRequest({ ...storedRequest, ...next });
+  };
+
   return (
     <div className="patient-request-page">
       <Topbar title="Patient request" subtitle="Review the intake, find an available caregiver, and confirm the booking." actions={back} />
@@ -345,3 +356,4 @@ function PatientRequestPage() {
 }
 
 export default PatientRequestPage;
+

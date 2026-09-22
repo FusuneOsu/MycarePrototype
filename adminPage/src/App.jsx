@@ -9,6 +9,7 @@ import PatientRequestPage from './pages/PatientRequest/PatientRequestPage.jsx';
 import WhatsAppDemoPage from './pages/WhatsAppDemo/WhatsAppDemoPage.jsx';
 import PaymentsDemoPage from './pages/PaymentsDemo/PaymentsDemoPage.jsx';
 import RequestsPage from './pages/Requests/RequestsPage.jsx';
+import BookingRecordsPage from './pages/BookingRecords/BookingRecordsPage.jsx';
 
 const SESSION_KEY = 'mycare.adminSession';
 
@@ -70,6 +71,7 @@ function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
         <Route path="/requests" element={<RequestsPage />} />
+        <Route path="/bookings" element={<BookingRecordsPage />} />
         <Route path="/caregivers" element={<CaregiversPage />} />
         <Route path="/post-op-patients" element={<PostOpPatientsPage />} />
         <Route path="/requests/:requestId" element={<PatientRequestPage />} />

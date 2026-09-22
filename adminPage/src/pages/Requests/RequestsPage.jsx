@@ -27,7 +27,7 @@ export default function RequestsPage() {
       (source === 'All' || request.source === source)
       && (status === 'All' || request.status === status)
       && (!term || `${request.id} ${request.patientName} ${request.phone} ${request.area} ${request.careType}`.toLowerCase().includes(term)));
-  }, [requests, source, status, search]);
+  }, [requests, requests, source, status, search]);
 
   return (
     <div className="requests-page">
@@ -78,3 +78,4 @@ export default function RequestsPage() {
     </div>
   );
 }
+

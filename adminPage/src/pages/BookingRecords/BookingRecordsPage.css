@@ -1,0 +1,19 @@
+.booking-records-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.booking-records-page__body {
+  padding: 0 clamp(22px, 4vw, 58px) 40px;
+}
+
+.booking-records-page__loading,
+.booking-records-page__error {
+  padding: var(--space-5);
+  color: var(--color-ink-soft);
+  font-size: var(--fs-sm);
+}
+
+.booking-records-page__error {
+  color: var(--color-danger);
+}

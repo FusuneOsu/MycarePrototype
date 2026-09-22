@@ -1,0 +1,41 @@
+.booking-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+.booking-status-pill--assigned {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.booking-status-pill--in-progress {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+.booking-status-pill--completed,
+.booking-status-pill--paid {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.booking-status-pill--missed,
+.booking-status-pill--cancelled {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.booking-status-pill--unpaid {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.booking-status-pill--neutral {
+  background: var(--color-neutral-soft);
+  color: var(--color-neutral);
+}

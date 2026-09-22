@@ -1,0 +1,45 @@
+.booking-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.booking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.booking-table thead th {
+  padding: 14px 16px;
+  color: var(--color-ink-faint);
+  background: #f8fbfa;
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.booking-table tbody td {
+  padding: 14px 16px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.booking-table tbody tr:hover {
+  background: var(--color-primary-soft);
+}
+
+.booking-table__empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-ink-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
