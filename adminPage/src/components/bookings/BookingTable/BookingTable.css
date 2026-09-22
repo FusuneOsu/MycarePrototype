@@ -43,3 +43,10 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
 }
+
+.booking-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  white-space: normal;
+}

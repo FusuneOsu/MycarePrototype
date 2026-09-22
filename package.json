@@ -4,22 +4,20 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-
-    "dev:admin": "set VITE_APP_PAGE=admin&& vite dev","dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
+    "dev:admin": "set VITE_APP_PAGE=admin&& vite dev",
+    "dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
     "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\"",
-
     "build:admin": "set VITE_APP_PAGE=admin&& vite build",
     "build:caregiver": "set VITE_APP_PAGE=caregiver&& vite build",
-    "build": "npm run build:admin && npm run build:caregiver",  
-    
+    "build": "npm run build:admin && npm run build:caregiver",
     "admin:db:schema:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/schema.sql",
     "admin:db:schema:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql",
     "admin:db:seed:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/seed.sql",
     "admin:db:seed:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
-    
     "lint": "oxlint"
   },
   "dependencies": {
+    "jspdf": "^4.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

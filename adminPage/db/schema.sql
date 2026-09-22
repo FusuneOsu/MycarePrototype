@@ -134,6 +134,12 @@ CREATE TABLE bookings (
     -- one of: Caregiver assigned, In progress, Service completed, Missed,
     -- Cancelled, Link sent (Unpaid), Paid - Online, Paid - Collected Directly
   rate_cents        INTEGER NOT NULL DEFAULT 0,
+  invoice_pdf         TEXT,     -- data: URL of the generated invoice PDF (base64)
+  stripe_session_id   TEXT,     -- Stripe Checkout Session id for the payment link
+  stripe_checkout_url TEXT,     -- Stripe Checkout Session url (re-openable)
+  receipt_url         TEXT,     -- Stripe hosted receipt URL, or an admin-uploaded data: URL
+  payment_method      TEXT,     -- 'stripe' | 'direct'
+  paid_at             TEXT,     -- ISO datetime the booking was marked paid
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );

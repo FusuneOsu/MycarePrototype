@@ -52,16 +52,43 @@ backend work.
 
 ## Stripe test payments
 
-The patient request detail page includes a Stripe Checkout test flow through
-`POST /api/payments/create-checkout`. Without a Stripe key, it stays in demo
-mode. To enable Stripe test links on Cloudflare, add the secret:
+Booking Records (Module 8) generates a real Stripe Checkout link once a
+booking is "Service completed":
+
+- `POST /api/bookings/:id/pay-link` — builds a client-side invoice PDF,
+  creates a Stripe Checkout Session for the booking amount, and stores the
+  invoice + checkout link. Moves the booking to "Link sent (Unpaid)".
+- `POST /api/bookings/:id/collect` — for cash/DuitNow/bank transfer payments
+  collected directly; stores the uploaded receipt and moves the booking to
+  "Paid - Collected Directly".
+- `POST /api/payments/webhook` — Stripe calls this on
+  `checkout.session.completed`; verifies the signature, looks up the Stripe
+  hosted receipt, and moves the booking to "Paid - Online".
+
+Without a Stripe key, `pay-link` stays in demo mode (no real charge, but the
+booking still moves to "Link sent" so the rest of the flow can be tested).
+
+To enable real Stripe test links:
 
 ```bash
 npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put STRIPE_WEBHOOK_SECRET
 ```
 
-Set the Stripe webhook endpoint to `/api/payments/webhook`. Add webhook
-signature verification before using this endpoint with real payment records.
+For local dev with `wrangler pages dev`, put the same values in a `.dev.vars`
+file at the repo root (gitignored):
+
+```
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+In the Stripe Dashboard (test mode): Developers > Webhooks > Add endpoint,
+URL `https://<your-pages-domain>/api/payments/webhook`, event
+`checkout.session.completed`. Copy the signing secret it gives you into
+`STRIPE_WEBHOOK_SECRET`. Also turn on Settings > Customer emails > "Successful
+payments" so Stripe emails the patient a receipt automatically — the same
+receipt URL is pulled into the booking record so it can be viewed in-app too.
 
 ## 2. Cloudflare account setup (one-time)
 

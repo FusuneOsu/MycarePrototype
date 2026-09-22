@@ -1,4 +1,5 @@
 import BookingStatusPill from '../BookingStatusPill/BookingStatusPill.jsx';
+import { Button } from '../../../../../shared/ui/index.js';
 import './BookingTable.css';
 
 function formatDateTime(isoString) {
@@ -18,7 +19,7 @@ function formatRate(cents) {
   return `RM ${(cents / 100).toFixed(2)}`;
 }
 
-function BookingTable({ bookings }) {
+function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onViewDocuments, actionBusyId }) {
   if (bookings.length === 0) {
     return (
       <div className="booking-table__empty">
@@ -40,6 +41,7 @@ function BookingTable({ bookings }) {
             <th>Service type</th>
             <th>Status</th>
             <th>Price/Rate</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -53,6 +55,31 @@ function BookingTable({ bookings }) {
               <td>{booking.service_type}</td>
               <td><BookingStatusPill status={booking.status} /></td>
               <td>{formatRate(booking.rate_cents)}</td>
+              <td className="booking-table__actions">
+                {booking.status === 'Service completed' && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={actionBusyId === booking.id}
+                    onClick={() => onGeneratePaymentLink(booking)}
+                  >
+                    {actionBusyId === booking.id ? 'Generating…' : 'Generate payment link'}
+                  </Button>
+                )}
+                {booking.status === 'Link sent (Unpaid)' && (
+                  <>
+                    {booking.stripe_checkout_url && (
+                      <Button size="sm" href={booking.stripe_checkout_url} target="_blank" rel="noreferrer">
+                        Open link
+                      </Button>
+                    )}
+                    <Button size="sm" onClick={() => onMarkCollected(booking)}>Mark paid — collected</Button>
+                  </>
+                )}
+                {(booking.invoice_pdf || booking.receipt_url) && (
+                  <Button size="sm" onClick={() => onViewDocuments(booking)}>View documents</Button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
