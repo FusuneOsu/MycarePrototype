@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import Modal from '../../components/common/Modal/Modal.jsx';
-import { mockCaregivers } from '../../data/mockCaregivers.js';
-import { mockPatients } from '../../data/mockPatients.js';
-import { getAllAppointments } from '../../data/mockAppointments.js';
-import { mockRequests, getEffectiveRequest } from '../../data/mockRequests.js';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
+import { Button, Input, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
+import { isBookable, listCaregiverAccounts } from '../../data/caregiverAccounts.js';
+import { formatRating } from '../../../../shared/bookingHistory.js';
+import { mockPatients } from '../../data/mockPatients.js';
+import { mockAppointments } from '../../data/mockAppointments.js';
+import { bookingsAsAppointments } from '../../data/bookingAppointments.js';
 import './AppointmentsPage.css';
 
 const STATUS_OPTIONS = [
@@ -141,8 +143,8 @@ function getInitialForm(selectedDate) {
 }
 
 function AppointmentsPage() {
-  const navigate = useNavigate();
-  const [appointments, setAppointments] = useState(getAllAppointments);
+  // Calendar = confirmed bookings from patient requests + directly scheduled appointments.
+  const [appointments, setAppointments] = useState(() => [...bookingsAsAppointments(), ...mockAppointments]);
   const [selectedView, setSelectedView] = useState('week');
   const [selectedDate, setSelectedDate] = useState(toISODate(new Date()));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -158,10 +160,19 @@ function AppointmentsPage() {
     []
   );
 
+  // Every caregiver account; refreshed each time the booking modal opens so
+  // new approvals and suspensions are picked up without a reload.
+  const [caregiverPool, setCaregiverPool] = useState(listCaregiverAccounts);
+
+  // All caregivers, so existing appointments still resolve a name even if
+  // that caregiver has since been suspended.
   const caregiverMap = useMemo(
-    () => new Map(mockCaregivers.map((caregiver) => [caregiver.id, caregiver])),
-    []
+    () => new Map(caregiverPool.map((caregiver) => [caregiver.id, caregiver])),
+    [caregiverPool]
   );
+
+  // Who can be booked: Active caregivers, including newly approved applicants.
+  const bookableCaregivers = useMemo(() => caregiverPool.filter(isBookable), [caregiverPool]);
 
   const patientSuggestions = useMemo(() => {
     const query = form.patientSearch.trim().toLowerCase();
@@ -175,13 +186,17 @@ function AppointmentsPage() {
 
   const caregiverSuggestions = useMemo(() => {
     const query = form.caregiverId.trim().toLowerCase();
-    if (!query) return mockCaregivers.slice(0, 6);
+    if (!query) return bookableCaregivers.slice(0, 6);
 
-    return mockCaregivers.filter((caregiver) => {
-      const haystack = `${caregiver.name} ${caregiver.id}`.toLowerCase();
+    // Search by name or ID, and also by where they work and what they do.
+    return bookableCaregivers.filter((caregiver) => {
+      const haystack = [
+        caregiver.name, caregiver.id, caregiver.center, caregiver.gender,
+        ...(caregiver.coverageAreas || []), ...(caregiver.languages || []), ...(caregiver.specialisations || []),
+      ].join(' ').toLowerCase();
       return haystack.includes(query);
     }).slice(0, 6);
-  }, [form.caregiverId]);
+  }, [form.caregiverId, bookableCaregivers]);
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
@@ -222,6 +237,7 @@ function AppointmentsPage() {
   );
 
   const openAddModal = () => {
+    setCaregiverPool(listCaregiverAccounts());
     setForm(getInitialForm(selectedDate));
     setIsAddModalOpen(true);
   };
@@ -238,7 +254,7 @@ function AppointmentsPage() {
 
     const durationMinutes = getDurationMinutes(form.startTime, form.endTime);
     const newAppointment = {
-      id: `AP-${String(Math.max(...appointments.map((item) => Number(item.id.replace(/\D/g, ''))), 3000) + 1)}`,
+      id: `AP-${String(Math.max(...appointments.filter((item) => item.id.startsWith('AP-')).map((item) => Number(item.id.replace(/\D/g, ''))), 3000) + 1)}`,
       patientId: patient.id,
       patientName: patient.name,
       caregiverId: caregiver ? caregiver.id : 'UNASSIGNED',
@@ -304,103 +320,38 @@ function AppointmentsPage() {
       <Topbar
         title="Appointments"
         subtitle="Schedule, track and resolve care visits across the week."
+        actions={<Button variant="primary" size="sm" onClick={openAddModal}>+ Add appointment</Button>}
       />
 
       <div className="appointments-page__content">
-        <div className="appointments-page__toolbar">
-          <div className="appointments-page__view-toggle" role="tablist" aria-label="Change calendar view">
-            {['month', 'week', 'day'].map((view) => (
-              <button
-                key={view}
-                type="button"
-                className={`appointments-page__view-button ${selectedView === view ? 'appointments-page__view-button--active' : ''}`}
-                onClick={() => setSelectedView(view)}
-              >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          <button type="button" className="appointments-page__add-button" onClick={openAddModal}>
-            + Add appointment
-          </button>
-        </div>
-
-        <div className="appointments-page__filters">
-          <input
-            type="text"
-            value={caregiverFilter}
-            onChange={(event) => setCaregiverFilter(event.target.value)}
-            placeholder="Filter by caregiver name / ID"
+        <Toolbar className="appointments-page__toolbar">
+          <Segmented
+            label="Change calendar view"
+            value={selectedView}
+            onChange={setSelectedView}
+            options={[{ id: 'month', label: 'Month' }, { id: 'week', label: 'Week' }, { id: 'day', label: 'Day' }]}
           />
-          <input
-            type="text"
-            value={patientFilter}
-            onChange={(event) => setPatientFilter(event.target.value)}
-            placeholder="Filter by patient name / ID"
-          />
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <Input size="sm" type="text" value={caregiverFilter} onChange={(event) => setCaregiverFilter(event.target.value)} placeholder="Filter by caregiver name / ID" aria-label="Filter by caregiver" />
+          <Input size="sm" type="text" value={patientFilter} onChange={(event) => setPatientFilter(event.target.value)} placeholder="Filter by patient name / ID" aria-label="Filter by patient" />
+          <Select size="sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
             <option value="All">All statuses</option>
-            {STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+            {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+          </Select>
+          <Select size="sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filter by type">
             <option value="All">All appointment types</option>
-            {APPOINTMENT_TYPES.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-          <label className="appointments-page__checkbox">
-            <input
-              type="checkbox"
-              checked={showConflictsOnly}
-              onChange={(event) => setShowConflictsOnly(event.target.checked)}
-            />
-            Conflicted only
+            {APPOINTMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+          </Select>
+          <label className="ui-check">
+            <input type="checkbox" checked={showConflictsOnly} onChange={(event) => setShowConflictsOnly(event.target.checked)} />
+            Conflicts only
           </label>
-        </div>
+        </Toolbar>
 
-        <div className="appointments-page__summary">
-          <div className="appointments-page__stat">
-            <span>Selected date</span>
-            <strong>{formatDateLabel(selectedDate)}</strong>
-          </div>
-          <div className="appointments-page__stat">
-            <span>Appointments</span>
-            <strong>{selectedDayCount}</strong>
-          </div>
-          <div className="appointments-page__stat appointments-page__stat--warning">
-            <span>Conflicts</span>
-            <strong>{selectedDateSummary.conflicts}</strong>
-          </div>
-        </div>
-
-        <div className="appointments-page__requests-panel">
-          <div className="appointments-page__requests-panel-header">
-            <h3>Patient requests</h3>
-            <span>Caregiver assignments made from the Requests queue</span>
-          </div>
-          <div className="appointments-page__requests-list">
-            {requestsWithAssignments.map((request) => (
-              <button
-                type="button"
-                key={request.id}
-                className="appointments-page__request-row"
-                onClick={() => navigate(`/requests/${request.id}`)}
-              >
-                <span className="appointments-page__request-row-main">
-                  <strong>{request.patientName}</strong>
-                  <small>{request.id} · {request.requestedDate}, {request.preferredTime}</small>
-                </span>
-                <span className="appointments-page__request-row-caregiver">
-                  {request.caregiverName || 'Unassigned'}
-                </span>
-                <StatusPill status={request.status} />
-              </button>
-            ))}
-          </div>
-        </div>
+        <StatGrid>
+          <StatCard label="Selected date" value={formatDateLabel(selectedDate)} note="Click a day to change it" icon="▣" />
+          <StatCard label="Appointments" value={selectedDayCount} note={`${selectedDateSummary.upcoming} upcoming from this date`} icon="◷" />
+          <StatCard label="Conflicts" value={selectedDateSummary.conflicts} note={selectedDateSummary.conflicts ? 'Caregiver or time overlap' : 'No overlaps'} icon="!" tone={selectedDateSummary.conflicts ? 'warn' : ''} />
+        </StatGrid>
 
         {selectedView === 'month' && (
           <div className="appointments-page__calendar-grid">
@@ -485,9 +436,9 @@ function AppointmentsPage() {
             <div className="appointments-page__day-header">
               <h3>{formatDateLabel(selectedDate)}</h3>
               <div className="appointments-page__day-date-controls">
-                <button type="button" onClick={() => setSelectedDate(toISODate(addDays(toDateObject(selectedDate), -1)))}>{'<'}</button>
-                <button type="button" onClick={() => setSelectedDate(toISODate(new Date()))}>Today</button>
-                <button type="button" onClick={() => setSelectedDate(toISODate(addDays(toDateObject(selectedDate), 1)))}>{'>'}</button>
+                <Button size="sm" aria-label="Previous day" onClick={() => setSelectedDate(toISODate(addDays(toDateObject(selectedDate), -1)))}>‹</Button>
+                <Button size="sm" onClick={() => setSelectedDate(toISODate(new Date()))}>Today</Button>
+                <Button size="sm" aria-label="Next day" onClick={() => setSelectedDate(toISODate(addDays(toDateObject(selectedDate), 1)))}>›</Button>
               </div>
             </div>
 
@@ -505,9 +456,7 @@ function AppointmentsPage() {
                         <h4>{appointment.patientName}</h4>
                         <p>{appointment.patientId}</p>
                       </div>
-                      <span className={`appointments-page__status-pill appointments-page__status-pill--${appointment.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {appointment.status}
-                      </span>
+                      <StatusPill status={appointment.status} />
                     </div>
 
                     <div className="appointments-page__visit-meta">
@@ -589,7 +538,7 @@ function AppointmentsPage() {
                 type="text"
                 value={form.caregiverId}
                 onChange={(event) => setForm((prev) => ({ ...prev, caregiverId: event.target.value }))}
-                placeholder="Search caregiver by name or ID"
+                placeholder="Search by name, ID, area, language or skill"
               />
               {form.caregiverId && (
                 <div className="appointments-page__autocomplete">
@@ -601,7 +550,8 @@ function AppointmentsPage() {
                       onClick={() => setForm((prev) => ({ ...prev, caregiverId: caregiver.id }))}
                     >
                       <strong>{caregiver.name}</strong>
-                      <span>{caregiver.id}</span>
+                      <span>{caregiver.id} · {caregiver.center}</span>
+                      <span>{caregiver.availability} · {formatRating(caregiver.bookingSummary)}</span>
                     </button>
                   ))}
                 </div>
@@ -793,17 +743,10 @@ function AppointmentsPage() {
           </div>
 
           <div className="appointments-page__modal-actions">
-            <button type="button" className="appointments-page__ghost-button" onClick={closeAddModal}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="appointments-page__primary-button"
-              onClick={handleNewAppointment}
-              disabled={!form.selectedPatientId || !form.startTime || !form.endTime}
-            >
+            <Button onClick={closeAddModal}>Cancel</Button>
+            <Button variant="primary" size="sm" onClick={handleNewAppointment} disabled={!form.selectedPatientId || !form.startTime || !form.endTime}>
               Save appointment
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

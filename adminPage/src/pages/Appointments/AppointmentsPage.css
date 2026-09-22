@@ -4,7 +4,7 @@
 }
 
 .appointments-page__content {
-  padding: 0 var(--space-6) var(--space-6);
+  padding: 0;
 }
 
 .appointments-page__requests-panel {
@@ -78,68 +78,10 @@
 
 
 .appointments-page__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin: var(--space-5) 0 var(--space-4);
+  margin-bottom: var(--ui-space-4);
 }
 
-.appointments-page__view-toggle {
-  display: inline-flex;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1);
-  box-shadow: var(--shadow-card);
-}
-
-.appointments-page__view-button {
-  border: 0;
-  background: transparent;
-  color: var(--color-ink-soft);
-  border-radius: var(--radius-pill);
-  padding: var(--space-2) var(--space-4);
-  font-weight: var(--fw-medium);
-}
-
-.appointments-page__view-button--active {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-}
-
-.appointments-page__add-button,
-.appointments-page__primary-button,
-.appointments-page__ghost-button,
 .appointments-page__inline-add,
-.appointments-page__day-date-controls button {
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: var(--fw-semibold);
-}
-
-.appointments-page__add-button,
-.appointments-page__primary-button {
-  background: var(--color-primary);
-  color: var(--color-surface);
-  padding: var(--space-2) var(--space-4);
-}
-
-.appointments-page__ghost-button {
-  background: var(--color-neutral-soft);
-  color: var(--color-ink);
-  padding: var(--space-2) var(--space-4);
-}
-
-.appointments-page__filters {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.appointments-page__filters input,
-.appointments-page__filters select,
 .appointments-page__modal-form input,
 .appointments-page__modal-form select,
 .appointments-page__modal-form textarea {
@@ -152,49 +94,6 @@
   color: var(--color-ink);
 }
 
-.appointments-page__checkbox {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0 var(--space-3);
-  font-size: var(--fs-sm);
-  min-height: 40px;
-}
-
-.appointments-page__summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.appointments-page__stat {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-card);
-}
-
-.appointments-page__stat span {
-  display: block;
-  font-size: var(--fs-sm);
-  color: var(--color-ink-soft);
-  margin-bottom: var(--space-2);
-}
-
-.appointments-page__stat strong {
-  font-size: var(--fs-lg);
-  color: var(--color-ink);
-}
-
-.appointments-page__stat--warning {
-  border-color: rgba(184, 134, 58, 0.35);
-}
 
 .appointments-page__calendar-grid {
   display: grid;
@@ -218,6 +117,13 @@
   padding: var(--space-3);
   text-align: left;
   box-shadow: var(--shadow-card);
+  /* These are <button>s, which centre their content vertically by default —
+     stack from the top so every day's header lines up. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  font-family: inherit;
 }
 
 .appointments-page__day-cell {
@@ -345,13 +251,6 @@
   gap: var(--space-2);
 }
 
-.appointments-page__day-date-controls button {
-  background: var(--color-neutral-soft);
-  color: var(--color-ink);
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-}
-
 .appointments-page__visit-list {
   display: grid;
   gap: var(--space-3);
@@ -384,37 +283,6 @@
 .appointments-page__visit-card-header p {
   color: var(--color-ink-faint);
   font-size: var(--fs-sm);
-}
-
-.appointments-page__status-pill {
-  display: inline-flex;
-  padding: 4px 8px;
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-}
-
-.appointments-page__status-pill--caregiver-assigned,
-.appointments-page__status-pill--scheduled {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
-}
-
-.appointments-page__status-pill--in-progress,
-.appointments-page__status-pill--completed {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-}
-
-.appointments-page__status-pill--cancelled,
-.appointments-page__status-pill--missed {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-}
-
-.appointments-page__status-pill--no-caregiver-assigned {
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
 }
 
 .appointments-page__visit-meta {
@@ -517,7 +385,6 @@
 }
 
 @media (max-width: 980px) {
-  .appointments-page__filters,
   .appointments-page__modal-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -529,16 +396,10 @@
   }
 
   .appointments-page__toolbar,
-  .appointments-page__day-header,
-  .appointments-page__filters,
-  .appointments-page__modal-grid,
-  .appointments-page__summary {
+.appointments-page__day-header,
+.appointments-page__modal-grid {
     grid-template-columns: 1fr;
     display: grid;
-  }
-
-  .appointments-page__view-toggle {
-    justify-content: space-between;
   }
 
   .appointments-page__calendar-grid,

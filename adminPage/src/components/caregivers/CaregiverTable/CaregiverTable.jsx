@@ -1,66 +1,63 @@
-import './CaregiverTable.css';
+import { Button, CellStack, Select, Table, Tag } from '../../../../../shared/ui/index.js';
+import StatusPill from '../StatusPill/StatusPill.jsx';
+import { ACCOUNT_STATUS, isAwaitingAction } from '../../../data/caregiverAccounts.js';
+import { AVAILABILITY } from '../../../../../shared/careVocabulary.js';
 
-const AVAILABILITY_OPTIONS = ['Available', 'On Duty', 'Off Duty', 'On Leave'];
+const COLUMNS = ['ID', 'Name', 'Gender', 'Center', 'Account status', 'Availability', ''];
 
-function CaregiverTable({ caregivers, onSeeMore, onAvailabilityChange }) {
-  if (caregivers.length === 0) {
-    return (
-      <div className="caregiver-table__empty">
-        <p>No caregivers match your search or filters.</p>
-      </div>
-    );
-  }
-
+function CaregiverTable({ caregivers, onSeeMore, onReview, onAvailabilityChange }) {
   return (
-    <div className="caregiver-table-wrap">
-      <table className="caregiver-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Gender</th>
-            <th>Center</th>
-            <th>Availability</th>
-            <th aria-label="Actions" />
-          </tr>
-        </thead>
-        <tbody>
-          {caregivers.map((caregiver) => (
-            <tr key={caregiver.id}>
-              <td className="caregiver-table__id">{caregiver.id}</td>
-              <td>{caregiver.name}</td>
-              <td>{caregiver.gender}</td>
-              <td>{caregiver.center}</td>
-              <td>
-                <select
-                  className="caregiver-table__availability"
+    <Table columns={COLUMNS} raised label="Caregivers" empty={caregivers.length === 0 && 'No caregivers match your search or filters.'}>
+      {caregivers.map((caregiver) => {
+        const isActive = caregiver.accountStatus === ACCOUNT_STATUS.active;
+        const needsAction = isAwaitingAction(caregiver);
+        const onHold = Boolean(caregiver.hold);
+        // Still going through onboarding — the review modal is the right view.
+        const inOnboarding = caregiver.source === 'application' && !isActive && !onHold;
+
+        return (
+          <tr key={caregiver.id} className={needsAction ? 'ui-table__row--flagged' : undefined}>
+            <td className="ui-table__muted">{caregiver.id}</td>
+            <td>
+              <CellStack primary={caregiver.name}>
+                {caregiver.source === 'application' && <Tag>Applied online</Tag>}
+              </CellStack>
+            </td>
+            <td>{caregiver.gender}</td>
+            <td>{caregiver.center || '—'}</td>
+            <td>
+              <StatusPill status={caregiver.accountStatus} />
+              {caregiver.pendingChange && <span className="ui-table__secondary">Profile update pending</span>}
+            </td>
+            <td>
+              {isActive ? (
+                <Select
+                  size="sm"
                   value={caregiver.availability}
                   aria-label={`Availability for ${caregiver.name}`}
-                  onChange={(event) =>
-                    onAvailabilityChange(caregiver.id, event.target.value)
-                  }
+                  onChange={(event) => onAvailabilityChange(caregiver.id, event.target.value)}
                 >
-                  {AVAILABILITY_OPTIONS.map((availability) => (
-                    <option key={availability} value={availability}>
-                      {availability}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="caregiver-table__actions">
-                <button
-                  type="button"
-                  className="caregiver-table__see-more"
-                  onClick={() => onSeeMore(caregiver)}
-                >
-                  See more
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  {AVAILABILITY.map((availability) => <option key={availability} value={availability}>{availability}</option>)}
+                </Select>
+              ) : (
+                // Not approved yet, or suspended / deactivated: out of the booking pool.
+                <span className="ui-table__muted">{onHold ? 'Out of booking pool' : 'Not rostered'}</span>
+              )}
+            </td>
+            <td className="ui-table__actions">
+              {needsAction ? (
+                <Button variant="primary" size="sm" onClick={() => onReview(caregiver)}>Review</Button>
+              ) : (
+                // Sent back and waiting on the applicant — viewable, nothing to decide.
+                <Button size="sm" onClick={() => (inOnboarding ? onReview(caregiver) : onSeeMore(caregiver))}>
+                  {inOnboarding ? 'View' : 'See more'}
+                </Button>
+              )}
+            </td>
+          </tr>
+        );
+      })}
+    </Table>
   );
 }
 

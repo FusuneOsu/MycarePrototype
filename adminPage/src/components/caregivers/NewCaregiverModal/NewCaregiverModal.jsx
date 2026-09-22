@@ -5,6 +5,7 @@ import CaregiverDetailsStep from './steps/CaregiverDetailsStep/CaregiverDetailsS
 import CenterDetailsStep from './steps/CenterDetailsStep/CenterDetailsStep.jsx';
 import AssignmentReportingStep from './steps/AssignmentReportingStep/AssignmentReportingStep.jsx';
 import { getNextCaregiverId } from '../../../utils/ids.js';
+import { Button } from '../../../../../shared/ui/index.js';
 import './NewCaregiverModal.css';
 
 const STEP_LABELS = ['Caregiver Details', 'Center Details', 'Assignment Reporting'];
@@ -109,33 +110,10 @@ function NewCaregiverModal({ isOpen, onClose, caregivers, onCreateCaregiver }) {
       </div>
 
       <div className="new-caregiver-modal__footer">
-        <button
-          type="button"
-          className="new-caregiver-modal__btn new-caregiver-modal__btn--ghost"
-          onClick={step === 0 ? resetAndClose : goBack}
-        >
-          {step === 0 ? 'Cancel' : 'Back'}
-        </button>
-
-        {isLastStep ? (
-          <button
-            type="button"
-            className="new-caregiver-modal__btn new-caregiver-modal__btn--primary"
-            onClick={handleSubmit}
-            disabled={!stepValid}
-          >
-            Add Caregiver
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="new-caregiver-modal__btn new-caregiver-modal__btn--primary"
-            onClick={goNext}
-            disabled={!stepValid}
-          >
-            Next
-          </button>
-        )}
+        <Button onClick={step === 0 ? resetAndClose : goBack}>{step === 0 ? 'Cancel' : 'Back'}</Button>
+        {isLastStep
+          ? <Button variant="primary" size="sm" onClick={handleSubmit} disabled={!stepValid}>Add caregiver</Button>
+          : <Button variant="primary" size="sm" onClick={goNext} disabled={!stepValid}>Next</Button>}
       </div>
     </Modal>
   );

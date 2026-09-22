@@ -1,6 +1,8 @@
-export const TRAVEL_MODES = ['Car', 'Motorcycle', 'Public Transport', 'Ride-sharing'];
-
-// Placeholder center names — swap for real centers once available.
-export const CENTER_PLACES = ['Place 1', 'Place 2', 'Place 3'];
-
-export const WORK_ACCOMMODATIONS_MAX_WORDS = 250;
+// Re-exported from the shared vocabulary so the admin wizard and the
+// caregiver-facing application always offer the same values.
+// See shared/careVocabulary.js.
+export {
+  TRAVEL_MODES,
+  WORK_ACCOMMODATIONS_MAX_WORDS,
+  CENTERS as CENTER_PLACES,
+} from '../../../shared/careVocabulary.js';

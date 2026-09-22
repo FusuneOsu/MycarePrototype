@@ -1,13 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/common/Sidebar/Sidebar.jsx';
 import WhatsAppRequestPopup from '../components/common/WhatsAppRequestPopup.jsx';
-import './AppLayout.css';
 
+/** The shared app shell: fixed system sidebar + padded main column. */
 function AppLayout({ onLogout }) {
   return (
-    <div className="app-layout">
+    <div className="ui-shell">
       <Sidebar onLogout={onLogout} />
-      <main className="app-layout__content">
+      <main className="ui-shell__main">
         <Outlet />
       </main>
       <WhatsAppRequestPopup />

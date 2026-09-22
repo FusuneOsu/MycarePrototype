@@ -35,3 +35,122 @@
   text-align: right;
   word-break: break-word;
 }
+
+.caregiver-detail-modal__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.caregiver-detail-modal__meta {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__panel {
+  min-height: 260px;
+}
+
+.caregiver-detail-modal__hint {
+  margin: 0 0 var(--space-3);
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+.caregiver-detail-modal__hold {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.caregiver-detail-modal__hold h3 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: var(--space-1);
+}
+
+.caregiver-detail-modal__choice {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.caregiver-detail-modal__choice label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.caregiver-detail-modal__textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--fs-sm);
+  resize: vertical;
+}
+
+.caregiver-detail-modal__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.caregiver-detail-modal__stats div {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.caregiver-detail-modal__stats strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+
+.caregiver-detail-modal__stats span {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__booking {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+
+.caregiver-detail-modal__booking strong,
+.caregiver-detail-modal__booking span,
+.caregiver-detail-modal__booking em {
+  display: block;
+}
+
+.caregiver-detail-modal__booking span {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__booking em {
+  margin-top: var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--fs-xs);
+}
+
+.caregiver-detail-modal__stars {
+  flex: none;
+  color: var(--color-warning);
+  letter-spacing: 1px;
+}

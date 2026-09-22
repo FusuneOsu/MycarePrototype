@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
-import { mockCaregivers } from '../../data/mockCaregivers.js';
+import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
+import { Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
+import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { mockBedInventory, mockDischargeBreakdown, mockPtoRequests, mockTrendSeries } from '../../data/mockDashboard.js';
 import './DashboardPage.css';
 
 const STATUS_COLORS = {
-  available: '#2F6F63',
-  onDuty: '#C97A3D',
-  offDuty: '#7C8C88',
-  onLeave: '#B5484B',
+  available: 'var(--ui-green)',
+  unavailable: 'var(--ui-line)',
 };
 
 const APPOINTMENT_STATUS_ORDER = ['Scheduled', 'Completed', 'In progress', 'Cancelled', 'Missed'];
@@ -18,6 +18,8 @@ function DashboardPage() {
   const [selectedDateRange, setSelectedDateRange] = useState('This week');
 
   const caregiverSummary = useMemo(() => {
+    // Active caregivers — includes approved applicants, excludes suspended ones.
+    const caregivers = listBookableCaregivers();
     const map = {
       Available: 0,
       'On Duty': 0,
@@ -25,23 +27,23 @@ function DashboardPage() {
       'On Leave': 0,
     };
 
-    mockCaregivers.forEach((caregiver) => {
+    caregivers.forEach((caregiver) => {
       if (map[caregiver.availability] !== undefined) {
         map[caregiver.availability] += 1;
       }
     });
 
     const available = map.Available;
-    const unavailable = mockCaregivers.length - available;
+    const unavailable = caregivers.length - available;
     return {
-      total: mockCaregivers.length,
+      total: caregivers.length,
       available,
       unavailable,
-      availablePercent: Math.round((available / mockCaregivers.length) * 100),
-      unavailablePercent: Math.round((unavailable / mockCaregivers.length) * 100),
+      availablePercent: Math.round((available / caregivers.length) * 100),
+      unavailablePercent: Math.round((unavailable / caregivers.length) * 100),
       breakdown: [
         { label: 'Available', value: available, color: STATUS_COLORS.available },
-        { label: 'Not available', value: unavailable, color: '#DCE6E2' },
+        { label: 'Not available', value: unavailable, color: STATUS_COLORS.unavailable },
       ],
     };
   }, []);
@@ -90,77 +92,47 @@ function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      <Topbar title="Dashboard" subtitle="Operational overview across care teams and patient activity." />
+      <Topbar
+        title="Dashboard"
+        subtitle="Operational overview across care teams and patient activity."
+        actions={(
+          <>
+            <Select size="sm" value={selectedLocation} onChange={(event) => setSelectedLocation(event.target.value)} aria-label="Location">
+              {locations.map((location) => <option key={location} value={location}>{location}</option>)}
+            </Select>
+            <Select size="sm" value={selectedDateRange} onChange={(event) => setSelectedDateRange(event.target.value)} aria-label="Date range">
+              <option value="Today">Today</option>
+              <option value="This week">This week</option>
+              <option value="This month">This month</option>
+            </Select>
+          </>
+        )}
+      />
 
       <div className="dashboard-page__content">
-        <div className="dashboard-page__toolbar">
-          <div className="dashboard-page__filter-group">
-            <label>
-              Location
-              <select value={selectedLocation} onChange={(event) => setSelectedLocation(event.target.value)}>
-                {locations.map((location) => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Date range
-              <select value={selectedDateRange} onChange={(event) => setSelectedDateRange(event.target.value)}>
-                <option value="Today">Today</option>
-                <option value="This week">This week</option>
-                <option value="This month">This month</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div className="dashboard-page__metrics">
-          <div className="dashboard-page__metric-card dashboard-page__metric-card--primary">
-            <span className="dashboard-page__metric-label">Available caregivers</span>
-            <strong>{caregiverSummary.available}</strong>
-            <small>{caregiverSummary.availablePercent}% of team</small>
-          </div>
-
-          <div className="dashboard-page__metric-card dashboard-page__metric-card--accent">
-            <span className="dashboard-page__metric-label">Not available</span>
-            <strong>{caregiverSummary.unavailable}</strong>
-            <small>{caregiverSummary.unavailablePercent}% of team</small>
-          </div>
-
-          <div className="dashboard-page__metric-card dashboard-page__metric-card--neutral">
-            <span className="dashboard-page__metric-label">Beds available</span>
-            <strong>{filteredBeds.reduce((sum, item) => sum + item.available, 0)}</strong>
-            <small>Across {filteredBeds.length} location(s)</small>
-          </div>
-
-          <div className="dashboard-page__metric-card dashboard-page__metric-card--success">
-            <span className="dashboard-page__metric-label">PTO requests</span>
-            <strong>{ptoSummary.total}</strong>
-            <small>{ptoSummary.approved} approved · {ptoSummary.pending} pending</small>
-          </div>
-        </div>
+        <StatGrid>
+          <StatCard label="Available caregivers" value={caregiverSummary.available} note={`${caregiverSummary.availablePercent}% of the active team`} icon="✓" />
+          <StatCard label="Not available" value={caregiverSummary.unavailable} note={`${caregiverSummary.unavailablePercent}% on duty, off duty or on leave`} icon="◷" tone="warn" />
+          <StatCard label="Beds available" value={filteredBeds.reduce((sum, item) => sum + item.available, 0)} note={`Across ${filteredBeds.length} location(s)`} icon="▣" />
+          <StatCard label="PTO requests" value={ptoSummary.total} note={`${ptoSummary.approved} approved · ${ptoSummary.pending} pending`} icon="◫" tone="gold" />
+        </StatGrid>
 
         <div className="dashboard-page__grid">
-          <section className="dashboard-page__panel dashboard-page__panel--wide">
-            <div className="dashboard-page__panel-header">
-              <h3>Caregiver availability</h3>
-            </div>
-
+          <Card title="Caregiver availability" className="dashboard-page__wide">
             <div className="dashboard-page__availability-wrap">
               <div className="dashboard-page__donut-chart" aria-label="Caregiver availability chart">
                 <svg viewBox="0 0 120 120" role="img">
-                  <circle cx="60" cy="60" r="38" fill="none" stroke="#E9EDEE" strokeWidth="18" />
+                  <circle cx="60" cy="60" r="38" fill="none" strokeWidth="18" style={{ stroke: 'var(--ui-neutral-soft)' }} />
                   <circle
                     cx="60"
                     cy="60"
                     r="38"
                     fill="none"
-                    stroke="#2F6F63"
                     strokeWidth="18"
                     strokeDasharray={`${caregiverSummary.availablePercent * 2.39} 239`}
                     transform="rotate(-90 60 60)"
                     strokeLinecap="round"
+                    style={{ stroke: 'var(--ui-green)' }}
                   />
                 </svg>
                 <div className="dashboard-page__donut-label">
@@ -179,13 +151,9 @@ function DashboardPage() {
                 ))}
               </div>
             </div>
-          </section>
+          </Card>
 
-          <section className="dashboard-page__panel">
-            <div className="dashboard-page__panel-header">
-              <h3>Appointment status</h3>
-            </div>
-
+          <Card title="Appointment status">
             <div className="dashboard-page__bar-list">
               {patientMetrics.distribution.map((item) => (
                 <div key={item.status} className="dashboard-page__bar-row">
@@ -194,59 +162,49 @@ function DashboardPage() {
                     <strong>{item.value}</strong>
                   </div>
                   <div className="dashboard-page__bar-track">
-                    <span style={{ width: `${item.percent}%`, background: '#2F6F63' }} />
+                    <span style={{ width: `${item.percent}%` }} />
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </Card>
 
-          <section className="dashboard-page__panel">
-            <div className="dashboard-page__panel-header">
-              <h3>Discharge mix</h3>
-            </div>
-
+          <Card title="Discharge mix">
             <div className="dashboard-page__ring-wrap">
               {mockDischargeBreakdown.map((segment) => (
                 <div key={segment.label} className="dashboard-page__ring-item">
-                  <div className="dashboard-page__mini-donut" style={{ background: `conic-gradient(${segment.color} 0 ${segment.value}%, #E9EDEE ${segment.value}% 100%)` }}>
+                  <div className="dashboard-page__mini-donut" style={{ background: `conic-gradient(${segment.color} 0 ${segment.value}%, var(--ui-neutral-soft) ${segment.value}% 100%)` }}>
                     <span>{segment.value}%</span>
                   </div>
                   <small>{segment.label}</small>
                 </div>
               ))}
             </div>
-          </section>
+          </Card>
 
-          <section className="dashboard-page__panel dashboard-page__panel--wide">
-            <div className="dashboard-page__panel-header">
-              <h3>In-house beds by location</h3>
-            </div>
-
-            <div className="dashboard-page__bed-table">
-              <div className="dashboard-page__table-head">
-                <span>Location</span>
-                <span>Available</span>
-                <span>Occupied</span>
-                <span>Occupancy</span>
-              </div>
-
+          <Card title="In-house beds by location" className="dashboard-page__wide">
+            <Table columns={['Location', 'Available', 'Occupied', 'Occupancy']} label="Beds by location">
               {filteredBeds.map((bed) => (
-                <div key={bed.location} className="dashboard-page__table-row">
-                  <span>{bed.location}</span>
-                  <span>{bed.available}</span>
-                  <span>{bed.occupied}</span>
-                  <span>{bed.occupancyRate}%</span>
-                </div>
+                <tr key={bed.location}>
+                  <td><CellStack primary={bed.location} /></td>
+                  <td>{bed.available}</td>
+                  <td>{bed.occupied}</td>
+                  <td>{bed.occupancyRate}%</td>
+                </tr>
               ))}
-            </div>
-          </section>
+            </Table>
+          </Card>
 
-          <section className="dashboard-page__panel dashboard-page__panel--wide">
-            <div className="dashboard-page__panel-header">
-              <h3>Patient and appointment trend</h3>
-            </div>
-
+          <Card
+            title="Patient and appointment trend"
+            className="dashboard-page__wide"
+            action={(
+              <div className="dashboard-page__trend-legend">
+                <span className="dashboard-page__key dashboard-page__key--patients">Patients</span>
+                <span className="dashboard-page__key dashboard-page__key--appointments">Appointments</span>
+              </div>
+            )}
+          >
             <div className="dashboard-page__trend-chart" aria-label="Patient and appointment trend chart">
               {mockTrendSeries.map((point) => (
                 <div key={point.label} className="dashboard-page__trend-day">
@@ -262,34 +220,24 @@ function DashboardPage() {
                       title={`${point.appointments} appointments`}
                     />
                   </div>
-                  <label>{point.label}</label>
+                  <span className="dashboard-page__trend-label">{point.label}</span>
                 </div>
               ))}
             </div>
-          </section>
+          </Card>
 
-          <section className="dashboard-page__panel dashboard-page__panel--wide">
-            <div className="dashboard-page__panel-header">
-              <h3>PTO requests</h3>
-            </div>
-
-            <div className="dashboard-page__pto-list">
+          <Card title="PTO requests" className="dashboard-page__wide">
+            <Table columns={['Caregiver', 'Dates', 'Days', 'Status']} label="PTO requests">
               {mockPtoRequests.map((request) => (
-                <div key={`${request.caregiver}-${request.dates}`} className="dashboard-page__pto-item">
-                  <div>
-                    <strong>{request.caregiver}</strong>
-                    <span>{request.dates}</span>
-                  </div>
-                  <div className="dashboard-page__pto-meta">
-                    <span className={`dashboard-page__pto-status dashboard-page__pto-status--${request.status.toLowerCase()}`}>
-                      {request.status}
-                    </span>
-                    <small>{request.days} day(s)</small>
-                  </div>
-                </div>
+                <tr key={`${request.caregiver}-${request.dates}`}>
+                  <td><CellStack primary={request.caregiver} /></td>
+                  <td className="ui-table__muted">{request.dates}</td>
+                  <td>{request.days} day(s)</td>
+                  <td><StatusPill status={request.status} /></td>
+                </tr>
               ))}
-            </div>
-          </section>
+            </Table>
+          </Card>
         </div>
       </div>
     </div>
