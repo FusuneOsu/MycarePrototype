@@ -52,7 +52,7 @@ function App() {
       return;
     }
 
-    const caregiverUrl = import.meta.env.VITE_CAREGIVER_URL || 'http://localhost:5173/caregiver/';
+    const caregiverUrl = '/caregiver/';
     const target = new URL(caregiverUrl, window.location.origin);
     target.searchParams.set('return', 'admin');
     window.location.replace(target.toString());

@@ -1,3 +1,0 @@
-# adminPage/.env.production
-VITE_ADMIN_URL=https://mycare-5u7.pages.dev/
-VITE_CAREGIVER_URL=https://mycare-5u7.pages.dev/caregiver/
