@@ -21,6 +21,26 @@ const io = new Server(server, {
 let sock = null;
 let qrCodeData = null;
 let connectionState = 'connecting';
+const userStates = {};
+
+function parsePatientInfo(text) {
+  const data = {};
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const [key, ...rest] = line.split(':');
+    if (key && rest.length > 0) {
+      const val = rest.join(':').trim();
+      const k = key.trim().toLowerCase();
+      if (k.includes('name')) data.name = val;
+      else if (k.includes('age')) data.age = val;
+      else if (k.includes('gender')) data.gender = val;
+      else if (k.includes('location')) data.location = val;
+      else if (k.includes('care type') || k.includes('care')) data.careType = val;
+      else if (k.includes('date') || k.includes('time')) data.dateTime = val;
+    }
+  }
+  return Object.keys(data).length > 0 ? data : null;
+}
 
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
@@ -63,7 +83,47 @@ async function connectToWhatsApp() {
     if (m.type === 'notify') {
       for (const msg of m.messages) {
         if (!msg.key.fromMe) {
-          console.log('Received message:', msg.message?.conversation || msg.message?.extendedTextMessage?.text);
+          const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+          const locationMsg = msg.message?.locationMessage;
+          const sender = msg.key.remoteJid;
+          console.log('Received message:', text || 'Location/Media');
+          
+          if (locationMsg) {
+            userStates[sender] = userStates[sender] || {};
+            userStates[sender].location = {
+              lat: locationMsg.degreesLatitude,
+              lng: locationMsg.degreesLongitude,
+              address: locationMsg.name || locationMsg.address || 'Shared via WhatsApp Location'
+            };
+            io.emit('patient_location_received', { sender, location: userStates[sender].location });
+            await sock.sendMessage(sender, { text: "Location received. We've added it to your request." });
+          } else {
+            // Always try to parse the format on EVERY text message
+            const parsedData = parsePatientInfo(text || '');
+          
+          if (parsedData) {
+            // If it matches our form format, auto-fill it
+            userStates[sender] = { state: 'INFO_RECEIVED', data: parsedData };
+            await sock.sendMessage(sender, { text: "Thank you! Our admin will review your request shortly." });
+            io.emit('patient_info_received', { sender, parsedData });
+          } else {
+            // It's a normal text message.
+            // Disable the auto-reply bot for now as requested by user
+            const ENABLE_AUTO_REPLY = false; 
+
+            if (ENABLE_AUTO_REPLY) {
+              const textLower = (text || '').toLowerCase();
+              const isTrigger = /hi|hello|hey|book|request|new/i.test(textLower);
+              
+              if (!userStates[sender] || isTrigger) {
+                userStates[sender] = { state: 'AWAITING_INFO' };
+                const reply = `Selamat datang ke MyCareGivers! 🌟\nBagi membantu kami memproses permohonan penjaga anda, sila balas dan isikan maklumat berikut:\n\nNama: \nUmur: \nJantina: \nLokasi: \nJenis Penjagaan diperlukan: \nTarikh/Masa pilihan: `;
+                await sock.sendMessage(sender, { text: reply });
+              }
+            }
+          }
+          }
+
           io.emit('message', msg);
         }
       }

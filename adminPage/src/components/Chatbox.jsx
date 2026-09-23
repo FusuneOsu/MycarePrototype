@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
+import { createPatientRequest } from '../../../shared/bookingStore.js';
 
 const socket = io('http://localhost:3001');
 
@@ -10,6 +12,7 @@ const Chatbox = () => {
   const [activeChatId, setActiveChatId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [newChatNumber, setNewChatNumber] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     socket.on('connection_state', (state) => {
@@ -40,18 +43,43 @@ const Chatbox = () => {
       });
     });
 
+    socket.on('patient_info_received', ({ sender, parsedData }) => {
+      setConversations((prev) => {
+        if (!prev[sender]) return prev;
+        return {
+          ...prev,
+          [sender]: {
+            ...prev[sender],
+            parsedData
+          }
+        };
+      });
+    });
+
+    socket.on('patient_location_received', ({ sender, location }) => {
+      setConversations((prev) => {
+        if (!prev[sender]) return prev;
+        const currentData = prev[sender].parsedData || {};
+        return {
+          ...prev,
+          [sender]: {
+            ...prev[sender],
+            parsedData: { ...currentData, location: location.address, lat: location.lat, lng: location.lng }
+          }
+        };
+      });
+    });
+
     return () => {
       socket.off('connection_state');
       socket.off('message');
+      socket.off('patient_info_received');
+      socket.off('patient_location_received');
     };
   }, []);
 
   const sendMessage = () => {
     if (activeChatId && newMessage) {
-      if (connectionState !== 'connected') {
-        alert('Cannot send message. WhatsApp is not connected. Please scan the QR code in the terminal.');
-        return;
-      }
       socket.emit('send_message', { to: activeChatId, text: newMessage });
       
       setConversations((prev) => ({
@@ -245,7 +273,29 @@ const Chatbox = () => {
               </div>
 
               <div style={{ padding: '16px', backgroundColor: '#f0f0f0' }}>
-                <button style={{
+                {activeConversation.parsedData && (
+                  <div style={{
+                    backgroundColor: '#e8f3ef', padding: '12px', borderRadius: '8px', marginBottom: '12px',
+                    border: '1px solid #0b6e50'
+                  }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#0b6e50' }}>Auto-filled Information:</h4>
+                    <pre style={{ margin: 0, fontSize: '12px', color: '#333', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                      {JSON.stringify(activeConversation.parsedData, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => {
+                    if (activeConversation.parsedData) {
+                      const newReq = createPatientRequest(activeConversation.parsedData, activeConversation.id);
+                      setIsOpen(false);
+                      navigate(`/requests/${newReq.id}`);
+                    } else {
+                      alert("No parsed data yet. Wait for patient to fill the form.");
+                    }
+                  }}
+                  style={{
                   width: '100%', padding: '14px', borderRadius: '8px', border: 'none',
                   backgroundColor: '#0b6e50', color: 'white', fontWeight: 'bold', fontSize: '14px',
                   cursor: 'pointer', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'

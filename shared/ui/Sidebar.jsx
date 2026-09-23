@@ -39,12 +39,6 @@ export function Sidebar({ logoSrc, brandName, sectionLabel = 'Workspace', items,
             ? <button type="button" className={cx('ui-sidebar__profile', profile.active && 'ui-sidebar__profile--on')} onClick={profile.onSelect} title="View my profile">{content}</button>
             : <div className="ui-sidebar__profile">{content}</div>;
         })()}
-        {language && (
-          <div className="ui-sidebar__language">
-            <span>{language}</span>
-            <button type="button" className="ui-toggle" aria-label="Toggle language" onClick={onToggleLanguage} />
-          </div>
-        )}
         {onLogout && <button type="button" className="ui-sidebar__logout" onClick={onLogout}>↪ &nbsp; Log out</button>}
       </div>
     </aside>

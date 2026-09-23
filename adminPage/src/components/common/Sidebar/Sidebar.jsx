@@ -24,8 +24,6 @@ function Sidebar({ onLogout }) {
       brandName="myCare Admin"
       items={NAV_ITEMS.map((item) => ({ key: item.to, label: item.label, icon: item.icon, active: isActive(item, pathname), onSelect: () => navigate(item.to) }))}
       profile={{ initials: 'AD', name: 'Admin User', role: 'Administrator' }}
-      language="English"
-      onToggleLanguage={() => {}}
       onLogout={onLogout}
     />
   );

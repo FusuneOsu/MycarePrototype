@@ -26,6 +26,13 @@ function Topbar({ title, subtitle, eyebrow, actions }) {
       actions={(
         <>
           {actions}
+          <div className="topbar__language-toggle">
+            <select aria-label="Select Language" defaultValue="en" style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #ccc', fontSize: '13px', backgroundColor: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <option value="ms">Bahasa Melayu</option>
+              <option value="en">English</option>
+              <option value="zh">中文 (Chinese)</option>
+            </select>
+          </div>
           <NotificationBell unread={hasUnread}>
             {(close) => (
               <>
