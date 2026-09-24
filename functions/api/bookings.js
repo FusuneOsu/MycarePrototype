@@ -8,7 +8,8 @@ export async function onRequestGet(context) {
 
   const { results } = await env.DB.prepare(
     `SELECT b.id, b.patient_name, b.scheduled_at, b.duration_mins, b.location,
-            b.service_type, b.status, b.rate_cents, c.name AS caregiver_name
+            b.service_type, b.status, b.rate_cents, c.name AS caregiver_name,
+            b.invoice_pdf, b.stripe_checkout_url, b.receipt_url, b.payment_method, b.paid_at
      FROM bookings b
      JOIN caregivers c ON c.id = b.caregiver_id
      ORDER BY b.scheduled_at DESC`

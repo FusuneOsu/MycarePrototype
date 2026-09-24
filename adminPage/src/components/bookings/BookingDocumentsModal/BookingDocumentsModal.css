@@ -1,0 +1,29 @@
+.booking-documents-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.booking-documents-modal__doc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.booking-documents-modal__doc-header h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.booking-documents-modal__frame {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.booking-documents-modal__hint {
+  color: var(--color-ink-soft);
+  font-size: var(--fs-sm);
+}

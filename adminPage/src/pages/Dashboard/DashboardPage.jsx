@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import { Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
@@ -18,6 +18,28 @@ function DashboardPage() {
   const { t } = useLanguage();
   const [selectedLocation, setSelectedLocation] = useState('All locations');
   const [selectedDateRange, setSelectedDateRange] = useState('This week');
+  const [bookings, setBookings] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/bookings')
+      .then((response) => (response.ok ? response.json() : []))
+      .then(setBookings)
+      .catch(() => setBookings([]));
+  }, []);
+
+  const revenueSummary = useMemo(() => {
+    const paid = bookings.filter((b) => b.status === 'Paid - Online' || b.status === 'Paid - Collected Directly');
+    const online = paid.filter((b) => b.status === 'Paid - Online');
+    const totalCents = paid.reduce((sum, b) => sum + b.rate_cents, 0);
+    const unpaidCents = bookings
+      .filter((b) => b.status === 'Link sent (Unpaid)' || b.status === 'Service completed')
+      .reduce((sum, b) => sum + b.rate_cents, 0);
+    return {
+      total: `RM ${(totalCents / 100).toFixed(2)}`,
+      onlineShare: paid.length ? Math.round((online.length / paid.length) * 100) : 0,
+      unpaid: `RM ${(unpaidCents / 100).toFixed(2)}`,
+    };
+  }, [bookings]);
 
   const caregiverSummary = useMemo(() => {
     // Active caregivers — includes approved applicants, excludes suspended ones.
@@ -117,6 +139,7 @@ function DashboardPage() {
           <StatCard label="Not available" value={caregiverSummary.unavailable} note={`${caregiverSummary.unavailablePercent}% on duty, off duty or on leave`} icon="◷" tone="warn" />
           <StatCard label="Beds available" value={filteredBeds.reduce((sum, item) => sum + item.available, 0)} note={`Across ${filteredBeds.length} location(s)`} icon="▣" />
           <StatCard label="PTO requests" value={ptoSummary.total} note={`${ptoSummary.approved} approved · ${ptoSummary.pending} pending`} icon="◫" tone="gold" />
+          <StatCard label="Revenue collected" value={revenueSummary.total} note={`${revenueSummary.onlineShare}% paid online · ${revenueSummary.unpaid} outstanding`} icon="RM" />
         </StatGrid>
 
         <div className="dashboard-page__grid">

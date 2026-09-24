@@ -193,6 +193,13 @@ wrangler.user.toml
 C:\Users\sword\Desktop\MycarePrototype\MycarePrototype\text
 text
 ignored
+currentSituation.txt
+.dev.vars
+\.dev.vars
+/.dev.vars
+C:\Users\sword\Desktop\MycarePrototype\MycarePrototype\.dev.vars
+C:\Users\sword\Desktop\MycarePrototype\MycarePrototype\.dev.vars
+env
 
 # WhatsApp Baileys Auth Session Files
 whatsapp-service/baileys_auth_info/

@@ -3,19 +3,28 @@ import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 
-// Start both admin and caregiver development servers with VITE_APP_PAGE env var
 const admin = spawn('npm', ['run', 'dev:admin'], {
   cwd: root,
   stdio: 'inherit',
   shell: true,
 });
 
-// Wait a moment for admin to claim port 5173, then start caregiver
+// Registered immediately, not inside the setTimeout below — a crash in
+// admin's first second (e.g. port already in use with strictPort: true)
+// must not go unreported just because caregiver hasn't started yet.
+admin.on('exit', (code) => {
+  if (code && code !== 130) console.error(`Server admin stopped with exit code ${code}`);
+});
+
 setTimeout(() => {
   const caregiver = spawn('npm', ['run', 'dev:caregiver'], {
     cwd: root,
     stdio: 'inherit',
     shell: true,
+  });
+
+  caregiver.on('exit', (code) => {
+    if (code && code !== 130) console.error(`Server caregiver stopped with exit code ${code}`);
   });
 
   const shutdown = () => {
@@ -25,12 +34,4 @@ setTimeout(() => {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
-
-  [admin, caregiver].forEach((child, index) => {
-    child.on('exit', (code) => {
-      if (code && code !== 130) {
-        console.error(`Server ${index === 0 ? 'admin' : 'caregiver'} stopped with exit code ${code}`);
-      }
-    });
-  });
 }, 1000);

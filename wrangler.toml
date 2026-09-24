@@ -1,5 +1,10 @@
 name = "mycare"
 compatibility_date = "2024-09-23"
+pages_build_output_dir = "./dist"
+
+[vars]
+VITE_ADMIN_URL = "https://mycare.pages.dev/"
+VITE_CAREGIVER_URL = "https://mycare.pages.dev/caregiver/"
 
 [[d1_databases]]
 binding = "DB"
