@@ -31,12 +31,12 @@ function parsePatientInfo(text) {
     if (key && rest.length > 0) {
       const val = rest.join(':').trim();
       const k = key.trim().toLowerCase();
-      if (k.includes('name')) data.name = val;
-      else if (k.includes('age')) data.age = val;
-      else if (k.includes('gender')) data.gender = val;
-      else if (k.includes('location')) data.location = val;
-      else if (k.includes('care type') || k.includes('care')) data.careType = val;
-      else if (k.includes('date') || k.includes('time')) data.dateTime = val;
+      if (k.includes('name') || k.includes('nama')) data.name = val;
+      else if (k.includes('age') || k.includes('umur')) data.age = val;
+      else if (k.includes('gender') || k.includes('jantina')) data.gender = val;
+      else if (k.includes('location') || k.includes('lokasi')) data.location = val;
+      else if (k.includes('care type') || k.includes('care') || k.includes('jenis')) data.careType = val;
+      else if (k.includes('date') || k.includes('time') || k.includes('tarikh') || k.includes('masa')) data.dateTime = val;
     }
   }
   return Object.keys(data).length > 0 ? data : null;
@@ -82,10 +82,16 @@ async function connectToWhatsApp() {
   sock.ev.on('messages.upsert', async (m) => {
     if (m.type === 'notify') {
       for (const msg of m.messages) {
+        const sender = msg.key.remoteJid;
+        if (sender === 'status@broadcast') continue; // Ignore status updates
+        
+        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+        const locationMsg = msg.message?.locationMessage;
+        
+        // Emit ALL messages (both incoming and outgoing) to the UI to see both sides of conversation
+        io.emit('message', msg);
+
         if (!msg.key.fromMe) {
-          const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
-          const locationMsg = msg.message?.locationMessage;
-          const sender = msg.key.remoteJid;
           console.log('Received message:', text || 'Location/Media');
           
           if (locationMsg) {
@@ -109,7 +115,7 @@ async function connectToWhatsApp() {
           } else {
             // It's a normal text message.
             // Disable the auto-reply bot for now as requested by user
-            const ENABLE_AUTO_REPLY = false; 
+            const ENABLE_AUTO_REPLY = true; 
 
             if (ENABLE_AUTO_REPLY) {
               const textLower = (text || '').toLowerCase();
@@ -123,8 +129,6 @@ async function connectToWhatsApp() {
             }
           }
           }
-
-          io.emit('message', msg);
         }
       }
     }

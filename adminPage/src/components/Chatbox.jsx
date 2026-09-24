@@ -6,7 +6,7 @@ import { createPatientRequest } from '../../../shared/bookingStore.js';
 const socket = io('http://localhost:3001');
 
 const Chatbox = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [connectionState, setConnectionState] = useState('connecting');
   const [conversations, setConversations] = useState({});
   const [activeChatId, setActiveChatId] = useState(null);
@@ -22,22 +22,38 @@ const Chatbox = () => {
     socket.on('message', (msg) => {
       const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Media Message';
       const fromId = msg.key.remoteJid;
+      const isFromMe = msg.key.fromMe;
+      
+      // If it's an outgoing message, msg.pushName is OUR name, so ignore it.
+      const incomingName = !isFromMe ? (msg.pushName || msg.verifiedBizName) : null;
       
       setConversations((prev) => {
+        const fallbackName = fromId.split('@')[0];
+        const existingName = prev[fromId]?.name;
+        
+        let finalName = existingName || fallbackName;
+        if (incomingName && (!existingName || existingName === fallbackName)) {
+          finalName = incomingName;
+        }
+
         const existing = prev[fromId] || {
           id: fromId,
-          name: fromId.split('@')[0],
-          initials: fromId.substring(0, 2),
+          name: finalName,
+          initials: finalName.substring(0, 2).toUpperCase(),
           color: '#D1E7DD',
           tag: 'WA-REQ-NEW',
           messages: []
         };
         
+        // Always ensure name is up to date
+        existing.name = finalName;
+        existing.initials = finalName.substring(0, 2).toUpperCase();
+        
         return {
           ...prev,
           [fromId]: {
             ...existing,
-            messages: [...existing.messages, { from: fromId, text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]
+            messages: [...existing.messages, { from: isFromMe ? 'Me' : fromId, text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]
           }
         };
       });
@@ -147,7 +163,7 @@ const Chatbox = () => {
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 24px', backgroundColor: '#0b6e50', color: 'white',
+        padding: '10px 16px', backgroundColor: '#008069', color: 'white',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
         <div>
@@ -173,30 +189,28 @@ const Chatbox = () => {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}
-        <div style={{ width: '30%', borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column', backgroundColor: '#fafafa' }}>
-          <div style={{ padding: '12px', borderBottom: '1px solid #eee' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                placeholder="New chat number (with country code)"
-                value={newChatNumber}
-                onChange={(e) => setNewChatNumber(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && startNewChat()}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: '20px', border: '1px solid #ddd',
-                  fontSize: '12px', outline: 'none'
-                }}
-              />
-              <button 
-                onClick={startNewChat}
-                style={{
-                  padding: '8px 12px', borderRadius: '20px', border: 'none', backgroundColor: '#0b6e50',
-                  color: 'white', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold'
-                }}
-              >
-                +
-              </button>
-            </div>
+        <div style={{ width: '30%', borderRight: '1px solid #d1d7db', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
+          <div style={{ padding: '12px', borderBottom: '1px solid #f0f2f5', backgroundColor: '#f0f2f5', display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="New chat number..."
+              value={newChatNumber}
+              onChange={(e) => setNewChatNumber(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && startNewChat()}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none',
+                fontSize: '14px', outline: 'none', backgroundColor: '#ffffff'
+              }}
+            />
+            <button 
+              onClick={startNewChat}
+              style={{
+                padding: '8px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#008069',
+                color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold'
+              }}
+            >
+              +
+            </button>
           </div>
           
           <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -205,15 +219,15 @@ const Chatbox = () => {
                 key={conv.id} 
                 onClick={() => setActiveChatId(conv.id)}
                 style={{ 
-                  padding: '16px', display: 'flex', gap: '12px', cursor: 'pointer',
-                  backgroundColor: activeChatId === conv.id ? '#e8f3ef' : 'transparent',
-                  borderBottom: '1px solid #f0f0f0'
+                  padding: '12px 16px', display: 'flex', gap: '15px', cursor: 'pointer',
+                  backgroundColor: activeChatId === conv.id ? '#f0f2f5' : 'transparent',
+                  borderBottom: '1px solid #f2f2f2'
                 }}
               >
                 <div style={{ 
-                  width: '40px', height: '40px', borderRadius: '50%', backgroundColor: conv.color, 
+                  width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#dfe5e7', 
                   display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  fontWeight: 'bold', color: '#0b6e50', flexShrink: 0
+                  fontWeight: 'bold', color: '#54656f', flexShrink: 0, fontSize: '18px'
                 }}>
                   {conv.initials}
                 </div>
@@ -241,77 +255,87 @@ const Chatbox = () => {
         </div>
 
         {/* Main Chat Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#ECE5DD' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#efeae2' }}>
           {activeConversation ? (
             <>
-              <div style={{ padding: '16px 24px', backgroundColor: 'white', borderBottom: '1px solid #eee' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>{activeConversation.name}</h3>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#888' }}>{activeConversation.tag} · WhatsApp</p>
+              <div style={{ padding: '10px 16px', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #d1d7db' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#dfe5e7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#54656f' }}>
+                  {activeConversation.initials}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', color: '#111b21', fontWeight: '500' }}>{activeConversation.name}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#667781' }}>{activeConversation.tag}</p>
+                </div>
               </div>
 
-              <div style={{ flex: 1, padding: '24px', overflowY: 'auto', backgroundImage: 'radial-gradient(#d5cdc4 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+              <div style={{ 
+                flex: 1, padding: '24px 8%', overflowY: 'auto', 
+                backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', 
+                backgroundRepeat: 'repeat', backgroundColor: '#efeae2', backgroundSize: '400px'
+              }}>
                 {activeConversation.messages.map((m, idx) => (
                   <div key={idx} style={{
                     display: 'flex', flexDirection: 'column', marginBottom: '16px',
                     alignItems: m.from === 'Me' ? 'flex-end' : 'flex-start'
                   }}>
                     <div style={{
-                      maxWidth: '75%', padding: '12px 16px', borderRadius: '8px',
-                      backgroundColor: m.from === 'Me' ? '#dcf8c6' : 'white',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      maxWidth: '65%', padding: '6px 7px 8px 9px', borderRadius: '8px',
+                      backgroundColor: m.from === 'Me' ? '#d9fdd3' : '#ffffff',
+                      boxShadow: '0 1px 0.5px rgba(11,20,26,.13)',
                       position: 'relative',
                       borderTopLeftRadius: m.from === 'Me' ? '8px' : '0px',
                       borderTopRightRadius: m.from === 'Me' ? '0px' : '8px',
+                      color: '#111b21'
                     }}>
-                      <div style={{ fontSize: '14px', color: '#333', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{m.text}</div>
-                      <div style={{ fontSize: '11px', color: '#888', textAlign: 'right', marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                        {m.time} {m.from === 'Me' && <span style={{color: '#53bdeb'}}>✓✓</span>}
+                      <div style={{ fontSize: '14.2px', whiteSpace: 'pre-wrap', lineHeight: '19px', paddingRight: '40px', paddingBottom: '8px' }}>{m.text}</div>
+                      <div style={{ fontSize: '11px', color: '#667781', position: 'absolute', bottom: '4px', right: '7px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {m.time} {m.from === 'Me' && <span style={{color: '#53bdeb', fontSize: '12px'}}>✓✓</span>}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ padding: '16px', backgroundColor: '#f0f0f0' }}>
+              <div style={{ padding: '10px 16px', backgroundColor: '#f0f2f5', display: 'flex', flexDirection: 'column' }}>
                 {activeConversation.parsedData && (
                   <div style={{
-                    backgroundColor: '#e8f3ef', padding: '12px', borderRadius: '8px', marginBottom: '12px',
-                    border: '1px solid #0b6e50'
+                    backgroundColor: '#d9fdd3', padding: '10px 12px', borderRadius: '8px', marginBottom: '10px',
+                    boxShadow: '0 1px 0.5px rgba(11,20,26,.13)'
                   }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#0b6e50' }}>Auto-filled Information:</h4>
-                    <pre style={{ margin: 0, fontSize: '12px', color: '#333', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#008069' }}>Auto-filled Information:</h4>
+                    <pre style={{ margin: 0, fontSize: '12px', color: '#111b21', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
                       {JSON.stringify(activeConversation.parsedData, null, 2)}
                     </pre>
                   </div>
                 )}
                 
-                <button 
-                  onClick={() => {
-                    if (activeConversation.parsedData) {
-                      const newReq = createPatientRequest(activeConversation.parsedData, activeConversation.id);
-                      setIsOpen(false);
-                      navigate(`/requests/${newReq.id}`);
-                    } else {
-                      alert("No parsed data yet. Wait for patient to fill the form.");
-                    }
-                  }}
-                  style={{
-                  width: '100%', padding: '14px', borderRadius: '8px', border: 'none',
-                  backgroundColor: '#0b6e50', color: 'white', fontWeight: 'bold', fontSize: '14px',
-                  cursor: 'pointer', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
-                  Open patient request
-                </button>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => {
+                      if (activeConversation.parsedData) {
+                        const newReq = createPatientRequest(activeConversation.parsedData, activeConversation.id);
+                        setIsOpen(false);
+                        navigate(`/requests/${newReq.id}`);
+                      } else {
+                        alert("No parsed data yet. Wait for patient to fill the form.");
+                      }
+                    }}
+                    style={{
+                    padding: '10px 16px', borderRadius: '8px', border: 'none',
+                    backgroundColor: '#008069', color: 'white', fontWeight: '500', fontSize: '14px',
+                    cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
+                  }}>
+                    Open Request
+                  </button>
                   <input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder="Type a message"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     style={{
-                      flex: 1, padding: '14px 20px', borderRadius: '24px', border: 'none',
-                      outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      flex: 1, padding: '12px 14px', borderRadius: '8px', border: 'none',
+                      outline: 'none', fontSize: '15px', backgroundColor: '#ffffff', color: '#111b21'
                     }}
                   />
                 </div>
