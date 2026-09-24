@@ -64,7 +64,7 @@ export default function RequestsPage() {
             <tr key={request.id} onClick={() => navigate(`/requests/${request.id}`)} style={{ cursor: 'pointer' }}>
               <td><CellStack primary={request.id} secondary={request.source} /></td>
               <td><CellStack primary={request.patientName} secondary={request.phone} /></td>
-              <td><CellStack primary={request.careType} secondary={`Prefers ${request.preferredGender === 'No preference' ? 'any gender' : request.preferredGender.toLowerCase()}`} /></td>
+              <td><CellStack primary={request.careType} secondary={`Prefers ${!request.preferredGender || request.preferredGender === 'No preference' ? 'any gender' : request.preferredGender.toLowerCase()}`} /></td>
               <td>{request.area}</td>
               <td><CellStack primary={formatDate(request.preferredDate)} secondary={request.preferredStart} /></td>
               <td><StatusPill status={request.status} /></td>

@@ -129,7 +129,7 @@ export function createPatientRequest(requestData, sender) {
     phone: sender ? sender.split('@')[0] : '',
     language: 'English',
     careType: requestData.careType || 'General Care',
-    genderPreference: requestData.gender || 'No preference',
+    preferredGender: requestData.gender || 'No preference',
     requiredSkill: '',
     area: requestData.location || 'Unknown',
     location: requestData.location || 'Unknown',
