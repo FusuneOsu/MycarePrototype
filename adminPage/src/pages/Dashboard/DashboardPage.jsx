@@ -4,6 +4,7 @@ import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import { Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
 import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { mockBedInventory, mockDischargeBreakdown, mockPtoRequests, mockTrendSeries } from '../../data/mockDashboard.js';
+import { useLanguage } from '../../../../shared/i18n/LanguageContext.jsx';
 import './DashboardPage.css';
 
 const STATUS_COLORS = {
@@ -14,6 +15,7 @@ const STATUS_COLORS = {
 const APPOINTMENT_STATUS_ORDER = ['Scheduled', 'Completed', 'In progress', 'Cancelled', 'Missed'];
 
 function DashboardPage() {
+  const { t } = useLanguage();
   const [selectedLocation, setSelectedLocation] = useState('All locations');
   const [selectedDateRange, setSelectedDateRange] = useState('This week');
   const [bookings, setBookings] = useState([]);
@@ -115,8 +117,8 @@ function DashboardPage() {
   return (
     <div className="dashboard-page">
       <Topbar
-        title="Dashboard"
-        subtitle="Operational overview across care teams and patient activity."
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.subtitle')}
         actions={(
           <>
             <Select size="sm" value={selectedLocation} onChange={(event) => setSelectedLocation(event.target.value)} aria-label="Location">

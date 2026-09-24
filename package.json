@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    
-    "dev:admin": "set VITE_APP_PAGE=admin&& vite dev",
-    "dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
-    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\"",
-    
+
+    "dev:admin": "set VITE_APP_PAGE=admin&& vite dev","dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
+    "dev:whatsapp": "cd whatsapp-service && npm start",
+    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\" \"npm run dev:whatsapp\"",
+
     "build:admin": "set VITE_APP_PAGE=admin&& vite build",
     "build:caregiver": "set VITE_APP_PAGE=caregiver&& vite build",
     "build": "npm run build:admin && npm run build:caregiver",

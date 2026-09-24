@@ -308,12 +308,6 @@ function AppointmentsPage() {
 
   const selectedDayCount = selectedDayAppointments.length;
 
-  // Read-only view of caregiver assignments made from the Requests flow —
-  // the calendar above is untouched; this just surfaces what's been booked.
-  const requestsWithAssignments = useMemo(
-    () => mockRequests.map((item) => getEffectiveRequest(item.id)),
-    []
-  );
 
   return (
     <div className="appointments-page">
