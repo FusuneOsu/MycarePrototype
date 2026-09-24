@@ -1,0 +1,5 @@
+# STRIPE_SECRET_KEY = in the stripe developer place thing
+# webhook = stripe listen
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=

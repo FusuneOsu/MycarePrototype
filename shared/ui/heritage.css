@@ -1,0 +1,140 @@
+/*
+ * Malaysian heritage layer — decorative touches on top of the shared kit.
+ * The brand stays blue + green (as the logo); the motifs borrow from
+ * traditional textiles and carving:
+ *
+ *   Songket      woven gold-thread diamonds  → sidebar edge, modal band, login panel
+ *   Pucuk rebung bamboo-shoot triangles      → sidebar brand, page header border
+ *   Bunga raya   hibiscus, national flower   → batik-style watermark, stat corners
+ *   Bunga cengkih clove-flower diamond       → eyebrow and active-nav markers
+ *
+ * Everything here is decoration only (backgrounds and pseudo-elements), so
+ * layouts are untouched. Each app imports it straight after ui.css in
+ * styles/global.css; remove that import to switch it off.
+ * The SVGs need literal hex values; they mirror the tokens in tokens.css
+ * (#128a69 green, #1766a3 blue, #123d61 navy, #5fae3c leaf, #d4a24c songket).
+ */
+
+:root {
+  /* Pucuk rebung: alternating green / blue shoots with a gold core */
+  --ui-motif-pucuk: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cpath d='M0 12L6 0l6 12z' fill='%23128a69'/%3E%3Cpath d='M12 12L18 0l6 12z' fill='%231766a3'/%3E%3Cpath d='M6 5l2.5 7h-5zM18 5l2.5 7h-5z' fill='%23d4a24c'/%3E%3C/svg%3E");
+  --ui-motif-pucuk-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cpath d='M0 12L6 0l6 12z' fill='%23128a69' fill-opacity='.2'/%3E%3Cpath d='M12 12L18 0l6 12z' fill='%231766a3' fill-opacity='.18'/%3E%3Cpath d='M6 5l2.5 7h-5zM18 5l2.5 7h-5z' fill='%23d4a24c' fill-opacity='.45'/%3E%3C/svg%3E");
+
+  /* Songket: gold-thread diamonds woven on navy */
+  --ui-motif-songket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='8' viewBox='0 0 16 8'%3E%3Crect width='16' height='8' fill='%23123d61'/%3E%3Cpath d='M0 .8L3.2 4 0 7.2zM16 .8L12.8 4 16 7.2z' fill='%23128a69'/%3E%3Cpath d='M8 .8L11.2 4 8 7.2 4.8 4z' fill='none' stroke='%23d4a24c'/%3E%3Ccircle cx='8' cy='4' r='1' fill='%235fae3c'/%3E%3C/svg%3E");
+  /* Songket, vertical ribbon for the sidebar edge */
+  --ui-motif-songket-ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='14' viewBox='0 0 6 14'%3E%3Cpath d='M3 1L6 7 3 13 0 7z' fill='%23128a69' fill-opacity='.2'/%3E%3Cpath d='M3 4.5L4.3 7 3 9.5 1.7 7z' fill='%23d4a24c' fill-opacity='.75'/%3E%3C/svg%3E");
+
+  /* Batik watermark: bunga raya outlines with clove-flower diamonds */
+  --ui-motif-batik: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke-width='1.2' stroke-linejoin='round'%3E%3Cg stroke='%23128a69' stroke-opacity='.075' transform='translate(42 44)'%3E%3Cpath d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(72)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(144)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(216)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(288)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Ccircle r='3.5'/%3E%3Cpath d='M0 0L9-19'/%3E%3C/g%3E%3Cg stroke='%231766a3' stroke-opacity='.07' transform='translate(120 118) scale(.62) rotate(36)'%3E%3Cpath d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(72)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(144)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(216)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(288)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Ccircle r='3.5'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23d4a24c' fill-opacity='.16'%3E%3Cpath d='M122 34l5 5-5 5-5-5zM36 116l5 5-5 5-5-5z'/%3E%3C/g%3E%3C/svg%3E");
+  /* Same batik, light ink for dark (navy) panels */
+  --ui-motif-batik-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2' stroke-linejoin='round'%3E%3Cg stroke-opacity='.09' transform='translate(42 44)'%3E%3Cpath d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(72)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(144)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(216)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(288)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Ccircle r='3.5'/%3E%3Cpath d='M0 0L9-19'/%3E%3C/g%3E%3Cg stroke-opacity='.07' transform='translate(120 118) scale(.62) rotate(36)'%3E%3Cpath d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(72)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(144)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(216)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(288)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Ccircle r='3.5'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23d4a24c' fill-opacity='.3'%3E%3Cpath d='M122 34l5 5-5 5-5-5zM36 116l5 5-5 5-5-5z'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* A single bunga raya, for card corners */
+  --ui-motif-bunga-raya: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68' viewBox='-34 -34 68 68'%3E%3Cg fill='none' stroke='%23128a69' stroke-opacity='.18' stroke-width='1.3' stroke-linejoin='round'%3E%3Cpath d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(72)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(144)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(216)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath transform='rotate(288)' d='M0 0C-11-5-14-22 0-30 14-22 11-5 0 0Z'/%3E%3Cpath d='M0 0L9-19'/%3E%3C/g%3E%3Ccircle r='3.5' fill='%23d4a24c' fill-opacity='.45'/%3E%3C/svg%3E");
+}
+
+/* App canvas: a faint batik watermark behind every page ------------------ */
+.ui-shell {
+  background-image: var(--ui-motif-batik);
+  background-size: 160px 160px;
+  background-attachment: fixed;
+}
+
+/* Sidebar: songket ribbon down the edge, pucuk rebung under the brand ---- */
+.ui-sidebar {
+  background-image: var(--ui-motif-songket-ribbon);
+  background-repeat: repeat-y;
+  background-position: right 3px top;
+  background-size: 6px 14px;
+}
+.ui-sidebar__brand {
+  background: var(--ui-motif-pucuk) left bottom 14px / 24px 12px repeat-x;
+}
+.ui-sidebar__item--on { box-shadow: inset 3px 0 0 var(--ui-green); }
+.ui-sidebar__item--on::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  background: var(--ui-songket);
+  transform: rotate(45deg);
+}
+
+/* Page header: a soft pucuk rebung border beneath the title -------------- */
+.ui-page-header {
+  padding-bottom: 24px;
+  background: var(--ui-motif-pucuk-soft) left bottom / 24px 12px repeat-x;
+}
+
+/* Eyebrows: a clove-flower diamond, half green, half blue (as the logo) --- */
+.ui-eyebrow::before,
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  vertical-align: 1px;
+  background: linear-gradient(135deg, var(--ui-green) 50%, var(--ui-blue) 50%);
+  transform: rotate(45deg);
+}
+
+/* Stat tiles: a bunga raya blooming in the lower corner (icons sit top-right) */
+.ui-stat {
+  background-image: var(--ui-motif-bunga-raya);
+  background-repeat: no-repeat;
+  background-position: right -14px bottom -14px;
+  background-size: 76px 76px;
+}
+
+/* Primary action: green flowing into the logo's blue --------------------- */
+/* button.primary out-ranks the caregiver .primary rule; hover still wins */
+.ui-btn--primary,
+button.primary {
+  background-image: linear-gradient(135deg, var(--ui-green) 0%, #11767c 100%);
+}
+
+/* Section titles in cards: a short songket-gold underline ---------------- */
+.ui-section-head__title::after {
+  content: '';
+  display: block;
+  width: 34px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ui-green), var(--ui-blue) 60%, var(--ui-songket) 60%);
+}
+
+/* Modals: a songket band across the top ---------------------------------- */
+.ui-modal::before {
+  content: '';
+  flex: none;
+  height: 6px;
+  border-radius: var(--ui-radius) var(--ui-radius) 0 0;
+  background: var(--ui-motif-songket) left top / 12px 6px repeat-x;
+}
+
+/* Tables: a thread of songket gold under the header row ------------------ */
+.ui-table thead th { box-shadow: inset 0 -2px 0 var(--ui-songket-soft); }
+
+/* Caregiver sign-in panel: batik on navy, songket hem -------------------- */
+.auth .intro {
+  background-image: var(--ui-motif-songket);
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  background-size: 20px 10px;
+}
+.auth .intro::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 10px;
+  background: var(--ui-motif-batik-light) 0 0 / 160px 160px;
+}
+.auth .intro > * { position: relative; z-index: 1; }
+
+@media (max-width: 680px) {
+  .ui-sidebar { background-position: right 2px top; }
+  .ui-sidebar__brand { background: none; }
+  .ui-sidebar__item--on::after { display: none; }
+}

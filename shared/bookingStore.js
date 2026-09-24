@@ -117,6 +117,44 @@ export function setRequestStatus(id, status, reason = '') {
   return updateRequest(id, { status, statusReason: reason });
 }
 
+export function createPatientRequest(requestData, sender) {
+  const requests = read(REQUESTS_KEY) || {};
+  const newId = `WA-REQ-${Math.floor(Math.random() * 9000) + 1000}`;
+  
+  const newReq = {
+    id: newId,
+    source: 'WhatsApp',
+    status: REQUEST_STATUS.new,
+    patientName: requestData.name || 'Unknown',
+    phone: sender ? sender.split('@')[0] : '',
+    language: 'English',
+    careType: requestData.careType || 'General Care',
+    preferredGender: requestData.gender || 'No preference',
+    requiredSkill: '',
+    area: requestData.location || 'Unknown',
+    location: requestData.location || 'Unknown',
+    lat: requestData.lat || null,
+    lng: requestData.lng || null,
+    requestedDateISO: localDate(0),
+    preferredDate: localDate(0), // Would parse dateTime in real app
+    preferredStart: '10:00',
+    preferredEnd: '12:00',
+    notes: `Age: ${requestData.age}\nGender: ${requestData.gender}\nRequested Time: ${requestData.dateTime}`,
+    receivedAt: now(),
+    updatedAt: now()
+  };
+
+  requests[newId] = newReq;
+  write(REQUESTS_KEY, requests);
+  // Dispatch storage event so RequestsPage updates if it's open
+  window.dispatchEvent(new Event('storage'));
+  return newReq;
+}
+
+export function editPatientRequest(id, changes) {
+  return updateRequest(id, changes);
+}
+
 /* Notifications -------------------------------------------------------------- */
 
 /**

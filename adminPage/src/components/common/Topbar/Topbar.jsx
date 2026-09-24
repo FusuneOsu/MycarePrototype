@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeaderProfile, NotificationBell, PageHeader, todayLabel } from '../../../../../shared/ui/index.js';
+import { useLanguage } from '../../../../../shared/i18n/LanguageContext.jsx';
 import './Topbar.css';
 
 /**
@@ -11,6 +12,7 @@ import './Topbar.css';
 function Topbar({ title, subtitle, eyebrow, actions }) {
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(true);
+  const { language, setLanguage, t } = useLanguage();
 
   const openRequest = (close) => {
     setHasUnread(false);
@@ -26,12 +28,19 @@ function Topbar({ title, subtitle, eyebrow, actions }) {
       actions={(
         <>
           {actions}
+          <div className="topbar__language-toggle">
+            <select aria-label="Select Language" value={language} onChange={(e) => setLanguage(e.target.value)} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #ccc', fontSize: '13px', backgroundColor: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <option value="ms">Bahasa Melayu</option>
+              <option value="en">English</option>
+              <option value="zh">中文 (Chinese)</option>
+            </select>
+          </div>
           <NotificationBell unread={hasUnread}>
             {(close) => (
               <>
                 <div className="topbar__notification-heading">
-                  <strong>Notifications</strong>
-                  {hasUnread && <span>1 new</span>}
+                  <strong>{t('nav.notifications')}</strong>
+                  {hasUnread && <span>1 {t('nav.new')}</span>}
                 </div>
                 <button type="button" className="topbar__notification-item" onClick={() => openRequest(close)}>
                   <span className="topbar__notification-dot" />

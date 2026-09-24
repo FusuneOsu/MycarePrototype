@@ -10,6 +10,7 @@ import WhatsAppDemoPage from './pages/WhatsAppDemo/WhatsAppDemoPage.jsx';
 import PaymentsDemoPage from './pages/PaymentsDemo/PaymentsDemoPage.jsx';
 import RequestsPage from './pages/Requests/RequestsPage.jsx';
 import BookingRecordsPage from './pages/BookingRecords/BookingRecordsPage.jsx';
+import { LanguageProvider } from '../../shared/i18n/LanguageContext.jsx';
 
 const SESSION_KEY = 'mycare.adminSession';
 
@@ -52,7 +53,7 @@ function App() {
       return;
     }
 
-    const caregiverUrl = import.meta.env.VITE_CAREGIVER_URL || 'http://localhost:5173/caregiver/';
+    const caregiverUrl = '/caregiver/';
     const target = new URL(caregiverUrl, window.location.origin);
     target.searchParams.set('return', 'admin');
     window.location.replace(target.toString());
@@ -66,19 +67,21 @@ function App() {
   };
 
   return (
-    <Routes>
-      <Route element={<AppLayout onLogout={logout} />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/appointments" element={<AppointmentsPage />} />
-        <Route path="/requests" element={<RequestsPage />} />
-        <Route path="/bookings" element={<BookingRecordsPage />} />
-        <Route path="/caregivers" element={<CaregiversPage />} />
-        <Route path="/post-op-patients" element={<PostOpPatientsPage />} />
-        <Route path="/requests/:requestId" element={<PatientRequestPage />} />
-        <Route path="/whatsapp" element={<WhatsAppDemoPage />} />
-        <Route path="/payments" element={<PaymentsDemoPage />} />
-      </Route>
-    </Routes>
+    <LanguageProvider>
+      <Routes>
+        <Route element={<AppLayout onLogout={logout} />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/requests" element={<RequestsPage />} />
+          <Route path="/bookings" element={<BookingRecordsPage />} />
+          <Route path="/caregivers" element={<CaregiversPage />} />
+          <Route path="/post-op-patients" element={<PostOpPatientsPage />} />
+          <Route path="/requests/:requestId" element={<PatientRequestPage />} />
+          <Route path="/whatsapp" element={<WhatsAppDemoPage />} />
+          <Route path="/payments" element={<PaymentsDemoPage />} />
+        </Route>
+      </Routes>
+    </LanguageProvider>
   );
 }
 

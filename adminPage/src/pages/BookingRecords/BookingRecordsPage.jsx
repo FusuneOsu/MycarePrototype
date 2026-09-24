@@ -45,7 +45,12 @@ function BookingRecordsPage() {
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not generate the payment link.');
       if (result.demo) setActionError('Demo mode: add STRIPE_SECRET_KEY to create a real Stripe test link.');
-      else if (result.checkoutUrl) window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer');
+      // open payments in a new tab - need to create a whole browser based session first because
+      // currently this app only does tab-based session
+      // else if (result.checkoutUrl) window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer');
+
+      // current fix - open Stripe payment in current tab where login is established
+      else if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
       loadBookings();
     } catch (err) {
       setActionError(err.message);

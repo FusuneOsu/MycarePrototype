@@ -6,12 +6,14 @@
     "dev": "node scripts/dev.mjs",
     "dev:admin": "set VITE_APP_PAGE=admin&& vite dev",
     "dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
-    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\"",
+    "dev:whatsapp": "cd whatsapp-service && npm start",
+    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\" \"npm run dev:whatsapp\"",
     "build:admin": "set VITE_APP_PAGE=admin&& vite build",
     "build:caregiver": "set VITE_APP_PAGE=caregiver&& vite build",
     "build": "npm run build:admin && npm run build:caregiver",
     "admin:db:schema:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/schema.sql",
     "admin:db:schema:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql",
+    
     "admin:db:seed:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/seed.sql",
     "admin:db:seed:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
     "lint": "oxlint"
@@ -29,7 +31,7 @@
     "concurrently": "^8.2.2",
     "oxlint": "^1.81.0",
     "vite": "^8.3.0",
-    "wrangler": "^4.131.2"
+    "wrangler": "^4.136.3"
   },
   "allowScripts": {
     "workerd@1.20260911.1": true,

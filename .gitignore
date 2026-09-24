@@ -195,3 +195,7 @@ text
 ignored
 currentSituation.txt
 .dev.vars
+env
+
+# WhatsApp Baileys Auth Session Files
+whatsapp-service/baileys_auth_info/

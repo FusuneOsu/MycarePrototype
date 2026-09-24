@@ -9,7 +9,7 @@ export default function AuthPage({ onAuth, onApply }) {
   const [email, setEmail] = useState('sarah.tan@example.com');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
-  const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5173/';
+  const adminUrl = '/';
 
   const submit = (event) => {
     event.preventDefault();
