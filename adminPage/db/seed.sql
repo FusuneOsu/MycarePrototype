@@ -73,3 +73,18 @@ INSERT INTO bookings (
   ('BK-5005', NULL, 'Priya Balan', 'CG-1011', datetime('now', '-2 day', 'start of day', '+16 hours'), 60,
     'Cheras, Kuala Lumpur', 'Post-surgery care', 'Missed', 7000);
 
+INSERT INTO bookings (
+  id, request_id, patient_name, caregiver_id, scheduled_at, duration_mins,
+  location, service_type, status, rate_cents
+) VALUES
+  ('BK-5006', NULL, 'Amirah Zulkifli', 'CG-1001', datetime('now', '-4 day', 'start of day', '+9 hours'), 60,
+    'Bangsar, Kuala Lumpur', 'Wound care', 'Service completed', 5500),
+  ('BK-5007', NULL, 'Daniel Wong', 'CG-1002', datetime('now', '-5 day', 'start of day', '+13 hours'), 90,
+    'Ampang, Kuala Lumpur', 'Dementia care', 'Service completed', 7500),
+  ('BK-5008', NULL, 'Farah Nabila', 'CG-1006', datetime('now', '-2 day', 'start of day', '+8 hours'), 120,
+    'Shah Alam, Selangor', 'Post-operative care', 'Service completed', 9500),
+  ('BK-5009', NULL, 'Kevin Tan', 'CG-1008', datetime('now', '-6 day', 'start of day', '+15 hours'), 60,
+    'Kepong, Kuala Lumpur', 'Palliative care', 'Service completed', 8000),
+  ('BK-5010', NULL, 'Siti Rahayu', 'CG-1011', datetime('now', '-1 day', 'start of day', '+17 hours'), 60,
+    'Setapak, Kuala Lumpur', 'Paediatric care', 'Service completed', 6500);
+

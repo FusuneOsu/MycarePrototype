@@ -159,6 +159,9 @@ function localApiPlugin() {
 
 export default defineConfig({
   plugins: [react(), ...(isAdmin ? [localApiPlugin()] : [])],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   base: basePath,
   root: rootDir,
   // One dependency cache per app. Both dev servers run at once from the same
