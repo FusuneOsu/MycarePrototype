@@ -3,13 +3,13 @@ import { Sidebar as UiSidebar } from '../../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../../shared/i18n/LanguageContext.jsx';
 
 const NAV_ITEMS = [
-  { to: '/', labelKey: 'nav.dashboard', icon: '⌂', end: true },
-  { to: '/appointments', labelKey: 'nav.appointments', icon: '▣' },
-  { to: '/requests', labelKey: 'nav.requests', icon: '◌' },
-  { to: '/bookings', labelKey: 'nav.booking_records', icon: '☑' },
-  { to: '/caregivers', labelKey: 'nav.caregivers', icon: '▥' },
-  { to: '/post-op-patients', labelKey: 'nav.post_op_patients', icon: '◫' },
-  { to: '/payments', labelKey: 'nav.payments', icon: 'RM' },
+  { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', end: true },
+  { to: '/appointments', labelKey: 'nav.appointments', icon: 'calendar' },
+  { to: '/requests', labelKey: 'nav.requests', icon: 'chat' },
+  { to: '/bookings', labelKey: 'nav.booking_records', icon: 'clipboard' },
+  { to: '/caregivers', labelKey: 'nav.caregivers', icon: 'users' },
+  { to: '/post-op-patients', labelKey: 'nav.post_op_patients', icon: 'stethoscope' },
+  { to: '/payments', labelKey: 'nav.payments', icon: 'card' },
 ];
 
 const isActive = (item, pathname) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`));

@@ -27,13 +27,18 @@ function Row({ label, children }) {
  */
 export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNavigate }) {
   if (!job) {
-    return <section className="page-card panel"><div className="page-intro"><div><p className="eyebrow">Past visit</p><h2>Visit details are no longer on your job list</h2><p>Completed visits and patient ratings are under Bookings &amp; ratings on your profile.</p></div><button className="back" onClick={onBack}>← Back</button></div></section>;
+    return <section className="page-card panel"><div className="page-intro"><div><p className="eyebrow">Visit not found</p><h2>We couldn’t open this visit</h2><p>This booking is no longer on your record. Open it again from Reports › Job history.</p></div><button className="back" onClick={onBack}>← Back</button></div></section>;
   }
 
   const { booking } = job;
   const links = navigationLinks(booking);
   const lastChange = [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.rescheduled || entry.action === BOOKING_STATUS.cancelled);
   const canComplete = job.active;
+  const isCompleted = booking.status === BOOKING_STATUS.completed;
+  // A finished visit stays fully readable — the caregiver still needs the care
+  // plan, the address and the payout for their own records. Only the actions
+  // that would change it are retired.
+  const completedEntry = isCompleted ? [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.completed) : null;
 
   return <section className="page-card panel">
     <div className="page-intro">
@@ -48,6 +53,10 @@ export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNav
       </div>
     </div>
 
+    {isCompleted && <div className="status-note job-banner job-banner--done">
+      <strong>This visit is complete{completedEntry ? ` · marked ${formatDate(String(completedEntry.at).slice(0, 10))}` : ''}</strong>
+      <p>The full record stays here for your reference. Nothing further is needed from you — your coordinator verifies the receipt and releases the payout.</p>
+    </div>}
     {booking.status === BOOKING_STATUS.cancelled && <div className="status-note status-note--warn job-banner"><strong>This booking was cancelled</strong><p>{lastChange?.reason || 'Cancelled by your coordinator.'} You don't need to attend.</p></div>}
     {booking.status === BOOKING_STATUS.rescheduled && lastChange && <div className="status-note job-banner job-banner--moved"><strong>Rescheduled from {formatDate(lastChange.from.date)}, {lastChange.from.startTime}</strong><p>Reason: {lastChange.reason}</p></div>}
 
@@ -91,7 +100,8 @@ export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNav
 
       <div className="detail-block">
         <h3>Care checklist</h3>
-        <div className="checklist">{(TASKS[booking.serviceType] || TASKS['Elderly care']).map((task) => <label key={task}><input type="checkbox" disabled={!canComplete} /> {task}</label>)}</div>
+        {isCompleted && <p className="job-notes job-notes--muted">What this visit covered, kept for your records.</p>}
+        <div className="checklist">{(TASKS[booking.serviceType] || TASKS['Elderly care']).map((task) => <label key={task}><input type="checkbox" disabled={!canComplete} defaultChecked={isCompleted} /> {task}</label>)}</div>
       </div>
     </div>
 

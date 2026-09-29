@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dictionaries } from './dictionaries.js';
 
+/** The languages both apps offer, in the order they are listed to the user. */
+export const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'ms', label: 'Bahasa Melayu' },
+  { value: 'zh', label: '中文 (Chinese)' },
+];
+
 const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
@@ -24,6 +31,15 @@ export function LanguageProvider({ children }) {
   );
 }
 
+/**
+ * Falls back to English rather than throwing when there is no provider above —
+ * the caregiver app renders some screens (auth, the apply wizard) outside the
+ * workspace shell, and they should still render readable text.
+ */
 export function useLanguage() {
-  return useContext(LanguageContext);
+  return useContext(LanguageContext) || {
+    language: 'en',
+    setLanguage: () => {},
+    t: (key) => dictionaries.en[key] || key,
+  };
 }

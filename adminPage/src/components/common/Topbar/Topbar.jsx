@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeaderProfile, NotificationBell, PageHeader, todayLabel } from '../../../../../shared/ui/index.js';
+import { HeaderProfile, NotificationBell, PageHeader, todayLabel, Select } from '../../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../../shared/i18n/LanguageContext.jsx';
 import './Topbar.css';
 
@@ -28,12 +28,12 @@ function Topbar({ title, subtitle, eyebrow, actions }) {
       actions={(
         <>
           {actions}
-          <div className="topbar__language-toggle">
-            <select aria-label="Select Language" value={language} onChange={(e) => setLanguage(e.target.value)} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #ccc', fontSize: '13px', backgroundColor: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <div className="topbar__language-toggle" style={{ display: 'inline-block', marginRight: '16px' }}>
+            <Select size="sm" aria-label="Select Language" value={language} onChange={(e) => setLanguage(e.target.value)}>
               <option value="ms">Bahasa Melayu</option>
               <option value="en">English</option>
               <option value="zh">中文 (Chinese)</option>
-            </select>
+            </Select>
           </div>
           <NotificationBell unread={hasUnread}>
             {(close) => (

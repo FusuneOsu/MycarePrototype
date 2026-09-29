@@ -117,16 +117,26 @@ export function setRequestStatus(id, status, reason = '') {
   return updateRequest(id, { status, statusReason: reason });
 }
 
-export function createPatientRequest(requestData, sender) {
+/**
+ * `sender` is the WhatsApp JID the chat is filed under. Its digits are only a
+ * phone number when it is a phone JID — a "…@lid" JID is a privacy identifier
+ * whose digits are NOT dialable. Pass the resolved number as `phone`; the JID
+ * is used only as a fallback, and only when it really addresses a number.
+ */
+export function createPatientRequest(requestData, sender, phone = '') {
   const requests = read(REQUESTS_KEY) || {};
   const newId = `WA-REQ-${Math.floor(Math.random() * 9000) + 1000}`;
-  
+  const fromJid = /@(s\.whatsapp\.net|c\.us)$/.test(String(sender || '')) ? String(sender).split('@')[0] : '';
+
   const newReq = {
     id: newId,
     source: 'WhatsApp',
     status: REQUEST_STATUS.new,
     patientName: requestData.name || 'Unknown',
-    phone: sender ? sender.split('@')[0] : '',
+    phone: String(phone || '').replace(/\D/g, '') || fromJid,
+    // Kept so a request can still be traced back to its chat when the number
+    // is not known — without passing a LID off as a phone number.
+    whatsappJid: sender || '',
     language: 'English',
     careType: requestData.careType || 'General Care',
     preferredGender: requestData.gender || 'No preference',

@@ -28,7 +28,6 @@ export default function App() {
   const [screen, setScreen] = useState(() => (opensApplication() ? 'apply' : 'auth')); // auth | apply | workspace
   const [page, setPage] = useState('dashboard');
   const [selectedPatient, setSelectedPatient] = useState('');
-  const [language, setLanguage] = useState('English');
   const [toast, setToast] = useState('');
   const [navigatingTo, setNavigatingTo] = useState(null);
   const [applicationVersion, setApplicationVersion] = useState(0);
@@ -66,7 +65,7 @@ export default function App() {
   }
 
   if (!account) {
-    return <><AuthPage onAuth={(signedIn) => { setAccount(signedIn); setApplicationVersion((version) => version + 1); setScreen('workspace'); notify(`Welcome back, ${signedIn.name.split(' ')[0]}`); }} onApply={() => setScreen('apply')} /><Toast message={toast} /></>;
+    return <><AuthPage onAuth={(signedIn) => { setAccount(signedIn); setApplicationVersion((version) => version + 1); setScreen('workspace'); notify(`Welcome back, ${signedIn.name.split(' ')[0]}`); }} onApply={() => setScreen('apply')} onNotify={notify} /><Toast message={toast} /></>;
   }
 
   // An applicant only reaches the workspace once an admin approves them.
@@ -101,9 +100,7 @@ export default function App() {
     : page === 'jobs' ? <JobsPage jobs={jobs} center={profile.center} onOpenPatient={openPatient} onNavigate={setNavigatingTo} />
     : page === 'detail' ? <JobDetailPage job={jobs[selectedPatient]} onBack={() => navigate('jobs')} onNotify={notify} onNavigate={setNavigatingTo} onComplete={(id) => { completeBooking(id); refreshProfile(); }} />
     : page === 'profile' ? <ProfilePage profile={profile} onEdit={() => setEditingProfile(true)} onRefresh={refreshProfile} onNotify={notify} />
-    : <ReportsPage onOpenHistory={openPatient} onNotify={notify} />;
-
-  const toggleLanguage = () => { const next = language === 'English' ? 'Bahasa Melayu' : 'English'; setLanguage(next); notify(next === 'English' ? 'Language changed to English' : 'Bahasa ditukar kepada Bahasa Melayu'); };
+    : <ReportsPage jobs={jobs} onOpenHistory={openPatient} onNotify={notify} />;
 
   // Caregiver edits never write straight to the profile — they are filed as a
   // change request and only merged in once an admin approves them.
@@ -116,7 +113,7 @@ export default function App() {
   };
 
   return <>
-    <WorkspaceLayout page={page} onNavigate={navigate} language={language} onLanguage={toggleLanguage} onLogout={signOut} onNotify={notify} profile={profile} notifications={notifications} onReadNotifications={readNotifications} onOpenJob={openPatient}>{content}</WorkspaceLayout>
+    <WorkspaceLayout page={page} onNavigate={navigate} onLogout={signOut} onNotify={notify} profile={profile} notifications={notifications} onReadNotifications={readNotifications} onOpenJob={openPatient}>{content}</WorkspaceLayout>
     {navigatingTo && <NavigateSheet job={navigatingTo} onClose={() => setNavigatingTo(null)} />}
     {editingProfile && <ProfileEditModal profile={profile} onCancel={() => setEditingProfile(false)} onSubmit={submitProfileEdits} />}
     <Toast message={toast} />

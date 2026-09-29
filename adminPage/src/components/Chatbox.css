@@ -1,0 +1,165 @@
+/* WhatsApp intake inbox -----------------------------------------------------
+   Modelled on the WhatsApp desktop app: a quiet neutral shell, one green
+   accent, and no chrome competing with the messages themselves. */
+
+.wa {
+  --wa-green: #008069;
+  --wa-green-dark: #06544a;
+  --wa-bubble-out: #d9fdd3;
+  --wa-bubble-in: #fff;
+  --wa-panel: #fff;
+  --wa-rail: #f7f8fa;
+  --wa-line: #e9edef;
+  --wa-ink: #111b21;
+  --wa-muted: #667781;
+  --wa-canvas: #efeae2;
+
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  width: min(880px, calc(100vw - 40px));
+  height: min(620px, calc(100vh - 40px));
+  overflow: hidden;
+  border: 1px solid var(--wa-line);
+  border-radius: 14px;
+  background: var(--wa-panel);
+  box-shadow: 0 18px 50px rgb(11 20 26 / 18%);
+  font-family: var(--ui-font, 'DM Sans', sans-serif);
+  color: var(--wa-ink);
+}
+
+/* Launcher ---------------------------------------------------------------- */
+.wa-launcher {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--wa-green, #008069);
+  color: #fff;
+  box-shadow: 0 8px 22px rgb(11 20 26 / 22%);
+  font-family: var(--ui-font, 'DM Sans', sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wa-launcher:hover { background: #00705c; }
+.wa-launcher__dot { width: 9px; height: 9px; border-radius: 50%; background: #8fa2ab; }
+.wa-launcher__dot--on { background: #25d366; box-shadow: 0 0 0 3px rgb(37 211 102 / 25%); }
+.wa-launcher__count { min-width: 20px; padding: 1px 7px; border-radius: 999px; background: rgb(255 255 255 / 22%); font-size: 12px; }
+
+/* Header ------------------------------------------------------------------ */
+.wa-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--wa-line); background: var(--wa-panel); }
+.wa-head__title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.wa-head__sub { margin: 2px 0 0; color: var(--wa-muted); font-size: 12px; }
+.wa-head__right { display: flex; align-items: center; gap: 10px; }
+.wa-status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #f0f2f5; color: var(--wa-muted); font-size: 11px; font-weight: 700; text-transform: capitalize; }
+.wa-status__dot { width: 7px; height: 7px; border-radius: 50%; background: #c2cbd1; }
+.wa-status--on { color: var(--wa-green-dark); background: #e7f7ef; }
+.wa-status--on .wa-status__dot { background: #25d366; }
+.wa-icon-button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; color: var(--wa-muted); background: none; cursor: pointer; }
+.wa-icon-button:hover { color: var(--wa-ink); background: #f0f2f5; }
+
+.wa-body { display: flex; flex: 1; min-height: 0; }
+
+/* Conversation rail ------------------------------------------------------- */
+.wa-rail { display: flex; flex-direction: column; width: 290px; flex: none; border-right: 1px solid var(--wa-line); background: var(--wa-rail); }
+.wa-rail__search { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.wa-field { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 8px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--wa-line); color: var(--wa-muted); }
+.wa-field input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--wa-ink); font: inherit; font-size: 13px; }
+.wa-field input::placeholder { color: #9aa8b0; }
+.wa-add { display: grid; place-items: center; width: 34px; height: 34px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--wa-green); color: #fff; cursor: pointer; }
+.wa-add:hover { background: #00705c; }
+.wa-add:disabled { background: #c6d0d4; cursor: not-allowed; }
+
+.wa-list { flex: 1; overflow-y: auto; }
+.wa-chat { display: flex; gap: 12px; width: 100%; padding: 11px 14px; border: 0; border-bottom: 1px solid rgb(233 237 239 / 70%); background: none; text-align: left; cursor: pointer; font: inherit; }
+.wa-chat:hover { background: #eff2f4; }
+.wa-chat--on { background: #e9edef; }
+.wa-avatar { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 50%; background: #dfe5e7; color: #54656f; font-size: 14px; font-weight: 700; text-transform: uppercase; }
+.wa-chat__body { flex: 1; min-width: 0; }
+.wa-chat__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wa-chat__name { display: block; overflow: hidden; color: var(--wa-ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.wa-chat__time { flex: none; color: var(--wa-muted); font-size: 11px; }
+.wa-chat__preview { display: block; margin-top: 2px; overflow: hidden; color: var(--wa-muted); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+/* The number under the name, when the name is a real WhatsApp display name. */
+.wa-chat__phone { color: #8d9aa2; font-size: 11px; }
+.wa-empty { padding: 28px 20px; color: var(--wa-muted); font-size: 13px; line-height: 1.6; text-align: center; }
+
+/* Conversation ------------------------------------------------------------ */
+.wa-main { display: flex; flex: 1; min-width: 0; flex-direction: column; background: var(--wa-canvas); }
+.wa-convo-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--wa-line); background: var(--wa-panel); }
+.wa-convo-head__name { margin: 0; font-size: 14.5px; font-weight: 700; }
+/* Only needed when the rail is hidden and one pane shows at a time. */
+.wa-back { display: none; }
+.wa-convo-head__meta { margin: 1px 0 0; color: var(--wa-muted); font-size: 12px; }
+/* Said plainly, so it is not mistaken for a real number. */
+.wa-convo-head__meta--unknown { color: #9aa8b0; font-style: italic; }
+
+/* The subtle tiled texture of the real app, drawn rather than fetched so the
+   panel keeps working offline and adds no network request. */
+.wa-thread { flex: 1; padding: 20px 7%; overflow-y: auto; background-color: var(--wa-canvas); background-image: radial-gradient(rgb(17 27 33 / 4%) 1px, transparent 0); background-size: 22px 22px; }
+.wa-row { display: flex; margin-bottom: 8px; }
+.wa-row--out { justify-content: flex-end; }
+/* min-width keeps a very short message ("ok") from squeezing the timestamp
+   into a narrow column; max-width is a ch measure so long lines stay readable. */
+.wa-bubble { max-width: min(68%, 46ch); min-width: 104px; padding: 6px 9px 6px 11px; border-radius: 9px; background: var(--wa-bubble-in); box-shadow: 0 1px .5px rgb(11 20 26 / 13%); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.wa-row--out .wa-bubble { background: var(--wa-bubble-out); }
+/* The message text, with room reserved on the last line for the timestamp. */
+.wa-bubble__text { white-space: pre-wrap; }
+/* Floated like the real app: the time sits on the last line of text when it
+   fits, and drops to its own line when it does not — it never overlaps. */
+.wa-bubble__meta { float: right; display: flex; align-items: center; gap: 3px; height: 15px; margin: 6px -2px -2px 8px; color: var(--wa-muted); font-size: 10.5px; white-space: nowrap; }
+.wa-bubble__tick { color: #53bdeb; }
+/* Delivery state: a message that failed must not look like one that landed. */
+.wa-bubble__pending { font-size: 9px; opacity: .65; }
+.wa-bubble__failed { display: grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; background: #d93025; color: #fff; font-size: 9px; font-weight: 700; }
+.wa-bubble__error { display: block; clear: both; padding-top: 4px; color: #b3261e; font-size: 11px; }
+.wa-bubble::after { content: ''; display: block; clear: both; }
+/* Sender name above the first bubble of an incoming run, as in a WhatsApp chat.
+   Rendered before the floated timestamp, so it always gets its own line. */
+.wa-bubble__author { display: block; margin-bottom: 2px; color: var(--wa-green-dark); font-size: 12px; font-weight: 700; }
+.wa-daybreak { display: flex; justify-content: center; margin: 14px 0; }
+.wa-daybreak span { padding: 5px 12px; border-radius: 8px; background: rgb(255 255 255 / 85%); color: var(--wa-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Composer ---------------------------------------------------------------- */
+.wa-foot { padding: 10px 16px 14px; border-top: 1px solid var(--wa-line); background: var(--wa-panel); }
+/* Why a send failed, stated where the person is about to type. */
+.wa-alert { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 10px; padding: 9px 12px; border: 1px solid #f3c9c5; border-radius: 9px; background: #fdf1f0; color: #8c2f26; font-size: 12px; line-height: 1.55; }
+.wa-alert code { padding: 1px 5px; border-radius: 4px; background: rgb(140 47 38 / 10%); font-size: 11px; }
+.wa-alert__dismiss { margin-left: auto; padding: 0 2px; border: 0; background: none; color: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+.wa-parsed { margin-bottom: 10px; padding: 11px 13px; border: 1px solid #cfe9dd; border-radius: 10px; background: #f2fbf6; }
+.wa-parsed__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+.wa-parsed__title { margin: 0; color: var(--wa-green-dark); font-size: 12px; font-weight: 700; }
+.wa-parsed__warn { margin: 0 0 8px; color: #8a6116; font-size: 11.5px; line-height: 1.55; }
+.wa-parsed__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 5px 16px; }
+.wa-parsed__row { display: flex; gap: 6px; font-size: 12px; }
+.wa-parsed__row dt { color: var(--wa-muted); }
+.wa-parsed__row dd { margin: 0; color: var(--wa-ink); font-weight: 600; overflow-wrap: anywhere; }
+.wa-compose { display: flex; align-items: center; gap: 9px; }
+.wa-compose .wa-field { border-radius: 10px; padding: 10px 14px; }
+.wa-send { display: grid; place-items: center; width: 40px; height: 40px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--wa-green); color: #fff; cursor: pointer; }
+.wa-send:hover { background: #00705c; }
+.wa-send:disabled { background: #c6d0d4; cursor: not-allowed; }
+.wa-open-request { padding: 9px 14px; border: 1px solid var(--wa-green); border-radius: 8px; background: #fff; color: var(--wa-green-dark); font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.wa-open-request:hover { background: #e7f7ef; }
+.wa-placeholder { display: grid; place-items: center; flex: 1; padding: 30px; color: var(--wa-muted); font-size: 13px; text-align: center; }
+
+@media (max-width: 720px) {
+  .wa { right: 10px; bottom: 10px; width: calc(100vw - 20px); height: calc(100vh - 20px); }
+  .wa-rail { width: 100%; }
+  /* One pane at a time on a phone: the rail, or the open conversation. */
+  .wa--reading .wa-rail { display: none; }
+  .wa:not(.wa--reading) .wa-main { display: none; }
+  .wa-thread { padding: 16px 14px; }
+  .wa-bubble { max-width: 82%; }
+  .wa-back { display: grid; }
+}

@@ -2,6 +2,7 @@
 // Import the stylesheet once per app (shared/ui/ui.css), then the components:
 //   import { Button, Card, PageHeader } from '../../shared/ui/index.js';
 export { Avatar } from './Avatar.jsx';
+export { Icon, ICONS } from './Icon.jsx';
 export { Button } from './Button.jsx';
 export { Card, SectionHeader } from './Card.jsx';
 export { StatCard, StatGrid } from './StatCard.jsx';
