@@ -154,7 +154,8 @@
 .wa-placeholder { display: grid; place-items: center; flex: 1; padding: 30px; color: var(--wa-muted); font-size: 13px; text-align: center; }
 
 @media (max-width: 720px) {
-  .wa { right: 10px; bottom: 10px; width: calc(100vw - 20px); height: calc(100vh - 20px); }
+  .wa-launcher { right: 16px; bottom: 16px; gap: 8px; padding: 10px 14px; font-size: 13px; }
+  .wa { right: 10px; bottom: 10px; width: calc(100vw - 20px); height: calc(100vh - 20px); height: calc(100dvh - 20px); }
   .wa-rail { width: 100%; }
   /* One pane at a time on a phone: the rail, or the open conversation. */
   .wa--reading .wa-rail { display: none; }

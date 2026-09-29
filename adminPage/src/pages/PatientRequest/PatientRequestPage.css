@@ -58,4 +58,7 @@
 
 @media (max-width: 560px) {
   .request-grid, .finder-slot, .booking-form__grid { grid-template-columns: 1fr; }
+  .request-actions > * { flex: 1 1 auto; }
+  .finder-filters { padding: 12px; }
+  .finder-confirm__price { text-align: left; }
 }

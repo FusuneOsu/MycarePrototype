@@ -1,4 +1,4 @@
-import { HeaderProfile, NotificationBell, PageHeader, Select, todayLabel } from '../../../shared/ui/index.js';
+import { HeaderLogout, NotificationBell, PageHeader, Select, todayLabel } from '../../../shared/ui/index.js';
 import { LANGUAGES, useLanguage } from '../../../shared/i18n/LanguageContext.jsx';
 
 const ago = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -7,7 +7,7 @@ const ago = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', mon
  * The shared page header. The bell lists booking notifications from the admin
  * (confirmed, rescheduled, cancelled); opening it marks them read.
  */
-export default function Topbar({ page, profile, notifications = [], onReadNotifications, onOpenJob }) {
+export default function Topbar({ page, profile, notifications = [], onReadNotifications, onOpenJob, onLogout }) {
   const { language, setLanguage, t } = useLanguage();
   const unread = notifications.some((item) => !item.read);
   return <PageHeader
@@ -30,7 +30,7 @@ export default function Topbar({ page, profile, notifications = [], onReadNotifi
           </button>)}
         </div>}
       </NotificationBell>
-      <HeaderProfile initials={profile.initials} name={profile.name} />
+      <HeaderLogout onLogout={onLogout} label={t('nav.logout')} />
     </>}
   />;
 }

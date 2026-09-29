@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Avatar, cx } from './Avatar.jsx';
+import { cx } from './Avatar.jsx';
+import { Icon } from './Icon.jsx';
 
 /** Today's date as the header eyebrow, e.g. "MONDAY, 21 SEPTEMBER 2026". */
 export const todayLabel = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -28,7 +29,7 @@ export function NotificationBell({ unread = false, label = 'Notifications', onCl
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" className="ui-bell" aria-label={unread ? `${label}, unread` : label} aria-expanded={children ? open : undefined} onClick={toggle}>
-        <span aria-hidden="true">♧</span>
+        <Icon name="bell" size={19} />
         {unread && <span className="ui-bell__dot" />}
       </button>
       {children && open && <div className="ui-popover">{typeof children === 'function' ? children(() => setOpen(false)) : children}</div>}
@@ -36,6 +37,12 @@ export function NotificationBell({ unread = false, label = 'Notifications', onCl
   );
 }
 
-export function HeaderProfile({ initials, name }) {
-  return <div className="ui-header-profile"><Avatar initials={initials} /><strong>{name}</strong></div>;
+/** The sign-out control in the page header, where the profile chip used to sit. */
+export function HeaderLogout({ onLogout, label = 'Log out' }) {
+  return (
+    <button type="button" className="ui-header-logout" onClick={onLogout} title={label}>
+      <Icon name="logout" size={18} />
+      <span>{label}</span>
+    </button>
+  );
 }

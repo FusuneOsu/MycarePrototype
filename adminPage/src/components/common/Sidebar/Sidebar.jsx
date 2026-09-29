@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 const isActive = (item, pathname) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`));
 
 /** The shared system sidebar, wired to the admin app's routes. */
-function Sidebar({ onLogout }) {
+function Sidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -26,7 +26,6 @@ function Sidebar({ onLogout }) {
       brandName="myCare Admin"
       items={NAV_ITEMS.map((item) => ({ key: item.to, label: t(item.labelKey), icon: item.icon, active: isActive(item, pathname), onSelect: () => navigate(item.to) }))}
       profile={{ initials: 'AD', name: 'Admin User', role: 'Administrator' }}
-      onLogout={onLogout}
     />
   );
 }

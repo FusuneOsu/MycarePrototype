@@ -3,7 +3,7 @@ import { useLanguage } from '../../../shared/i18n/LanguageContext.jsx';
 import { navigation } from '../data/navigation.js';
 
 /** The shared system sidebar, wired to the caregiver workspace pages. */
-export default function Sidebar({ page, onNavigate, onLogout, profile }) {
+export default function Sidebar({ page, onNavigate, profile }) {
   const { t } = useLanguage();
 
   return <UiSidebar
@@ -11,7 +11,6 @@ export default function Sidebar({ page, onNavigate, onLogout, profile }) {
     brandName="My CareGivers"
     sectionLabel={t('nav.workspace')}
     items={navigation.map((item) => ({ key: item.id, label: t(item.labelKey) || item.label, icon: item.icon, active: page === item.id, onSelect: () => onNavigate(item.id) }))}
-    profile={{ initials: profile.initials, name: profile.name, role: profile.role, active: page === 'profile', onSelect: () => onNavigate('profile') }}
-    onLogout={onLogout}
+    profile={{ initials: profile.initials, name: profile.name, role: profile.role, gender: profile.gender, active: page === 'profile', onSelect: () => onNavigate('profile') }}
   />;
 }

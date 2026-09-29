@@ -201,7 +201,8 @@
 
 @media (max-width: 860px) {
   .dashboard-page__grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...) so a wide table scrolls inside its card instead of stretching the page */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .dashboard-page__availability-wrap {
@@ -211,5 +212,29 @@
 
   .dashboard-page__donut-chart {
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .dashboard-page__grid {
+    gap: 14px;
+  }
+
+  .dashboard-page__trend-chart {
+    gap: 4px;
+    padding: 14px 6px 0;
+  }
+
+  .dashboard-page__trend-bars {
+    gap: 2px;
+    height: 110px;
+  }
+
+  .dashboard-page__trend-bar {
+    width: 9px;
+  }
+
+  .dashboard-page__trend-legend {
+    flex-wrap: wrap;
   }
 }

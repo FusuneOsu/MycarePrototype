@@ -24,8 +24,8 @@ import { Button, Card, PageHeader, StatCard, Table } from '../../../../shared/ui
 
 | Component | Use it for |
 |---|---|
-| `Sidebar` | The system sidebar. Router-agnostic: pass `items` with `active` + `onSelect`. |
-| `PageHeader`, `NotificationBell`, `HeaderProfile`, `todayLabel` | Top of every page: date eyebrow, title, subtitle, actions. |
+| `Sidebar` | The system sidebar. Router-agnostic: pass `items` with `active` + `onSelect`. Becomes a slide-in drawer under 680px. |
+| `PageHeader`, `NotificationBell`, `HeaderLogout`, `todayLabel` | Top of every page: date eyebrow, title, subtitle, actions. |
 | `Card`, `SectionHeader` | White panels; `title`/`action` for a header row, `padded` for page cards. |
 | `StatCard`, `StatGrid` | Dashboard metric tiles. `tone`: `warn` / `gold`. |
 | `Button` | `variant`: `primary` · `secondary` · `danger` · `link`; `size="sm"`; `href` renders a link. |

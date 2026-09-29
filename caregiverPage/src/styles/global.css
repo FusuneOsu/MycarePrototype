@@ -161,10 +161,32 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .status-note strong { font-size: 12px; }
 .status-note p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .status-subhead { margin: 30px 0 0; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; }
-.profile-hero { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: #f8fbfa; }
-.profile-hero .avatar { width: 52px; height: 52px; font-size: 17px; }
+/* Two cards: who you are, then the tabbed details. Notices sit between them. */
+.profile-page { display: grid; gap: 18px; }
+.profile-page > .banner { margin-bottom: 0; }
+.profile-hero { display: flex; align-items: center; gap: 18px; padding-top: 20px; border-top: 1px solid var(--line); }
+.profile-hero .avatar { width: 72px; height: 72px; font-size: 22px; }
+.profile-hero .avatar--icon .ui-icon { width: 68%; height: 68%; }
+/* Tab bar card, then each section as its own card on the page background. */
+.profile-tabs { padding: 6px 16px 0; }
+.profile-tabs .ui-tabs { margin: 0; border-bottom: 0; }
+.profile-page .detail-block, .profile-page .profile-stats div { background: #fff; box-shadow: var(--shadow); }
+.page-intro__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+
+/* Pending edits: a chip that reopens the review pop-up. */
+.pending-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid #e6d3bb; border-radius: 999px; color: #7a5320; background: #fdf7ef; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.pending-chip:hover { border-color: var(--gold); }
+.pending-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.pending-list { display: grid; gap: 10px; }
+.pending-item { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; }
+.pending-item__label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.pending-item__values { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; font-size: 13px; }
+.pending-item__old { color: var(--muted); text-decoration: line-through; }
+.pending-item__arrow { color: var(--muted); }
+.pending-item__new { color: var(--green); }
+.pending-withdraw { margin-right: auto; color: var(--ui-coral-dark); font-size: 13px; }
 .profile-hero-copy { flex: 1; min-width: 0; }
-.profile-hero-copy strong { display: block; font-size: 17px; letter-spacing: -.02em; }
+.profile-hero-copy strong { display: block; font-size: 19px; letter-spacing: -.02em; }
 .profile-hero-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
 .profile-hero-copy p { max-width: 62ch; margin: 10px 0 0; color: #52666e; font-size: 12px; line-height: 1.7; }
 .pill { flex: none; padding: 5px 11px; border-radius: 20px; color: #647780; background: #eef3f2; font-size: 11px; font-weight: 700; }
@@ -188,7 +210,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 @media (max-width: 860px) {
   .apply-shell { grid-template-columns: 1fr; gap: 18px; }
   .apply-steps { position: static; grid-auto-flow: column; overflow-x: auto; }
-  .apply-steps span { display: none; }
+  .apply-steps li { white-space: nowrap; }
+  .apply-steps .apply-step__hint { display: none; }
   .apply-row, .apply-row--three { grid-template-columns: 1fr; }
   .review-row { grid-template-columns: 1fr; gap: 4px; }
   .slot { flex-direction: column; align-items: flex-start; }
@@ -203,17 +226,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .apply-steps--jump li { cursor: pointer; }
 .apply-steps--jump li:hover:not(.on) { background: #eef7f3; }
 
-/* Steps already reached stay reachable even when they are not finished, so an
-   applicant can look ahead and fill things in out of order. */
-.apply-steps .apply-step--locked { cursor: default; opacity: .5; }
-.apply-steps--jump .apply-step--locked:hover { background: none; }
+/* Every step is reachable at any time, finished or not, so an applicant can
+   look ahead and fill things in out of order. */
+.apply-steps--jump li:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .apply-steps .apply-step__hint { margin-left: auto; color: var(--muted); font-size: 10px; font-style: normal; font-weight: 600; letter-spacing: .01em; }
 .apply-steps .apply-step--open { color: var(--dark); }
 
 /* Password recovery: the simulated email's link, shown so the flow can be
    walked end to end while no mail provider is connected. */
 /* Language switcher in the page header, matching the admin app. */
-.topbar-language { display: inline-block; margin-right: 16px; }
+.topbar-language { display: inline-block; }
+.avatar--icon .ui-icon { width: 66%; height: 66%; }
 .apply-resume { margin: 16px 0; }
 .apply-resume .primary { margin-top: 12px; padding: 9px 16px; }
 .reset-preview { margin: 16px 0; }

@@ -154,3 +154,9 @@
   color: var(--color-warning);
   letter-spacing: 1px;
 }
+
+@media (max-width: 480px) {
+  .caregiver-detail-modal__stats {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HeaderProfile, NotificationBell, PageHeader, todayLabel, Select } from '../../../../../shared/ui/index.js';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { HeaderLogout, NotificationBell, PageHeader, todayLabel, Select } from '../../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../../shared/i18n/LanguageContext.jsx';
 import './Topbar.css';
 
 /**
  * Page header for every admin page — the shared PageHeader with today's date,
- * the notification bell and the signed-in admin, as in the caregiver app.
+ * the notification bell and the log-out button, as in the caregiver app.
  * `actions` renders page buttons to the left of the bell.
  */
 function Topbar({ title, subtitle, eyebrow, actions }) {
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(true);
   const { language, setLanguage, t } = useLanguage();
+  const { onLogout } = useOutletContext() ?? {};
 
   const openRequest = (close) => {
     setHasUnread(false);
@@ -28,7 +29,7 @@ function Topbar({ title, subtitle, eyebrow, actions }) {
       actions={(
         <>
           {actions}
-          <div className="topbar__language-toggle" style={{ display: 'inline-block', marginRight: '16px' }}>
+          <div className="topbar__language-toggle">
             <Select size="sm" aria-label="Select Language" value={language} onChange={(e) => setLanguage(e.target.value)}>
               <option value="ms">Bahasa Melayu</option>
               <option value="en">English</option>
@@ -53,7 +54,7 @@ function Topbar({ title, subtitle, eyebrow, actions }) {
               </>
             )}
           </NotificationBell>
-          <HeaderProfile initials="AD" name="Admin User" />
+          {onLogout && <HeaderLogout onLogout={onLogout} label={t('nav.logout')} />}
         </>
       )}
     />

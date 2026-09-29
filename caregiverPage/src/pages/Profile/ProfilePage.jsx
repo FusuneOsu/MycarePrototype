@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Avatar } from '../../components/common.jsx';
 import { dismissChangeRequest, fieldLabel } from '../../data/profileChanges.js';
 import { formatRating } from '../../../../shared/bookingHistory.js';
-import { Tabs } from '../../../../shared/ui/index.js';
+import { Button, Modal, Tabs } from '../../../../shared/ui/index.js';
 
 const show = (value) => (Array.isArray(value) ? value.join(', ') : value) || '—';
 const date = (value) => {
@@ -31,34 +31,62 @@ const TABS = [
   { id: 'bookings', label: 'Bookings & ratings', fields: [] },
 ];
 
+/**
+ * Pending edits, field by field (current → requested), with the two things a
+ * caregiver can do about them while they wait: check again, or withdraw.
+ */
+function PendingChangesModal({ profile, onClose, onWithdraw, onRefresh }) {
+  const pending = profile.pendingChanges;
+  const fields = Object.keys(pending);
+  return <Modal
+    isOpen
+    onClose={onClose}
+    size="md"
+    title={`${fields.length} change${fields.length === 1 ? '' : 's'} awaiting approval`}
+    description={`Submitted ${date(profile.pendingRequest.submittedAt)}. Your coordinator reviews these in the admin workspace — until then your profile keeps the current values.`}
+    footer={<>
+      <Button variant="link" onClick={onWithdraw} className="pending-withdraw">Withdraw changes</Button>
+      <Button variant="secondary" onClick={onRefresh}>Check for updates</Button>
+      <Button variant="primary" onClick={onClose}>Done</Button>
+    </>}
+  >
+    <div className="pending-list">
+      {fields.map((field) => <div className="pending-item" key={field}>
+        <span className="pending-item__label">{fieldLabel(field)}</span>
+        <div className="pending-item__values">
+          <span className="pending-item__old">{show(profile[field])}</span>
+          <span className="pending-item__arrow" aria-hidden="true">→</span>
+          <strong className="pending-item__new">{show(pending[field])}</strong>
+        </div>
+      </div>)}
+    </div>
+  </Modal>;
+}
+
 export default function ProfilePage({ profile, onEdit, onRefresh, onNotify }) {
   const [tab, setTab] = useState('personal');
   const pending = profile.pendingChanges;
   const changedFields = pending ? Object.keys(pending) : [];
+  // Opening the profile with edits still under review shows them straight away.
+  const [reviewOpen, setReviewOpen] = useState(() => Boolean(pending));
   const summary = profile.bookingSummary || { completed: 0, rated: 0, averageRating: null };
 
-  const withdraw = () => { dismissChangeRequest(profile.email); onNotify('Change request withdrawn'); onRefresh(); };
+  const withdraw = () => { dismissChangeRequest(profile.email); setReviewOpen(false); onNotify('Change request withdrawn'); onRefresh(); };
+  const checkForUpdates = () => { onRefresh(); onNotify('Profile refreshed'); };
   const flagged = (fields) => fields.some((field) => changedFields.includes(field) || profile.missingFields.includes(field));
 
-  return <section className="page-card panel">
+  return <div className="profile-page">
+    <section className="page-card panel">
     <div className="page-intro">
       <div><p className="eyebrow">{profile.caregiverId} · joined {date(profile.joinedOn)}</p><h2>My profile</h2><p>Everything My CareGivers holds about you. Edits are reviewed by your coordinator before they go live.</p></div>
-      <button className="primary compact" onClick={onEdit}>Edit profile</button>
+      <div className="page-intro__actions">
+        {pending && <button type="button" className="pending-chip" onClick={() => setReviewOpen(true)}><i aria-hidden="true" />{changedFields.length} change{changedFields.length === 1 ? '' : 's'} pending</button>}
+        <button className="primary compact" onClick={onEdit}>Edit profile</button>
+      </div>
     </div>
 
-    {profile.missingFields.length > 0 && !pending && <div className="banner">
-      <strong>Finish setting up your profile</strong>
-      <p>Your application is approved. Please add your {profile.missingFields.map(fieldLabel).join(', ').toLowerCase()} so your coordinator can complete your file.</p>
-      <button type="button" className="link-button" onClick={onEdit}>Add these details ›</button>
-    </div>}
-
-    {pending && <div className="banner banner--pending">
-      <strong>{changedFields.length} change{changedFields.length === 1 ? '' : 's'} awaiting approval</strong>
-      <p>{changedFields.map(fieldLabel).join(', ')} — submitted {date(profile.pendingRequest.submittedAt)}. Your coordinator reviews these in the admin workspace. New values are shown in green. <button type="button" className="link-button" onClick={withdraw}>Withdraw</button> · <button type="button" className="link-button" onClick={onRefresh}>Check for updates</button></p>
-    </div>}
-
     <div className="profile-hero">
-      <Avatar initials={profile.initials} />
+      <Avatar initials={profile.initials} gender={profile.gender} />
       <div className="profile-hero-copy">
         <strong>{profile.name}</strong>
         <small>{profile.role} · {profile.center || 'No center assigned'} · {formatRating(summary)} · {summary.completed} completed</small>
@@ -69,8 +97,18 @@ export default function ProfilePage({ profile, onEdit, onRefresh, onNotify }) {
         <span className={profile.availability === 'Available' ? 'pill pill--on' : 'pill'}>{profile.availability}</span>
       </div>
     </div>
+    </section>
 
-    <Tabs fill label="Profile sections" value={tab} onChange={setTab} tabs={TABS.map((item) => ({ id: item.id, label: item.label, flagged: flagged(item.fields) }))} />
+    {profile.missingFields.length > 0 && !pending && <div className="banner">
+      <strong>Finish setting up your profile</strong>
+      <p>Your application is approved. Please add your {profile.missingFields.map(fieldLabel).join(', ').toLowerCase()} so your coordinator can complete your file.</p>
+      <button type="button" className="link-button" onClick={onEdit}>Add these details ›</button>
+    </div>}
+
+    {/* The tab bar is a card of its own; each section below is its own card. */}
+    <section className="panel profile-tabs">
+      <Tabs fill label="Profile sections" value={tab} onChange={setTab} tabs={TABS.map((item) => ({ id: item.id, label: item.label, flagged: flagged(item.fields) }))} />
+    </section>
 
     <div className="profile-panel" role="tabpanel">
       {tab === 'personal' && <div className="detail-grid">
@@ -115,5 +153,7 @@ export default function ProfilePage({ profile, onEdit, onRefresh, onNotify }) {
       </div>}
 
     </div>
-  </section>;
+
+    {reviewOpen && pending && <PendingChangesModal profile={profile} onClose={() => setReviewOpen(false)} onWithdraw={withdraw} onRefresh={checkForUpdates} />}
+  </div>;
 }
