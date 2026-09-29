@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/caregivers', labelKey: 'nav.caregivers', icon: 'users' },
   { to: '/post-op-patients', labelKey: 'nav.post_op_patients', icon: 'stethoscope' },
   { to: '/payments', labelKey: 'nav.payments', icon: 'card' },
+  { to: '/audit-trail', labelKey: 'nav.audit_trail', icon: 'shield' },
 ];
 
 const isActive = (item, pathname) => (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`));

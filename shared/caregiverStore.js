@@ -4,6 +4,7 @@
 // /caregiver proxy in dev, the same Pages deploy in production), so both read
 // and write these keys directly. Swap the read/write pair for API calls when
 // the D1 tables land — nothing above this layer needs to change.
+import { diff, logAudit } from './auditStore.js';
 import { COVERAGE_AREAS, LANGUAGES, SHIFTS, SPECIALISATIONS, STATES, TRAVEL_MODES, WORKING_DAYS } from './careVocabulary.js';
 
 export const APPLICATIONS_KEY = 'mycare.caregiverApplications';
@@ -235,6 +236,12 @@ export function submitApplication(email) {
   const existing = getApplication(email);
   const now = new Date().toISOString();
   const resubmitting = existing?.status === STATUS.moreInfo;
+  logAudit({
+    action: 'caregiver.onboarded', recordType: 'Caregiver', recordId: email,
+    summary: `${existing?.data?.fullName || email} ${resubmitting ? 'resubmitted their application' : 'submitted an application'}`,
+    changes: diff({ status: existing?.status }, { status: STATUS.submitted }),
+    actor: { name: existing?.data?.fullName || email, email, role: 'Applicant' },
+  });
   return saveApplication(email, {
     status: STATUS.submitted,
     step: APPLICATION_STEPS.length,
@@ -251,11 +258,15 @@ export function setApplicationStatus(email, status, reviewNote = '') {
 
 /** Straight approval — the applicant's preferred center becomes their center. */
 export function approveApplication(email) {
+  const before = getApplication(email);
+  logAudit({ action: 'caregiver.approved', recordType: 'Caregiver', recordId: email, summary: `${before?.data?.fullName || email} approved`, changes: diff({ status: before?.status }, { status: STATUS.approved }) });
   return saveApplication(email, { status: STATUS.approved, reviewNote: '', approvedAt: new Date().toISOString() });
 }
 
 /** Not approved: sent back with a reason. The applicant can edit and resubmit. */
 export function returnApplication(email, reason) {
+  const before = getApplication(email);
+  logAudit({ action: 'caregiver.rejected', recordType: 'Caregiver', recordId: email, summary: `${before?.data?.fullName || email} not approved — ${reason}`, changes: diff({ status: before?.status, reviewNote: before?.reviewNote || '' }, { status: STATUS.moreInfo, reviewNote: reason }) });
   return saveApplication(email, { status: STATUS.moreInfo, reviewNote: reason, returnedAt: new Date().toISOString() });
 }
 
@@ -324,6 +335,7 @@ export function approveProfileChanges(email) {
   const requests = readStore(CHANGE_REQUESTS_KEY);
   const request = requests[key(email)];
   if (!request) return null;
+  logAudit({ action: 'caregiver.profile', recordType: 'Caregiver', recordId: email, summary: 'Profile changes approved', changes: Object.keys(request.changes).map((field) => ({ field: fieldLabel(field), before: request.before?.[field] ?? null, after: request.changes[field] })) });
 
   const overlays = readStore(OVERLAY_KEY);
   overlays[key(email)] = { ...overlays[key(email)], ...request.changes };
@@ -337,6 +349,7 @@ export function approveProfileChanges(email) {
 export function rejectProfileChanges(email, reviewNote = '') {
   const requests = readStore(CHANGE_REQUESTS_KEY);
   if (!requests[key(email)]) return null;
+  logAudit({ action: 'caregiver.profile', recordType: 'Caregiver', recordId: email, summary: `Profile changes rejected${reviewNote ? ` — ${reviewNote}` : ''}`, changes: [{ field: 'Change request', before: 'Pending', after: 'Rejected' }] });
   requests[key(email)] = { ...requests[key(email)], status: CHANGE_STATUS.rejected, reviewNote };
   writeStore(CHANGE_REQUESTS_KEY, requests);
   return requests[key(email)];
@@ -357,6 +370,7 @@ export function getAccountHold(email) {
 
 export function setAccountHold(email, state, reason) {
   const holds = readStore(HOLDS_KEY);
+  logAudit({ action: 'caregiver.deactivated', recordType: 'Caregiver', recordId: email, summary: `${state} — ${reason}`, changes: [{ field: 'Account status', before: holds[key(email)]?.state || 'Active', after: state }] });
   holds[key(email)] = { state, reason, since: new Date().toISOString() };
   writeStore(HOLDS_KEY, holds);
   return holds[key(email)];
@@ -364,6 +378,7 @@ export function setAccountHold(email, state, reason) {
 
 export function clearAccountHold(email) {
   const holds = readStore(HOLDS_KEY);
+  if (holds[key(email)]) logAudit({ action: 'caregiver.reactivated', recordType: 'Caregiver', recordId: email, summary: 'Returned to the booking pool', changes: [{ field: 'Account status', before: holds[key(email)].state, after: 'Active' }] });
   delete holds[key(email)];
   writeStore(HOLDS_KEY, holds);
 }
@@ -378,6 +393,7 @@ export function getAvailability(email) {
 
 export function setAvailability(email, availability) {
   const map = readStore(AVAILABILITY_KEY);
+  if (map[key(email)] !== availability) logAudit({ action: 'caregiver.availability', recordType: 'Caregiver', recordId: email, summary: `Availability set to ${availability}`, changes: [{ field: 'Availability', before: map[key(email)] || null, after: availability }] });
   map[key(email)] = availability;
   writeStore(AVAILABILITY_KEY, map);
 }
@@ -390,6 +406,7 @@ export function listManualCaregivers() {
 
 export function saveManualCaregiver(caregiver) {
   const manual = readStore(MANUAL_KEY);
+  if (!manual[caregiver.id]) logAudit({ action: 'caregiver.onboarded', recordType: 'Caregiver', recordId: caregiver.id, summary: `${caregiver.name || caregiver.id} added by hand` });
   manual[caregiver.id] = { ...caregiver, createdAt: caregiver.createdAt || new Date().toISOString() };
   writeStore(MANUAL_KEY, manual);
   return manual[caregiver.id];

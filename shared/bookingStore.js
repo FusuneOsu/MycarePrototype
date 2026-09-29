@@ -5,6 +5,8 @@
 // Like the caregiver store, this sits on localStorage (same origin via the
 // /caregiver proxy) until the D1 tables exist.
 
+import { diff, logAudit } from './auditStore.js';
+
 export const REQUESTS_KEY = 'mycare.patientRequests';
 export const BOOKINGS_KEY = 'mycare.bookings';
 export const NOTIFICATIONS_KEY = 'mycare.notifications';
@@ -114,7 +116,10 @@ export function updateRequest(id, changes) {
 }
 
 export function setRequestStatus(id, status, reason = '') {
-  return updateRequest(id, { status, statusReason: reason });
+  const before = getRequest(id);
+  const updated = updateRequest(id, { status, statusReason: reason });
+  if (updated) logAudit({ action: 'request.status', recordType: 'Request', recordId: id, summary: `${updated.patientName}: ${before?.status || '—'} → ${status}${reason ? ` (${reason})` : ''}`, changes: diff(before, updated, ['status', 'statusReason']) });
+  return updated;
 }
 
 /**
@@ -156,13 +161,20 @@ export function createPatientRequest(requestData, sender, phone = '') {
 
   requests[newId] = newReq;
   write(REQUESTS_KEY, requests);
+  logAudit({ action: 'request.received', recordType: 'Request', recordId: newId, summary: `${newReq.source} request from ${newReq.patientName} — ${newReq.careType}, ${newReq.area}` });
   // Dispatch storage event so RequestsPage updates if it's open
   window.dispatchEvent(new Event('storage'));
   return newReq;
 }
 
 export function editPatientRequest(id, changes) {
-  return updateRequest(id, changes);
+  const before = getRequest(id);
+  const updated = updateRequest(id, changes);
+  if (updated) {
+    const changed = diff(before, updated, Object.keys(changes));
+    if (changed.length) logAudit({ action: 'request.modified', recordType: 'Request', recordId: id, summary: `Request details edited for ${updated.patientName}`, changes: changed });
+  }
+  return updated;
 }
 
 /* Notifications -------------------------------------------------------------- */
@@ -261,6 +273,11 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
   });
   updateRequest(request.id, { status: REQUEST_STATUS.booked, statusReason: '', bookingId: booking.id });
   notifyBothParties(booking, 'Booking confirmed', 'your caregiver booking is confirmed.');
+  logAudit({
+    action: 'booking.created', recordType: 'Booking', recordId: booking.id,
+    summary: `${booking.patientName} with ${booking.caregiverName} on ${booking.date} ${booking.startTime}–${booking.endTime} (from ${request.id})`,
+    changes: diff({}, booking, ['status', 'caregiverName', 'date', 'startTime', 'endTime', 'price']),
+  });
   return booking;
 }
 
@@ -281,6 +298,7 @@ export function rescheduleBooking(id, { date, startTime, durationMins, reason })
     history: [...booking.history, { at: now(), action: BOOKING_STATUS.rescheduled, reason, from, to: { date, startTime, endTime: endTimeOf(startTime, durationMins) } }],
   });
   notifyBothParties(updated, 'Booking rescheduled', `your booking has been moved. Reason: ${reason}.`);
+  logAudit({ action: 'booking.modified', recordType: 'Booking', recordId: id, summary: `Rescheduled — ${reason}`, changes: diff(booking, updated, ['date', 'startTime', 'endTime', 'durationMins', 'price', 'status']) });
   return updated;
 }
 
@@ -291,6 +309,7 @@ export function cancelBooking(id, reason) {
   const updated = saveBooking({ ...booking, status: BOOKING_STATUS.cancelled, history: [...booking.history, { at: now(), action: BOOKING_STATUS.cancelled, reason }] });
   if (booking.requestId) updateRequest(booking.requestId, { status: REQUEST_STATUS.review, statusReason: `Booking ${booking.id} cancelled: ${reason}`, bookingId: '' });
   notifyBothParties(updated, 'Booking cancelled', `your booking has been cancelled. Reason: ${reason}.`);
+  logAudit({ action: 'booking.cancelled', recordType: 'Booking', recordId: id, summary: `Cancelled — ${reason}`, changes: diff(booking, updated, ['status']) });
   return updated;
 }
 
@@ -298,12 +317,18 @@ export function cancelBooking(id, reason) {
 export function completeBooking(id) {
   const booking = getBooking(id);
   if (!booking) return null;
-  return saveBooking({ ...booking, status: BOOKING_STATUS.completed, receiptStatus: 'Receipt submitted', completedAt: now(), history: [...booking.history, { at: now(), action: BOOKING_STATUS.completed, reason: '' }] });
+  const updated = saveBooking({ ...booking, status: BOOKING_STATUS.completed, receiptStatus: 'Receipt submitted', completedAt: now(), history: [...booking.history, { at: now(), action: BOOKING_STATUS.completed, reason: '' }] });
+  logAudit({ action: 'booking.completed', recordType: 'Booking', recordId: id, summary: `Visit for ${booking.patientName} marked done`, changes: diff(booking, updated, ['status', 'receiptStatus']) });
+  return updated;
 }
 
 export function updateBookingPayment(id, changes) {
   const booking = getBooking(id);
-  return booking ? saveBooking({ ...booking, ...changes }) : null;
+  if (!booking) return null;
+  const updated = saveBooking({ ...booking, ...changes });
+  const changed = diff(booking, updated, Object.keys(changes));
+  if (changed.length) logAudit({ action: 'payment.status', recordType: 'Booking', recordId: id, summary: `Payment updated for ${booking.patientName}`, changes: changed });
+  return updated;
 }
 
 export const isActiveBooking = (booking) => booking.status !== BOOKING_STATUS.cancelled;

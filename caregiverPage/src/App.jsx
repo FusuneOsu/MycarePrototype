@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { setAuditActor } from '../../shared/auditStore.js';
 import AuthPage from './components/AuthPage.jsx';
 import WorkspaceLayout from './layouts/WorkspaceLayout.jsx';
 import ApplyPage from './pages/Apply/ApplyPage.jsx';
@@ -54,6 +55,9 @@ export default function App() {
   const application = useMemo(() => (account ? getApplication(account.email) : null), [account, applicationVersion]);
   const profile = useMemo(() => buildProfile(account), [account, applicationVersion]);
   const hold = useMemo(() => (account ? getAccountHold(account.email) : null), [account, applicationVersion]);
+
+  // Actions taken here (e.g. marking a visit done) are logged against the signed-in caregiver.
+  useEffect(() => { setAuditActor(account ? { name: profile.name, email: profile.email, role: 'Caregiver' } : null); }, [account, profile]);
 
   if (screen === 'apply') {
     return <><ApplyPage

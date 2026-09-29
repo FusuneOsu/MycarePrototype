@@ -10,9 +10,14 @@ import WhatsAppDemoPage from './pages/WhatsAppDemo/WhatsAppDemoPage.jsx';
 import PaymentsDemoPage from './pages/PaymentsDemo/PaymentsDemoPage.jsx';
 import RequestsPage from './pages/Requests/RequestsPage.jsx';
 import BookingRecordsPage from './pages/BookingRecords/BookingRecordsPage.jsx';
+import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
 import { LanguageProvider } from '../../shared/i18n/LanguageContext.jsx';
+import { setAuditActor } from '../../shared/auditStore.js';
 
 const SESSION_KEY = 'mycare.adminSession';
+
+// The one admin account in the prototype; every audit entry from this app is attributed to it.
+const ADMIN_ACTOR = { name: 'Admin User', email: 'admin@mycaregivers.com', role: 'Administrator' };
 
 const readStoredSession = () => {
   try {
@@ -43,6 +48,7 @@ function App() {
   });
 
   useEffect(() => {
+    setAuditActor(isAuthenticated ? ADMIN_ACTOR : null);
     if (isAuthenticated) {
       // Drop the token from the address bar once it is stored.
       const url = new URL(window.location.href);
@@ -78,6 +84,7 @@ function App() {
           <Route path="/post-op-patients" element={<PostOpPatientsPage />} />
           <Route path="/requests/:requestId" element={<PatientRequestPage />} />
           <Route path="/whatsapp" element={<WhatsAppDemoPage />} />
+          <Route path="/audit-trail" element={<AuditTrailPage />} />
           <Route path="/payments" element={<PaymentsDemoPage />} />
         </Route>
       </Routes>

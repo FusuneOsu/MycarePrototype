@@ -4,6 +4,7 @@ export const dictionaries = {
     'nav.notifications': 'Notifications',
     'nav.new': 'new',
     'nav.logout': 'Log out',
+    'nav.audit_trail': 'Audit Trail',
 
     // Sidebar
     'nav.dashboard': 'Dashboard',
@@ -59,6 +60,7 @@ export const dictionaries = {
     'nav.notifications': 'Pemberitahuan',
     'nav.new': 'baru',
     'nav.logout': 'Log keluar',
+    'nav.audit_trail': 'Jejak Audit',
 
     'nav.dashboard': 'Papan Pemuka',
     'nav.appointments': 'Temu Janji',
@@ -110,6 +112,7 @@ export const dictionaries = {
     'nav.notifications': '通知',
     'nav.new': '新',
     'nav.logout': '登出',
+    'nav.audit_trail': '审计记录',
 
     'nav.dashboard': '仪表板',
     'nav.appointments': '预约',
