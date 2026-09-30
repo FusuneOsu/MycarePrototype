@@ -57,19 +57,37 @@ CREATE INDEX idx_patients_caregiver ON post_op_patients (assigned_caregiver_id);
 
 -- Appointments -----------------------------------------------------------
 CREATE TABLE appointments (
-  id              TEXT PRIMARY KEY,          -- e.g. 'AP-3001'
-  patient_id      TEXT REFERENCES post_op_patients (id),
-  caregiver_id    TEXT REFERENCES caregivers (id),
-  scheduled_at    TEXT NOT NULL,             -- ISO datetime
-  duration_mins   INTEGER NOT NULL DEFAULT 60,
-  status          TEXT NOT NULL DEFAULT 'Scheduled',
-    -- one of: Scheduled, Completed, Cancelled, No-Show
-  notes           TEXT,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  id                TEXT PRIMARY KEY,          -- e.g. 'AP-3001'
+  patient_id        TEXT REFERENCES post_op_patients (id),
+  patient_name      TEXT NOT NULL,
+  caregiver_id      TEXT REFERENCES caregivers (id),
+  caregiver_name    TEXT,
+  date              TEXT NOT NULL,             -- YYYY-MM-DD
+  start_time        TEXT NOT NULL,             -- HH:MM
+  end_time          TEXT NOT NULL,             -- HH:MM
+  status            TEXT NOT NULL DEFAULT 'Scheduled',
+    -- one of: Scheduled, Caregiver assigned, In progress, Completed,
+    --          Cancelled, Missed, No caregiver assigned
+  appointment_type  TEXT NOT NULL DEFAULT 'Home Visit',
+    -- Home Visit, Care Center
+  booking_type      TEXT NOT NULL DEFAULT 'One time',
+    -- One time, Recurring
+  caregiver_gender_preference TEXT NOT NULL DEFAULT 'No preference',
+  location_mode     TEXT NOT NULL DEFAULT 'address',
+    -- address, pinpoint, center
+  location_text     TEXT NOT NULL DEFAULT '',
+  latitude          TEXT,
+  longitude         TEXT,
+  tasks             TEXT,                     -- JSON array of task strings
+  special_instructions TEXT DEFAULT '',
+  duration_mins     INTEGER NOT NULL DEFAULT 60,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX idx_appointments_caregiver ON appointments (caregiver_id);
 CREATE INDEX idx_appointments_patient ON appointments (patient_id);
+CREATE INDEX idx_appointments_date ON appointments (date);
 
 -- PTO / leave requests -----------------------------------------------------
 CREATE TABLE pto_requests (

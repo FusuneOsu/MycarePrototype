@@ -58,6 +58,16 @@ INSERT INTO patient_requests (
     'Medication reminders', 'No preference', 'Medication management', 'Cheras',
     'Cheras, Kuala Lumpur', date('now', '+2 day'), '11:00', '12:00', NULL, 7000, 5000);
 
+INSERT INTO appointments (id, patient_id, patient_name, caregiver_id, caregiver_name, date, start_time, end_time, status, appointment_type, booking_type, caregiver_gender_preference, location_mode, location_text, latitude, longitude, tasks, special_instructions, duration_mins) VALUES
+  ('AP-3001', NULL, 'Aisha Rahman', 'CG-1001', 'Adam Tan', date('now'), '09:00', '10:30', 'Scheduled', 'Home Visit', 'One time', 'Female', 'address', '12 Jalan Ampang, Kuala Lumpur', NULL, NULL, '["Assess mobility","Update wound notes"]', 'Please verify the stair rail and ensure medication schedule is reviewed.', 90),
+  ('AP-3002', NULL, 'Daniel Lim', 'CG-1001', 'Adam Tan', date('now'), '09:30', '11:00', 'Caregiver assigned', 'Home Visit', 'One time', 'Male', 'pinpoint', 'Pinpointed location for Daniel Lim', '3.0849', '101.5860', '["Check blood pressure","Document recovery progress"]', 'Use the side gate and call before arrival.', 90),
+  ('AP-3003', NULL, 'Nadia Ismail', 'CG-1004', 'Siti Aminah', date('now', '+1 day'), '14:00', '15:00', 'Completed', 'Care Center', 'Recurring', 'No preference', 'center', 'Bangsar Care Centre', NULL, NULL, '["Review physiotherapy goals"]', 'Bring the updated recovery booklet for review.', 60),
+  ('AP-3004', NULL, 'Ravi Nair', 'CG-1009', 'Mei Ling Ong', date('now', '+2 day'), '11:00', '12:00', 'In progress', 'Home Visit', 'One time', 'No preference', 'address', '88 Jalan Sentral, Kuala Lumpur', NULL, NULL, '["Monitor hydration","Prepare education checklist"]', 'Patient may request additional rest after 20 minutes.', 60),
+  ('AP-3005', NULL, 'Maya Binti Idris', 'CG-1012', 'Marcus D''Souza', date('now'), '15:00', '16:30', 'No caregiver assigned', 'Care Center', 'Recurring', 'Female', 'center', 'Sungai Buloh Care Centre', NULL, NULL, '["Await caregiver assignment"]', 'Keep an empty bed slot ready at the care centre reception desk.', 90),
+  ('AP-3006', NULL, 'Leela Ramachandran', 'CG-1002', 'Nurul Huda', date('now', '+4 day'), '08:30', '09:30', 'Cancelled', 'Home Visit', 'One time', 'Female', 'pinpoint', 'Patient-shortlisted location', '3.0823', '101.6802', '["Cancel and reschedule"]', 'Check whether the patient wants a male caregiver for the next cycle.', 60),
+  ('AP-3007', NULL, 'Irfan Abdullah', 'CG-1006', 'Rajesh Kumar', date('now', '+5 day'), '10:15', '11:45', 'Scheduled', 'Home Visit', 'Recurring', 'Male', 'address', '15 Lorong Bukit, Shah Alam', NULL, NULL, '["Review medication reminders"]', 'Patient prefers short visits after breakfast.', 90),
+  ('AP-3008', NULL, 'Sofia Hassan', 'CG-1007', 'Farah Aziz', date('now', '+6 day'), '13:00', '14:00', 'Missed', 'Care Center', 'One time', 'No preference', 'center', 'Cyberjaya Care Centre', NULL, NULL, '["Follow-up call"]', 'Confirm if patient is available for a rebook after the missed visit.', 60);
+
 INSERT INTO bookings (
   id, request_id, patient_name, caregiver_id, scheduled_at, duration_mins,
   location, service_type, status, rate_cents
