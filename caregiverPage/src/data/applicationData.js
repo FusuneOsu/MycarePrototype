@@ -3,8 +3,10 @@
 export {
   APPLICATIONS_KEY, APPLICATION_STEPS, STATUS, STATUS_TIMELINE, documentSlots,
   blankApplication, listApplications, getApplication, findApplicationByLogin,
+  findResumableDraft, furthestStep,
   startApplication, saveApplication, submitApplication, setApplicationStatus,
   isStepComplete, isApplicationComplete,
+  requestPasswordReset, getPasswordReset, completePasswordReset,
 } from '../../../shared/caregiverStore.js';
 
 export {

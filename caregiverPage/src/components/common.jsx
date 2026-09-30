@@ -1,9 +1,13 @@
+import { genderIcon, Icon } from '../../../shared/ui/index.js';
+
 export function Brand() {
   return <div className="brand"><img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="My CareGivers logo" /><span>My CareGivers</span></div>;
 }
 
-export function Avatar({ initials, tone = '' }) {
-  return <span className={`avatar ${tone}`}>{initials}</span>;
+/** Initials, or a portrait icon when `gender` is known (see shared genderIcon). */
+export function Avatar({ initials, gender, tone = '' }) {
+  const icon = genderIcon(gender);
+  return <span className={`avatar ${tone}${icon ? ' avatar--icon' : ''}`}>{icon ? <Icon name={icon} size={22} strokeWidth={1.6} /> : initials}</span>;
 }
 
 export function Toast({ message }) {

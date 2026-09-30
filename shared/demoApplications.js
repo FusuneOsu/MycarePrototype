@@ -1,3 +1,4 @@
+import { withoutAudit } from './auditStore.js';
 // Seed data so the admin approval queue has something to review on a fresh
 // browser. Everything here is built through the normal store API, so the
 // records are shaped exactly like ones a real applicant produces.
@@ -95,6 +96,10 @@ const SEED_PASSWORD = 'password123';
 
 /** Idempotent: fills in only what is missing, so real records are never touched. */
 export function seedDemoApplications() {
+  withoutAudit(seedApplications);
+}
+
+function seedApplications() {
   DEMO_APPLICATIONS.forEach((seed) => {
     const { email } = seed.data;
     if (getApplication(email)) return;

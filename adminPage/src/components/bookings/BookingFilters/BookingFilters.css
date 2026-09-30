@@ -32,3 +32,18 @@
   font-size: var(--fs-sm);
   white-space: nowrap;
 }
+
+@media (max-width: 680px) {
+  .booking-filters {
+    flex-wrap: wrap;
+  }
+
+  .booking-filters__search {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .booking-filters__select {
+    flex: 1 1 140px;
+  }
+}

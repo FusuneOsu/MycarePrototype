@@ -17,3 +17,9 @@
 .booking-records-page__error {
   color: var(--color-danger);
 }
+
+@media (max-width: 680px) {
+  .booking-records-page__body {
+    padding: 0 0 24px;
+  }
+}

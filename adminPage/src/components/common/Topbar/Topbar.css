@@ -30,6 +30,4 @@
 .topbar__notification-item small { margin-top: 4px; color: var(--color-ink-soft); font-size: var(--fs-xs); }
 .topbar__notification-arrow { color: var(--color-primary); font-size: 20px; line-height: 1; }
 
-@media (max-width: 680px) {
-  .topbar__notification-panel { position: fixed; top: 76px; right: 16px; left: 16px; width: auto; }
-}
+.topbar__language-toggle { display: inline-block; }

@@ -6,9 +6,10 @@ import Chatbox from '../components/Chatbox.jsx';
 function AppLayout({ onLogout }) {
   return (
     <div className="ui-shell">
-      <Sidebar onLogout={onLogout} />
+      <Sidebar />
       <main className="ui-shell__main">
-        <Outlet />
+        {/* Pages render their own Topbar, which holds the log-out button. */}
+        <Outlet context={{ onLogout }} />
       </main>
       <Chatbox />
     </div>

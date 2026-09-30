@@ -392,7 +392,35 @@
 
 @media (max-width: 720px) {
   .appointments-page__content {
-    padding: 0 var(--space-4) var(--space-4);
+    padding: 0;
+  }
+
+  /* One day per row on a phone: the Mon-Sun header row and the padding days
+     from neighbouring months only make sense in a 7-column grid. */
+  .appointments-page__weekday-header,
+  .appointments-page__day-cell--muted {
+    display: none;
+  }
+
+  .appointments-page__day-cell,
+  .appointments-page__week-day {
+    min-height: 0;
+  }
+
+  .appointments-page__day-panel {
+    padding: var(--space-3);
+  }
+
+  .appointments-page__day-date-controls {
+    flex-wrap: wrap;
+  }
+
+  .appointments-page__visit-card-header {
+    flex-direction: column;
+  }
+
+  .appointments-page__suggestion-item {
+    grid-template-columns: 1fr;
   }
 
   .appointments-page__toolbar,

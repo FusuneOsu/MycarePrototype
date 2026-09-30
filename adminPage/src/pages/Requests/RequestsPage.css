@@ -161,4 +161,12 @@
     .requests-page__filters select {
         flex: 1
     }
+
+    .requests-page__body {
+        padding: 0 0 24px
+    }
+
+    .requests-page__summary {
+        gap: 10px
+    }
 }

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
+import { LanguageProvider } from '../../shared/i18n/LanguageContext.jsx';
 import { OriginNotice } from './components/common.jsx';
 import { seedDemoApplications } from '../../shared/demoApplications.js';
 import { seedBookingData } from '../../shared/demoBookings.js';
@@ -12,7 +13,9 @@ seedBookingData();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <OriginNotice />
-    <App />
+    <LanguageProvider>
+      <OriginNotice />
+      <App />
+    </LanguageProvider>
   </StrictMode>,
 );

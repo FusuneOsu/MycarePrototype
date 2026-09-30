@@ -1,10 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { createPatientRequest } from '../../../shared/bookingStore.js';
+import { Icon } from '../../../shared/ui/index.js';
+import './Chatbox.css';
 
 const socket = io('http://localhost:3001');
 
+/** Digits of a JID, whatever its domain. */
+const userOf = (jid) => String(jid || '').split('@')[0].split(':')[0];
+
+/** A JID that addresses a real phone number — not a LID, group or broadcast. */
+const isPhoneJid = (jid) => /@(s\.whatsapp\.net|c\.us)$/.test(String(jid || ''));
+
+/**
+ * The contact's phone number, or '' when WhatsApp has not told us one.
+ *
+ * A "…@lid" JID is a privacy identifier, not a number: its digits are longer
+ * than a phone number and have no country code, so they must never be shown or
+ * copied onto a patient request. The real number comes from the service, which
+ * resolves it through Baileys' LID mapping.
+ */
+const phoneOf = (chat) => {
+  if (!chat) return '';
+  if (chat.phone) return chat.phone;
+  return isPhoneJid(chat.id) ? userOf(chat.id) : '';
+};
+
+/** For display: "+60123456789", or a plain note when the number is not known yet. */
+const phoneLabel = (chat) => {
+  const phone = phoneOf(chat);
+  return phone ? `+${phone}` : 'Number not shared yet';
+};
+
+/** Two letters for the avatar; falls back to the last digits for a bare number. */
+const initialsOf = (name, jid) => {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const alpha = words.filter((word) => /\p{L}/u.test(word));
+  if (alpha.length >= 2) return (alpha[0][0] + alpha[1][0]).toUpperCase();
+  if (alpha.length === 1) return alpha[0].slice(0, 2).toUpperCase();
+  return userOf(jid).slice(-2);
+};
+
+const clockOf = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const dayKeyOf = (iso) => new Date(iso).toDateString();
+
+const dayLabelOf = (iso) => {
+  const day = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (day.toDateString() === today.toDateString()) return 'Today';
+  if (day.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return day.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const PARSED_LABELS = { name: 'Patient', age: 'Age', gender: 'Gender', careType: 'Care type', dateTime: 'Preferred time', location: 'Location' };
+
+/**
+ * The WhatsApp intake inbox: conversations on the left, the open thread on the
+ * right, laid out like the WhatsApp desktop app.
+ *
+ * Contact names come from WhatsApp's `pushName` — the name the person set on
+ * their own account. It is only meaningful on *incoming* messages (on our own
+ * replies it is our name), so it is recorded for the contact only when the
+ * message is inbound. Where WhatsApp gives no name we show the phone number,
+ * and once a real name is known the number moves beneath it rather than being
+ * thrown away.
+ */
 const Chatbox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [connectionState, setConnectionState] = useState('connecting');
@@ -12,343 +75,361 @@ const Chatbox = () => {
   const [activeChatId, setActiveChatId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [newChatNumber, setNewChatNumber] = useState('');
+  const [search, setSearch] = useState('');
+  const [sendError, setSendError] = useState('');
+  const threadRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    socket.on('connection_state', (state) => {
-      setConnectionState(state);
+    socket.on('connection_state', setConnectionState);
+
+    // Names the service already knew before this tab connected.
+    socket.on('contacts', (contacts) => {
+      if (!contacts || typeof contacts !== 'object') return;
+      setConversations((prev) => {
+        const next = { ...prev };
+        Object.entries(contacts).forEach(([jid, name]) => {
+          if (!name) return;
+          next[jid] = next[jid]
+            ? { ...next[jid], name, pushName: name }
+            : { id: jid, name, pushName: name, tag: 'WA-REQ-NEW', messages: [] };
+        });
+        return next;
+      });
+    });
+
+    // A number resolved after the fact (LID chats) — fill it in when it lands.
+    const applyPhone = (jid, phone) => {
+      if (!jid || !phone) return;
+      setConversations((prev) => {
+        const chat = prev[jid];
+        if (!chat || chat.phone === phone) return prev;
+        // Replace a placeholder name, but never a real WhatsApp display name.
+        const name = chat.pushName || `+${phone}`;
+        return { ...prev, [jid]: { ...chat, phone, name } };
+      });
+    };
+
+    socket.on('contact_phone', ({ jid, phone }) => applyPhone(jid, phone));
+    socket.on('contact_phones', (phones) => {
+      if (!phones || typeof phones !== 'object') return;
+      Object.entries(phones).forEach(([jid, phone]) => applyPhone(jid, phone));
     });
 
     socket.on('message', (msg) => {
-      const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Media Message';
-      const fromId = msg.key.remoteJid;
+      const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'Media message';
+      const jid = msg.key.remoteJid;
       const isFromMe = msg.key.fromMe;
-      
-      // If it's an outgoing message, msg.pushName is OUR name, so ignore it.
-      const incomingName = !isFromMe ? (msg.pushName || msg.verifiedBizName) : null;
-      
-      setConversations((prev) => {
-        const fallbackName = fromId.split('@')[0];
-        const existingName = prev[fromId]?.name;
-        
-        let finalName = existingName || fallbackName;
-        if (incomingName && (!existingName || existingName === fallbackName)) {
-          finalName = incomingName;
-        }
+      // Our own outgoing messages carry OUR pushName — never the contact's.
+      const incomingName = !isFromMe ? (msg.contactName || msg.pushName || msg.verifiedBizName) : null;
 
-        const existing = prev[fromId] || {
-          id: fromId,
-          name: finalName,
-          initials: finalName.substring(0, 2).toUpperCase(),
-          color: '#D1E7DD',
-          tag: 'WA-REQ-NEW',
-          messages: []
-        };
-        
-        // Always ensure name is up to date
-        existing.name = finalName;
-        existing.initials = finalName.substring(0, 2).toUpperCase();
-        
+      setConversations((prev) => {
+        const existing = prev[jid] || { id: jid, name: '', pushName: '', phone: '', tag: 'WA-REQ-NEW', messages: [] };
+        const pushName = incomingName || existing.pushName || '';
+        // The service resolves LID chats to a real number; keep whichever we have.
+        const phone = msg.contactPhone || existing.phone || (isPhoneJid(jid) ? userOf(jid) : '');
         return {
           ...prev,
-          [fromId]: {
+          [jid]: {
             ...existing,
-            messages: [...existing.messages, { from: isFromMe ? 'Me' : fromId, text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]
-          }
+            pushName,
+            phone,
+            name: pushName || (phone ? `+${phone}` : userOf(jid)),
+            messages: [...existing.messages, { from: isFromMe ? 'Me' : jid, text, at: new Date().toISOString() }],
+          },
         };
       });
     });
 
-    socket.on('patient_info_received', ({ sender, parsedData }) => {
+    // Without this the UI showed every outgoing message as delivered, even when
+    // the service could not send it — a failed send looked identical to a
+    // successful one. Now the bubble reports what actually happened.
+    socket.on('message_sent', ({ to, clientId, success, error }) => {
+      if (!to) return;
       setConversations((prev) => {
-        if (!prev[sender]) return prev;
+        const chat = prev[to];
+        if (!chat) return prev;
         return {
           ...prev,
-          [sender]: {
-            ...prev[sender],
-            parsedData
-          }
+          [to]: {
+            ...chat,
+            messages: chat.messages.map((message) => (
+              message.clientId && message.clientId === clientId
+                ? { ...message, status: success ? 'sent' : 'failed', error: success ? '' : (error || 'Could not send.') }
+                : message
+            )),
+          },
         };
       });
+      if (!success) setSendError(error || 'Could not send the message.');
+    });
+
+    socket.on('patient_info_received', ({ sender, parsedData }) => {
+      setConversations((prev) => (prev[sender] ? { ...prev, [sender]: { ...prev[sender], parsedData } } : prev));
     });
 
     socket.on('patient_location_received', ({ sender, location }) => {
       setConversations((prev) => {
         if (!prev[sender]) return prev;
-        const currentData = prev[sender].parsedData || {};
-        return {
-          ...prev,
-          [sender]: {
-            ...prev[sender],
-            parsedData: { ...currentData, location: location.address, lat: location.lat, lng: location.lng }
-          }
-        };
+        const current = prev[sender].parsedData || {};
+        return { ...prev, [sender]: { ...prev[sender], parsedData: { ...current, location: location.address, lat: location.lat, lng: location.lng } } };
       });
     });
 
     return () => {
       socket.off('connection_state');
+      socket.off('contacts');
+      socket.off('contact_phone');
+      socket.off('contact_phones');
       socket.off('message');
+      socket.off('message_sent');
       socket.off('patient_info_received');
       socket.off('patient_location_received');
     };
   }, []);
 
+  const activeConversation = activeChatId ? conversations[activeChatId] : null;
+
+  // Follow the conversation as it grows, the way a chat app does.
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, [activeChatId, activeConversation?.messages.length]);
+
+  const chats = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return Object.values(conversations)
+      .filter((chat) => !term || chat.name.toLowerCase().includes(term) || phoneOf(chat).includes(term))
+      .sort((a, b) => {
+        const at = a.messages[a.messages.length - 1]?.at || '';
+        const bt = b.messages[b.messages.length - 1]?.at || '';
+        return String(bt).localeCompare(String(at));
+      });
+  }, [conversations, search]);
+
   const sendMessage = () => {
-    if (activeChatId && newMessage) {
-      socket.emit('send_message', { to: activeChatId, text: newMessage });
-      
-      setConversations((prev) => ({
-        ...prev,
-        [activeChatId]: {
-          ...prev[activeChatId],
-          messages: [...prev[activeChatId].messages, { from: 'Me', text: newMessage, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]
-        }
-      }));
-      setNewMessage('');
-    }
+    const text = newMessage.trim();
+    if (!activeChatId || !text) return;
+    if (connectionState !== 'connected') { setSendError('WhatsApp is not connected, so the message was not sent.'); return; }
+    setSendError('');
+    // Tagged so the service's reply can be matched back to this exact message:
+    // until it lands the bubble shows as sending, not as delivered.
+    const clientId = `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    socket.emit('send_message', { to: activeChatId, text, clientId });
+    setConversations((prev) => ({
+      ...prev,
+      [activeChatId]: { ...prev[activeChatId], messages: [...prev[activeChatId].messages, { from: 'Me', text, at: new Date().toISOString(), clientId, status: 'sending' }] },
+    }));
+    setNewMessage('');
   };
 
   const startNewChat = () => {
-    if (newChatNumber) {
-      const formatted = newChatNumber.replace(/\D/g, ''); // strip non-digits
-      const id = `${formatted}@s.whatsapp.net`;
-      if (!conversations[id]) {
-        setConversations(prev => ({
-          ...prev,
-          [id]: {
-            id,
-            name: formatted,
-            initials: formatted.substring(0, 2),
-            color: '#E2F0CB',
-            tag: 'WA-REQ-NEW',
-            messages: []
-          }
-        }));
-      }
-      setActiveChatId(id);
-      setNewChatNumber('');
-    }
+    const digits = newChatNumber.replace(/\D/g, '');
+    if (!digits) return;
+    const id = `${digits}@s.whatsapp.net`;
+    setConversations((prev) => (prev[id] ? prev : { ...prev, [id]: { id, name: digits, pushName: '', tag: 'WA-REQ-NEW', messages: [] } }));
+    setActiveChatId(id);
+    setNewChatNumber('');
   };
 
-  const activeConversation = activeChatId ? conversations[activeChatId] : null;
+  const openRequest = () => {
+    if (!activeConversation?.parsedData) return;
+    // The resolved number, not the JID digits — a LID would not be dialable.
+    const created = createPatientRequest(activeConversation.parsedData, activeConversation.id, phoneOf(activeConversation));
+    setIsOpen(false);
+    navigate(`/requests/${created.id}`);
+  };
+
+  const connected = connectionState === 'connected';
 
   if (!isOpen) {
     return (
-      <div 
-        onClick={() => setIsOpen(true)}
-        style={{
-          position: 'fixed', bottom: '20px', right: '20px', 
-          backgroundColor: '#075E54', color: 'white', padding: '12px 24px', 
-          borderRadius: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-          fontFamily: 'Inter, sans-serif', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          zIndex: 9999
-        }}
-      >
-        <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid white', backgroundColor: connectionState === 'connected' ? '#25D366' : 'transparent' }} />
+      <button type="button" className="wa-launcher" onClick={() => setIsOpen(true)}>
+        <span className={connected ? 'wa-launcher__dot wa-launcher__dot--on' : 'wa-launcher__dot'} />
         WhatsApp requests
-        <span style={{ backgroundColor: 'white', color: '#075E54', borderRadius: '50%', padding: '2px 8px', fontSize: '12px', marginLeft: '4px' }}>
-          {Object.keys(conversations).length}
-        </span>
-      </div>
+        <span className="wa-launcher__count">{Object.keys(conversations).length}</span>
+      </button>
     );
   }
 
   return (
-    <div style={{
-      position: 'fixed', bottom: '20px', right: '20px', width: '850px', height: '600px',
-      backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'Inter, sans-serif',
-      zIndex: 9999
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: '10px 16px', backgroundColor: '#008069', color: 'white',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      }}>
+    <section className={activeChatId ? 'wa wa--reading' : 'wa'} aria-label="WhatsApp requests">
+      <header className="wa-head">
         <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>WhatsApp requests</h2>
-          <p style={{ margin: 0, fontSize: '13px', opacity: 0.9 }}>Patient intake inbox</p>
+          <h2 className="wa-head__title">WhatsApp requests</h2>
+          <p className="wa-head__sub">Patient intake inbox</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '20px', backgroundColor: connectionState === 'connected' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)' }}>
+        <div className="wa-head__right">
+          <span className={connected ? 'wa-status wa-status--on' : 'wa-status'}>
+            <span className="wa-status__dot" />
             {connectionState}
           </span>
-          <button 
-            onClick={() => setIsOpen(false)}
-            style={{ 
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.5)', color: 'white', 
-              width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
-            }}
-          >
-            ✕
+          <button type="button" className="wa-icon-button" onClick={() => setIsOpen(false)} aria-label="Close WhatsApp requests">
+            <Icon name="close" size={18} />
           </button>
         </div>
-      </div>
+      </header>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar */}
-        <div style={{ width: '30%', borderRight: '1px solid #d1d7db', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
-          <div style={{ padding: '12px', borderBottom: '1px solid #f0f2f5', backgroundColor: '#f0f2f5', display: 'flex', gap: '8px' }}>
-            <input
-              type="text"
-              placeholder="New chat number..."
-              value={newChatNumber}
-              onChange={(e) => setNewChatNumber(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && startNewChat()}
-              style={{
-                flex: 1, padding: '8px 12px', borderRadius: '8px', border: 'none',
-                fontSize: '14px', outline: 'none', backgroundColor: '#ffffff'
-              }}
-            />
-            <button 
-              onClick={startNewChat}
-              style={{
-                padding: '8px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#008069',
-                color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold'
-              }}
-            >
-              +
+      <div className="wa-body">
+        <div className="wa-rail">
+          <div className="wa-rail__search">
+            <label className="wa-field">
+              <Icon name="search" size={15} />
+              <input
+                type="text"
+                placeholder="Search or enter a number"
+                value={search || newChatNumber}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  // Digits start a new chat; anything else filters the list.
+                  if (/^[\d+\s-]*$/.test(value) && /\d/.test(value)) { setNewChatNumber(value); setSearch(''); }
+                  else { setSearch(value); setNewChatNumber(''); }
+                }}
+                onKeyDown={(event) => { if (event.key === 'Enter' && newChatNumber) startNewChat(); }}
+                aria-label="Search conversations or enter a new number"
+              />
+            </label>
+            <button type="button" className="wa-add" onClick={startNewChat} disabled={!newChatNumber.replace(/\D/g, '')} aria-label="Start new chat">
+              <Icon name="plus" size={17} />
             </button>
           </div>
-          
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {Object.values(conversations).map((conv) => (
-              <div 
-                key={conv.id} 
-                onClick={() => setActiveChatId(conv.id)}
-                style={{ 
-                  padding: '12px 16px', display: 'flex', gap: '15px', cursor: 'pointer',
-                  backgroundColor: activeChatId === conv.id ? '#f0f2f5' : 'transparent',
-                  borderBottom: '1px solid #f2f2f2'
-                }}
-              >
-                <div style={{ 
-                  width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#dfe5e7', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  fontWeight: 'bold', color: '#54656f', flexShrink: 0, fontSize: '18px'
-                }}>
-                  {conv.initials}
-                </div>
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: activeChatId === conv.id ? '700' : '500', color: '#333' }}>
-                      {conv.name}
-                    </h4>
-                    <span style={{ fontSize: '11px', color: '#eb5757' }}>
-                      {conv.messages[conv.messages.length - 1]?.time || ''}
+
+          <div className="wa-list">
+            {chats.map((chat) => {
+              const last = chat.messages[chat.messages.length - 1];
+              return (
+                <button type="button" key={chat.id} className={chat.id === activeChatId ? 'wa-chat wa-chat--on' : 'wa-chat'} onClick={() => setActiveChatId(chat.id)}>
+                  <span className="wa-avatar">{initialsOf(chat.name, chat.id)}</span>
+                  <span className="wa-chat__body">
+                    <span className="wa-chat__top">
+                      <strong className="wa-chat__name">{chat.name || phoneLabel(chat)}</strong>
+                      {last && <span className="wa-chat__time">{clockOf(new Date(last.at))}</span>}
                     </span>
-                  </div>
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {conv.messages[conv.messages.length - 1]?.text || 'No messages yet'}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {Object.keys(conversations).length === 0 && (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '13px' }}>
-                No active requests.<br/>Start a new chat or wait for incoming messages.
-              </div>
+                    <span className="wa-chat__preview">
+                      {last ? `${last.from === 'Me' ? 'You: ' : ''}${last.text}` : 'No messages yet'}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            {chats.length === 0 && (
+              <p className="wa-empty">{search ? 'No conversations match that search.' : 'No requests yet. Incoming WhatsApp messages appear here.'}</p>
             )}
           </div>
         </div>
 
-        {/* Main Chat Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#efeae2' }}>
+        <div className="wa-main">
           {activeConversation ? (
             <>
-              <div style={{ padding: '10px 16px', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #d1d7db' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#dfe5e7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#54656f' }}>
-                  {activeConversation.initials}
-                </div>
+              <div className="wa-convo-head">
+                <button type="button" className="wa-icon-button wa-back" onClick={() => setActiveChatId(null)} aria-label="Back to conversations">
+                  <Icon name="chevronLeft" size={18} />
+                </button>
+                <span className="wa-avatar">{initialsOf(activeConversation.name, activeConversation.id)}</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', color: '#111b21', fontWeight: '500' }}>{activeConversation.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#667781' }}>{activeConversation.tag}</p>
+                  <h3 className="wa-convo-head__name">{activeConversation.name || phoneLabel(activeConversation)}</h3>
+                  {/* The real number, never the LID digits. Said plainly when
+                      WhatsApp has not given us one, so it is not mistaken for a
+                      number that could be dialled or filed on a request. */}
+                  <p className={phoneOf(activeConversation) ? 'wa-convo-head__meta' : 'wa-convo-head__meta wa-convo-head__meta--unknown'}>
+                    {phoneLabel(activeConversation)}
+                  </p>
                 </div>
               </div>
 
-              <div style={{ 
-                flex: 1, padding: '24px 8%', overflowY: 'auto', 
-                backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', 
-                backgroundRepeat: 'repeat', backgroundColor: '#efeae2', backgroundSize: '400px'
-              }}>
-                {activeConversation.messages.map((m, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex', flexDirection: 'column', marginBottom: '16px',
-                    alignItems: m.from === 'Me' ? 'flex-end' : 'flex-start'
-                  }}>
-                    <div style={{
-                      maxWidth: '65%', padding: '6px 7px 8px 9px', borderRadius: '8px',
-                      backgroundColor: m.from === 'Me' ? '#d9fdd3' : '#ffffff',
-                      boxShadow: '0 1px 0.5px rgba(11,20,26,.13)',
-                      position: 'relative',
-                      borderTopLeftRadius: m.from === 'Me' ? '8px' : '0px',
-                      borderTopRightRadius: m.from === 'Me' ? '0px' : '8px',
-                      color: '#111b21'
-                    }}>
-                      <div style={{ fontSize: '14.2px', whiteSpace: 'pre-wrap', lineHeight: '19px', paddingRight: '40px', paddingBottom: '8px' }}>{m.text}</div>
-                      <div style={{ fontSize: '11px', color: '#667781', position: 'absolute', bottom: '4px', right: '7px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {m.time} {m.from === 'Me' && <span style={{color: '#53bdeb', fontSize: '12px'}}>✓✓</span>}
+              <div className="wa-thread" ref={threadRef}>
+                {activeConversation.messages.map((message, index) => {
+                  const previous = activeConversation.messages[index - 1];
+                  const newDay = !previous || dayKeyOf(previous.at) !== dayKeyOf(message.at);
+                  const outgoing = message.from === 'Me';
+                  // Name the sender at the start of each incoming run, as WhatsApp does.
+                  const startsRun = !previous || previous.from !== message.from || newDay;
+                  return (
+                    <div key={`${message.at}-${index}`}>
+                      {newDay && <div className="wa-daybreak"><span>{dayLabelOf(message.at)}</span></div>}
+                      <div className={outgoing ? 'wa-row wa-row--out' : 'wa-row'}>
+                        <div className="wa-bubble">
+                          {!outgoing && startsRun && activeConversation.pushName && (
+                            <span className="wa-bubble__author">{activeConversation.pushName}</span>
+                          )}
+                          {/* The float is declared before the text so it settles
+                              onto the last line rather than pushing it down. */}
+                          <span className="wa-bubble__meta">
+                            {clockOf(new Date(message.at))}
+                            {outgoing && message.status === 'sending' && <span className="wa-bubble__pending" title="Sending">🕓</span>}
+                            {outgoing && message.status === 'failed' && <span className="wa-bubble__failed" title={message.error}>!</span>}
+                            {outgoing && message.status !== 'sending' && message.status !== 'failed' && <Icon name="checkDouble" size={13} className="wa-bubble__tick" />}
+                          </span>
+                          <span className="wa-bubble__text">{message.text}</span>
+                          {message.status === 'failed' && <span className="wa-bubble__error">{message.error}</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {activeConversation.messages.length === 0 && <p className="wa-empty">No messages in this conversation yet.</p>}
               </div>
 
-              <div style={{ padding: '10px 16px', backgroundColor: '#f0f2f5', display: 'flex', flexDirection: 'column' }}>
+              <div className="wa-foot">
+                {!connected && (
+                  <p className="wa-alert" role="status">
+                    WhatsApp is not connected, so messages cannot be sent. Start the service with <code>npm run dev:whatsapp</code> and scan the QR code in that terminal.
+                  </p>
+                )}
+                {connected && sendError && (
+                  <p className="wa-alert" role="alert">
+                    {sendError}
+                    <button type="button" className="wa-alert__dismiss" onClick={() => setSendError('')} aria-label="Dismiss">×</button>
+                  </p>
+                )}
                 {activeConversation.parsedData && (
-                  <div style={{
-                    backgroundColor: '#d9fdd3', padding: '10px 12px', borderRadius: '8px', marginBottom: '10px',
-                    boxShadow: '0 1px 0.5px rgba(11,20,26,.13)'
-                  }}>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#008069' }}>Auto-filled Information:</h4>
-                    <pre style={{ margin: 0, fontSize: '12px', color: '#111b21', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                      {JSON.stringify(activeConversation.parsedData, null, 2)}
-                    </pre>
+                  <div className="wa-parsed">
+                    <div className="wa-parsed__head">
+                      <h4 className="wa-parsed__title">Details captured from this chat</h4>
+                      <button type="button" className="wa-open-request" onClick={openRequest}>Open request</button>
+                    </div>
+                    {!phoneOf(activeConversation) && (
+                      <p className="wa-parsed__warn">
+                        WhatsApp has not shared this contact’s phone number, so the request will be created without one. Ask them for it in the chat before assigning a caregiver.
+                      </p>
+                    )}
+                    <dl className="wa-parsed__grid">
+                      {Object.entries(activeConversation.parsedData)
+                        .filter(([key, value]) => value && key !== 'lat' && key !== 'lng')
+                        .map(([key, value]) => (
+                          <div className="wa-parsed__row" key={key}>
+                            <dt>{PARSED_LABELS[key] || key}</dt>
+                            <dd>{String(value)}</dd>
+                          </div>
+                        ))}
+                    </dl>
                   </div>
                 )}
-                
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button 
-                    onClick={() => {
-                      if (activeConversation.parsedData) {
-                        const newReq = createPatientRequest(activeConversation.parsedData, activeConversation.id);
-                        setIsOpen(false);
-                        navigate(`/requests/${newReq.id}`);
-                      } else {
-                        alert("No parsed data yet. Wait for patient to fill the form.");
-                      }
-                    }}
-                    style={{
-                    padding: '10px 16px', borderRadius: '8px', border: 'none',
-                    backgroundColor: '#008069', color: 'white', fontWeight: '500', fontSize: '14px',
-                    cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
-                  }}>
-                    Open Request
+
+                <div className="wa-compose">
+                  <label className="wa-field">
+                    <input
+                      type="text"
+                      placeholder={connected ? 'Type a message' : 'WhatsApp not connected'}
+                      value={newMessage}
+                      onChange={(event) => setNewMessage(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === 'Enter') sendMessage(); }}
+                      disabled={!connected}
+                      aria-label="Message"
+                    />
+                  </label>
+                  <button type="button" className="wa-send" onClick={sendMessage} disabled={!connected || !newMessage.trim()} aria-label="Send message">
+                    <Icon name="send" size={18} />
                   </button>
-                  <input
-                    type="text"
-                    placeholder="Type a message"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    style={{
-                      flex: 1, padding: '12px 14px', borderRadius: '8px', border: 'none',
-                      outline: 'none', fontSize: '15px', backgroundColor: '#ffffff', color: '#111b21'
-                    }}
-                  />
                 </div>
               </div>
             </>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
-              Select a conversation to start chatting
-            </div>
+            <p className="wa-placeholder">Select a conversation to read and reply.</p>
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
-import { Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
+import { Button, Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
+import { logAudit } from '../../../../shared/auditStore.js';
+import { downloadText, fileDate, toCsv } from '../../utils/download.js';
 import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { mockBedInventory, mockDischargeBreakdown, mockPtoRequests, mockTrendSeries } from '../../data/mockDashboard.js';
 import { useLanguage } from '../../../../shared/i18n/LanguageContext.jsx';
@@ -114,6 +116,24 @@ function DashboardPage() {
 
   const locations = ['All locations', ...mockBedInventory.map((item) => item.location)];
 
+  // Exports what the dashboard is showing for the chosen filters, and records who took it.
+  const exportDashboard = () => {
+    const beds = filteredBeds.reduce((sum, item) => sum + item.available, 0);
+    const rows = [
+      ['Metric', 'Value', 'Note'],
+      ['Location filter', selectedLocation, ''],
+      ['Date range filter', selectedDateRange, ''],
+      ['Available caregivers', caregiverSummary.available, `${caregiverSummary.availablePercent}% of the active team`],
+      ['Not available', caregiverSummary.unavailable, `${caregiverSummary.unavailablePercent}% on duty, off duty or on leave`],
+      ['Beds available', beds, `Across ${filteredBeds.length} location(s)`],
+      ['PTO requests', ptoSummary.total, `${ptoSummary.approved} approved, ${ptoSummary.pending} pending`],
+      ['Revenue collected', revenueSummary.total, `${revenueSummary.onlineShare}% paid online, ${revenueSummary.unpaid} outstanding`],
+    ];
+    const filename = `dashboard-${fileDate()}.csv`;
+    downloadText(filename, toCsv(rows));
+    logAudit({ action: 'data.exported', recordType: 'Report', recordId: 'Dashboard', summary: `Dashboard exported as ${filename} (${selectedLocation}, ${selectedDateRange})` });
+  };
+
   return (
     <div className="dashboard-page">
       <Topbar
@@ -129,6 +149,7 @@ function DashboardPage() {
               <option value="This week">This week</option>
               <option value="This month">This month</option>
             </Select>
+            <Button size="sm" onClick={exportDashboard}>Export CSV</Button>
           </>
         )}
       />

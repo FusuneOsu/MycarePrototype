@@ -5,6 +5,7 @@ import BookingTable from '../../components/bookings/BookingTable/BookingTable.js
 import BookingDocumentsModal from '../../components/bookings/BookingDocumentsModal/BookingDocumentsModal.jsx';
 import CollectPaymentModal from '../../components/bookings/CollectPaymentModal/CollectPaymentModal.jsx';
 import { buildInvoicePdf } from '../../utils/invoice.js';
+import { logAudit } from '../../../../shared/auditStore.js';
 import './BookingRecordsPage.css';
 
 function BookingRecordsPage() {
@@ -44,6 +45,7 @@ function BookingRecordsPage() {
       });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Could not generate the payment link.');
+      logAudit({ action: 'payment.status', recordType: 'Booking', recordId: booking.id, summary: `Payment link issued to ${booking.patient_name}${result.demo ? ' (demo mode)' : ''}`, changes: [{ field: 'status', before: booking.status, after: 'Link sent (Unpaid)' }] });
       if (result.demo) setActionError('Demo mode: add STRIPE_SECRET_KEY to create a real Stripe test link.');
       // open payments in a new tab - need to create a whole browser based session first because
       // currently this app only does tab-based session
@@ -67,6 +69,7 @@ function BookingRecordsPage() {
     });
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.error || 'Could not mark the booking as paid.');
+    logAudit({ action: 'payment.status', recordType: 'Booking', recordId: bookingId, summary: `Payment collected directly${collectBooking ? ` from ${collectBooking.patient_name}` : ''}, receipt attached`, changes: [{ field: 'status', before: collectBooking?.status ?? null, after: 'Paid - Collected Directly' }] });
     setCollectBooking(null);
     loadBookings();
   };

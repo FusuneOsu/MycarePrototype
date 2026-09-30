@@ -10,6 +10,7 @@ import {
   formatDate, formatDuration, formatMoney, getBooking, getRequest, listBookings, listNotifications,
   matchCaregivers, navigationLinks, priceFor, rescheduleBooking, setRequestStatus, updateBookingPayment, editPatientRequest
 } from '../../../../shared/bookingStore.js';
+import { logAudit } from '../../../../shared/auditStore.js';
 import { Button, Card, CellStack, Field, Input, Pill, SectionHeader, Segmented, Select, Table, Tag, Textarea } from '../../../../shared/ui/index.js';
 import AssignCaregiverModal from '../../components/caregivers/AssignCaregiverModal/AssignCaregiverModal.jsx';
 import './PatientRequestPage.css';
@@ -303,6 +304,7 @@ function PaymentCard({ booking, onChanged }) {
       });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Payment link could not be created.');
+      logAudit({ action: 'payment.status', recordType: 'Booking', recordId: booking.id, summary: `Payment link created for ${booking.patientName} — ${formatMoney(booking.price)}${result.demo ? ' (demo mode)' : ''}` });
       if (result.demo) { setMessage('Demo mode: add STRIPE_SECRET_KEY to create a real Stripe test link.'); return; }
       setMessage('Payment link created.');
       window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer');
