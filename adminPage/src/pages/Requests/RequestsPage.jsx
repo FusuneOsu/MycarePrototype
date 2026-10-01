@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
+import AddRequestModal from '../../components/requests/AddRequestModal.jsx';
 import { REQUEST_SOURCES, REQUEST_STATUS, REQUEST_STATUSES, formatDate, listRequests } from '../../../../shared/bookingStore.js';
 import { Button, Card, CellStack, Input, SectionHeader, Select, StatCard, StatGrid, Table, Toolbar } from '../../../../shared/ui/index.js';
 
@@ -12,12 +13,17 @@ export default function RequestsPage() {
   const [source, setSource] = useState('All');
   const [status, setStatus] = useState('All');
   const [search, setSearch] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const refresh = useCallback(() => setRequests(listRequests()), []);
   useEffect(() => {
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
+  }, [refresh]);
+
+  const handleSaved = useCallback(() => {
+    refresh();
   }, [refresh]);
 
   const count = (value) => requests.filter((request) => request.status === value).length;
@@ -31,7 +37,9 @@ export default function RequestsPage() {
 
   return (
     <div className="requests-page">
-      <Topbar title="Requests" subtitle="Review every patient request before turning it into a booking." />
+      <Topbar title="Requests" subtitle="Review every patient request before turning it into a booking."
+        actions={<Button variant="primary" size="sm" onClick={() => setIsAddModalOpen(true)}>+ Add Request</Button>}
+      />
 
       <StatGrid>
         <StatCard label="New" value={count(REQUEST_STATUS.new)} note="Waiting for first review" icon="◌" onClick={() => setStatus(REQUEST_STATUS.new)} active={status === REQUEST_STATUS.new} />
@@ -75,6 +83,11 @@ export default function RequestsPage() {
           ))}
         </Table>
       </Card>
+      <AddRequestModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }

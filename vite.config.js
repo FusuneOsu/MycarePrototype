@@ -230,6 +230,109 @@ function localApiPlugin() {
         }
       });
 
+      // ---- Patient Requests API middleware ----
+      server.middlewares.use('/api/patient-requests', async (req, res) => {
+        const [pathname] = req.url.split('?');
+        const segments = pathname.split('/').filter(Boolean);
+
+        // GET /api/patient-requests
+        if (segments.length === 0 && req.method === 'GET') {
+          try {
+            const database = await getDb();
+            const rows = database
+              .prepare(
+                `SELECT pr.id, pr.source, pr.status, pr.patient_name, pr.phone,
+                        pr.preferred_language, pr.care_type, pr.gender_preference,
+                        pr.required_skill, pr.zone, pr.location,
+                        pr.latitude, pr.longitude,
+                        pr.requested_date, pr.preferred_start, pr.preferred_end,
+                        pr.notes, pr.service_amount_cents, pr.caregiver_payment_cents,
+                        pr.assignment_status, pr.receipt_status, pr.payout_status,
+                        pr.assigned_caregiver_id, c.name AS caregiver_name
+                 FROM patient_requests pr
+                 LEFT JOIN caregivers c ON c.id = pr.assigned_caregiver_id
+                 ORDER BY pr.created_at DESC`
+              )
+              .all();
+            return sendJson(res, 200, rows);
+          } catch (err) {
+            console.error('[patient-requests GET]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+
+        // POST /api/patient-requests
+        if (segments.length === 0 && req.method === 'POST') {
+          try {
+            let body;
+            try { body = await readJsonBody(req); }
+            catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
+
+            const {
+              source, patient_name, phone, preferred_language, care_type,
+              gender_preference, required_skill, zone, location,
+              latitude, longitude, requested_date, preferred_start, preferred_end,
+              notes, assigned_caregiver_id
+            } = body;
+
+            if (!patient_name || !requested_date || !preferred_start || !preferred_end) {
+              return sendJson(res, 400, {
+                ok: false,
+                error: 'patient_name, requested_date, preferred_start, and preferred_end are required.'
+              });
+            }
+
+            const database = await getDb();
+            const maxRow = database.prepare('SELECT id FROM patient_requests ORDER BY id DESC LIMIT 1').get();
+            const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 1000;
+            const prefix = source === 'WhatsApp' ? 'WA-REQ-' : 'WEB-REQ-';
+            const newId = `${prefix}${String(lastNum + 1)}`;
+
+            database
+              .prepare(`INSERT INTO patient_requests
+                (id, source, status, patient_name, phone, preferred_language, care_type,
+                 gender_preference, required_skill, zone, location,
+                 latitude, longitude, requested_date, preferred_start, preferred_end,
+                 notes, assigned_caregiver_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+              .run(
+                newId, source || 'Website', 'New', patient_name, phone || null,
+                preferred_language || null, care_type || 'General Care',
+                gender_preference || 'No preference', required_skill || null,
+                zone || '', location || '', latitude ?? null, longitude ?? null,
+                requested_date, preferred_start, preferred_end,
+                notes || null, assigned_caregiver_id || null
+              );
+
+            return sendJson(res, 201, { ok: true, id: newId });
+          } catch (err) {
+            console.error('[patient-requests POST]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+
+        res.statusCode = 405;
+        res.end();
+      });
+
+      // ---- Caregivers list API middleware (simple dropdown data) ----
+      server.middlewares.use('/api/caregivers-list', async (req, res) => {
+        if (req.method === 'GET') {
+          try {
+            const database = await getDb();
+            const rows = database
+              .prepare('SELECT id, name, center FROM caregivers ORDER BY name')
+              .all();
+            return sendJson(res, 200, rows);
+          } catch (err) {
+            console.error('[caregivers-list GET]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+        res.statusCode = 405;
+        res.end();
+      });
+
       // ---- Appointments API middleware ----
       server.middlewares.use('/api/appointments', async (req, res) => {
         const [pathname] = req.url.split('?');
