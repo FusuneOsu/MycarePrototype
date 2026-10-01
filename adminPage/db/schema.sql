@@ -103,6 +103,18 @@ CREATE TABLE pto_requests (
 
 CREATE INDEX idx_pto_caregiver ON pto_requests (caregiver_id);
 
+-- Caregiving sites (locations with GPS coordinates for OpenStreetMap) ------
+CREATE TABLE caregiving_sites (
+  id            TEXT PRIMARY KEY,            -- e.g. 'SITE-001'
+  name          TEXT NOT NULL,               -- e.g. 'Caregiver Center 1'
+  area          TEXT NOT NULL,               -- e.g. 'Petaling Jaya'
+  latitude      REAL NOT NULL,
+  longitude     REAL NOT NULL,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_caregiving_sites_area ON caregiving_sites (area);
+
 -- Patient requests (WhatsApp / website intake) ----------------------------
 CREATE TABLE patient_requests (
   id                      TEXT PRIMARY KEY,        -- e.g. 'WA-REQ-1001'
@@ -118,6 +130,8 @@ CREATE TABLE patient_requests (
   required_skill          TEXT,                    -- e.g. Post-surgery care, Elderly care
   zone                    TEXT NOT NULL,            -- area/zone used to match nearest caregivers
   location                TEXT NOT NULL,
+  latitude                REAL,
+  longitude               REAL,
   requested_date          TEXT NOT NULL,            -- ISO date (YYYY-MM-DD)
   preferred_start         TEXT NOT NULL,             -- HH:MM
   preferred_end           TEXT NOT NULL,             -- HH:MM
@@ -147,6 +161,8 @@ CREATE TABLE bookings (
   scheduled_at      TEXT NOT NULL,             -- ISO datetime (date + start time)
   duration_mins     INTEGER NOT NULL DEFAULT 60,
   location          TEXT NOT NULL,
+  latitude          REAL,
+  longitude         REAL,
   service_type      TEXT NOT NULL,             -- e.g. Post-surgery care, Elderly care
   status            TEXT NOT NULL DEFAULT 'Caregiver assigned',
     -- one of: Caregiver assigned, In progress, Service completed, Missed,

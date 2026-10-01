@@ -44,6 +44,39 @@ function localApiPlugin() {
       } catch {
         try { db.exec("ALTER TABLE appointments ADD COLUMN caregiver_name TEXT"); } catch { /* already added */ }
       }
+      // Migration: create caregiving_sites table if not present.
+      try {
+        db.prepare("SELECT id FROM caregiving_sites LIMIT 0").get();
+      } catch {
+        try {
+          db.exec(`CREATE TABLE IF NOT EXISTS caregiving_sites (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL, area TEXT NOT NULL,
+            latitude REAL NOT NULL, longitude REAL NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`);
+          db.exec(`INSERT OR IGNORE INTO caregiving_sites (id, name, area, latitude, longitude) VALUES
+            ('SITE-001', 'Caregiver Center 1', 'Petaling Jaya', 3.1073, 101.6064),
+            ('SITE-002', 'Caregiver Center 2', 'Subang Jaya', 3.0568, 101.5852),
+            ('SITE-003', 'Caregiver Center 3', 'Cheras', 3.1008, 101.7242),
+            ('SITE-004', 'Caregiver Center 4', 'Ampang', 3.1480, 101.7595),
+            ('SITE-005', 'Caregiver Center 5', 'Setiawangsa', 3.1905, 101.7380),
+            ('SITE-006', 'Caregiver Center 6', 'Shah Alam', 3.0733, 101.5185)`);
+        } catch { /* already exists */ }
+      }
+      // Migration: add latitude/longitude to patient_requests.
+      try {
+        db.prepare("SELECT latitude FROM patient_requests LIMIT 0").get();
+      } catch {
+        try { db.exec("ALTER TABLE patient_requests ADD COLUMN latitude REAL"); } catch { /* already added */ }
+        try { db.exec("ALTER TABLE patient_requests ADD COLUMN longitude REAL"); } catch { /* already added */ }
+      }
+      // Migration: add latitude/longitude to bookings.
+      try {
+        db.prepare("SELECT latitude FROM bookings LIMIT 0").get();
+      } catch {
+        try { db.exec("ALTER TABLE bookings ADD COLUMN latitude REAL"); } catch { /* already added */ }
+        try { db.exec("ALTER TABLE bookings ADD COLUMN longitude REAL"); } catch { /* already added */ }
+      }
     }
     return db;
   }
@@ -88,7 +121,7 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT b.id, b.patient_name, b.scheduled_at, b.duration_mins, b.location,
+                `SELECT b.id, b.patient_name, b.scheduled_at, b.duration_mins, b.location, b.latitude, b.longitude,
                         b.service_type, b.status, b.rate_cents, c.name AS caregiver_name
                  FROM bookings b
                  JOIN caregivers c ON c.id = b.caregiver_id
@@ -179,6 +212,22 @@ function localApiPlugin() {
         // Anything else under /api/bookings — unchanged 405 behavior.
         res.statusCode = 405;
         res.end();
+      });
+
+      // ---- Caregiving Sites API middleware ----
+      server.middlewares.use('/api/caregiving-sites', async (req, res) => {
+        try {
+          if (req.method === 'GET') {
+            const database = await getDb();
+            const rows = database.prepare('SELECT id, name, area, latitude, longitude FROM caregiving_sites ORDER BY area').all();
+            return sendJson(res, 200, rows);
+          }
+          res.statusCode = 405;
+          res.end();
+        } catch (err) {
+          console.error('[caregiving-sites]', err);
+          return sendJson(res, 500, { ok: false, error: err.message });
+        }
       });
 
       // ---- Appointments API middleware ----

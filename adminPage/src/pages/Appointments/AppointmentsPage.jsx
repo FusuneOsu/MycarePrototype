@@ -4,6 +4,7 @@ import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import Modal from '../../components/common/Modal/Modal.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import { Button, Input, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
+import LocationMap from '../../components/map/LocationMap.jsx';
 import { fetchAppointments, updateAppointment } from '../../api/appointments.js';
 import './AppointmentsPage.css';
 
@@ -453,9 +454,17 @@ function AppointmentsPage() {
               </div>
               <div className="form-field form-field--full">
                 <label>Location Map</label>
-                <div className="appointments-page__map-placeholder">
-                  OpenStreetMap integration coming soon.
-                </div>
+                <LocationMap
+                  latitude={editForm.latitude}
+                  longitude={editForm.longitude}
+                  onChange={(lat, lng) => {
+                    handleEditFieldChange('latitude', lat);
+                    handleEditFieldChange('longitude', lng);
+                  }}
+                  height="280px"
+                  showSiteSelector={true}
+                  showOpenInGmaps={true}
+                />
               </div>
             </div>
 
