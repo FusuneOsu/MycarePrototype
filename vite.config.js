@@ -63,13 +63,6 @@ function localApiPlugin() {
             ('SITE-006', 'Caregiver Center 6', 'Shah Alam', 3.0733, 101.5185)`);
         } catch { /* already exists */ }
       }
-      // Migration: add latitude/longitude to patient_requests.
-      try {
-        db.prepare("SELECT latitude FROM patient_requests LIMIT 0").get();
-      } catch {
-        try { db.exec("ALTER TABLE patient_requests ADD COLUMN latitude REAL"); } catch { /* already added */ }
-        try { db.exec("ALTER TABLE patient_requests ADD COLUMN longitude REAL"); } catch { /* already added */ }
-      }
       // Migration: add latitude/longitude to bookings.
       try {
         db.prepare("SELECT latitude FROM bookings LIMIT 0").get();
@@ -121,11 +114,13 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT b.id, b.patient_name, b.scheduled_at, b.duration_mins, b.location, b.latitude, b.longitude,
-                        b.service_type, b.status, b.rate_cents, c.name AS caregiver_name
+                `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.latitude, b.longitude,
+                        b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
+                        b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
+                        c.name AS caregiver_name
                  FROM bookings b
                  JOIN caregivers c ON c.id = b.caregiver_id
-                 ORDER BY b.scheduled_at DESC`
+                 ORDER BY b.date DESC, b.start_time DESC`
               )
               .all();
             return sendJson(res, 200, rows);
@@ -230,12 +225,12 @@ function localApiPlugin() {
         }
       });
 
-      // ---- Patient Requests API middleware ----
-      server.middlewares.use('/api/patient-requests', async (req, res) => {
+      // ---- Requests API middleware ----
+      server.middlewares.use('/api/requests', async (req, res) => {
         const [pathname] = req.url.split('?');
         const segments = pathname.split('/').filter(Boolean);
 
-        // GET /api/patient-requests
+        // GET /api/requests
         if (segments.length === 0 && req.method === 'GET') {
           try {
             const database = await getDb();
@@ -246,11 +241,8 @@ function localApiPlugin() {
                         pr.required_skill, pr.zone, pr.location,
                         pr.latitude, pr.longitude,
                         pr.requested_date, pr.preferred_start, pr.preferred_end,
-                        pr.notes, pr.service_amount_cents, pr.caregiver_payment_cents,
-                        pr.assignment_status, pr.receipt_status, pr.payout_status,
-                        pr.assigned_caregiver_id, c.name AS caregiver_name
-                 FROM patient_requests pr
-                 LEFT JOIN caregivers c ON c.id = pr.assigned_caregiver_id
+                        pr.notes, pr.service_amount_cents, pr.caregiver_payment_cents
+                 FROM requests pr
                  ORDER BY pr.created_at DESC`
               )
               .all();
@@ -283,25 +275,25 @@ function localApiPlugin() {
             }
 
             const database = await getDb();
-            const maxRow = database.prepare('SELECT id FROM patient_requests ORDER BY id DESC LIMIT 1').get();
+            const maxRow = database.prepare('SELECT id FROM requests ORDER BY id DESC LIMIT 1').get();
             const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 1000;
             const prefix = source === 'WhatsApp' ? 'WA-REQ-' : 'WEB-REQ-';
             const newId = `${prefix}${String(lastNum + 1)}`;
 
             database
-              .prepare(`INSERT INTO patient_requests
+              .prepare(`INSERT INTO requests
                 (id, source, status, patient_name, phone, preferred_language, care_type,
                  gender_preference, required_skill, zone, location,
                  latitude, longitude, requested_date, preferred_start, preferred_end,
-                 notes, assigned_caregiver_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+                 notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(
                 newId, source || 'Website', 'New', patient_name, phone || null,
                 preferred_language || null, care_type || 'General Care',
                 gender_preference || 'No preference', required_skill || null,
                 zone || '', location || '', latitude ?? null, longitude ?? null,
                 requested_date, preferred_start, preferred_end,
-                notes || null, assigned_caregiver_id || null
+                notes || null
               );
 
             return sendJson(res, 201, { ok: true, id: newId });

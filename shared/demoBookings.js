@@ -1,4 +1,4 @@
-// Seed requests and bookings so the Requests queue, the calendar and the
+﻿// Seed requests and bookings so the Requests queue, the calendar and the
 // caregiver's job list all have (the same) data on a fresh browser. Dates are
 // relative to today so the demo never goes stale. Idempotent: runs only when
 // the request store is empty, so anything you create is never overwritten.
@@ -101,6 +101,13 @@ export function seedBookingData() {
       startTime: request.preferredStart,
       endTime: endTimeOf(request.preferredStart, request.durationMins),
       durationMins: request.durationMins,
+      // Appointment fields merged into bookings
+      appointmentType: 'Home Visit',
+      bookingType: 'One time',
+      caregiverGenderPreference: request.preferredGender || 'No preference',
+      locationMode: 'address',
+      tasks: [],
+      specialInstructions: request.notes || '',
       rate,
       price,
       caregiverPayout: Math.round(price * CAREGIVER_SHARE * 100) / 100,

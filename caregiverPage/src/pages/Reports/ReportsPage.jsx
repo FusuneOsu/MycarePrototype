@@ -7,7 +7,7 @@ import { BOOKING_STATUS, formatDate, formatDuration } from '../../../../shared/b
  * which is what the job detail page looks up.
  */
 const historyRows = (jobs) => Object.values(jobs)
-  .filter((job) => job.booking.status === BOOKING_STATUS.completed || job.booking.status === BOOKING_STATUS.cancelled)
+  .filter((job) => job.booking.status === BOOKING_STATUS.serviceCompleted || job.booking.status === BOOKING_STATUS.cancelled)
   .sort((a, b) => String(b.booking.date).localeCompare(String(a.booking.date)))
   .map((job) => ({
     id: job.id,
@@ -15,7 +15,7 @@ const historyRows = (jobs) => Object.values(jobs)
     care: job.booking.serviceType,
     date: formatDate(job.booking.date),
     duration: formatDuration(job.booking.durationMins),
-    status: job.booking.status === BOOKING_STATUS.completed
+    status: job.booking.status === BOOKING_STATUS.serviceCompleted
       ? (job.booking.payoutStatus === 'Paid' ? 'Paid' : 'Completed')
       : 'Cancelled',
   }));

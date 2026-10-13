@@ -15,7 +15,19 @@ export const BOOKING_STORE_KEYS = [REQUESTS_KEY, BOOKINGS_KEY, NOTIFICATIONS_KEY
 export const REQUEST_STATUS = { new: 'New', review: 'In Review', booked: 'Booked', rejected: 'Rejected' };
 export const REQUEST_STATUSES = Object.values(REQUEST_STATUS);
 export const REQUEST_SOURCES = ['WhatsApp', 'Website'];
-export const BOOKING_STATUS = { confirmed: 'Confirmed', rescheduled: 'Rescheduled', cancelled: 'Cancelled', completed: 'Completed' };
+export const BOOKING_STATUS = {
+  confirmed: 'Caregiver assigned',
+  rescheduled: 'Caregiver assigned',
+  inProgress: 'In progress',
+  serviceCompleted: 'Service completed',
+  paymentPending: 'Payment pending',
+  paid: 'Paid',
+  paidOnline: 'Paid - Online',
+  paidCollected: 'Paid - Collected Directly',
+  linkSent: 'Link sent (Unpaid)',
+  cancelled: 'Cancelled',
+  missed: 'Missed',
+};
 export const GENDER_PREFERENCES = ['Female', 'Male', 'No preference'];
 
 /** Approximate centre point of each coverage zone / center, for distance ranking. */
@@ -241,7 +253,7 @@ function nextBookingId() {
 export const priceFor = (rate, durationMins) => Math.round(Number(rate) * (Number(durationMins) / 60) * 100) / 100;
 
 /** Admin confirms the booking: creates the record, marks the request Booked, notifies both sides. */
-export function confirmBooking({ request, caregiver, date, startTime, durationMins, rate }) {
+export function confirmBooking({ request, caregiver, date, startTime, durationMins, rate, appointmentType, bookingType, locationMode, tasks, specialInstructions }) {
   const price = priceFor(rate, durationMins);
   const booking = saveBooking({
     id: nextBookingId(),
@@ -249,7 +261,7 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
     source: request.source,
     patientName: request.patientName,
     patientPhone: request.phone,
-    address: request.address,
+    address: request.address || request.location,
     area: request.area,
     lat: request.lat,
     lng: request.lng,
@@ -266,6 +278,13 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
     price,
     caregiverPayout: Math.round(price * CAREGIVER_SHARE * 100) / 100,
     status: BOOKING_STATUS.confirmed,
+    // Appointment fields merged into bookings
+    appointmentType: appointmentType || 'Home Visit',
+    bookingType: bookingType || 'One time',
+    caregiverGenderPreference: request.preferredGender || 'No preference',
+    locationMode: locationMode || 'address',
+    tasks: tasks || [],
+    specialInstructions: specialInstructions || request.notes || '',
     receiptStatus: 'Receipt pending',
     payoutStatus: 'Awaiting payout',
     createdAt: now(),
@@ -317,7 +336,7 @@ export function cancelBooking(id, reason) {
 export function completeBooking(id) {
   const booking = getBooking(id);
   if (!booking) return null;
-  const updated = saveBooking({ ...booking, status: BOOKING_STATUS.completed, receiptStatus: 'Receipt submitted', completedAt: now(), history: [...booking.history, { at: now(), action: BOOKING_STATUS.completed, reason: '' }] });
+  const updated = saveBooking({ ...booking, status: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt submitted', completedAt: now(), history: [...booking.history, { at: now(), action: BOOKING_STATUS.serviceCompleted, reason: '' }] });
   logAudit({ action: 'booking.completed', recordType: 'Booking', recordId: id, summary: `Visit for ${booking.patientName} marked done`, changes: diff(booking, updated, ['status', 'receiptStatus']) });
   return updated;
 }

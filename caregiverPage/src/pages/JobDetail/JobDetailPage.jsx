@@ -1,8 +1,8 @@
-import { BOOKING_STATUS, formatDate, formatDuration, formatMoney, navigationLinks } from '../../../../shared/bookingStore.js';
+﻿import { BOOKING_STATUS, formatDate, formatDuration, formatMoney, navigationLinks } from '../../../../shared/bookingStore.js';
 import { Button, Pill } from '../../../../shared/ui/index.js';
 import JobMap from '../../components/JobMap.jsx';
 
-// What the visit involves, by service type — a starting checklist for the caregiver.
+// What the visit involves, by service type â€” a starting checklist for the caregiver.
 const TASKS = {
   'Post-operative care': ['Check the wound dressing and note any redness', 'Help with mobility and safe transfers', 'Give medication as prescribed', 'Record pain level and recovery notes'],
   'Elderly care': ['Help with daily activities', 'Prepare a light meal and fluids', 'Companionship and a short walk if possible', 'Record wellbeing notes'],
@@ -14,10 +14,10 @@ const TASKS = {
   'Medication management': ['Confirm medication against the schedule', 'Check blood pressure', 'Prepare a light breakfast', 'Record wellbeing notes'],
 };
 
-const STATUS_TONE = { [BOOKING_STATUS.confirmed]: 'success', [BOOKING_STATUS.rescheduled]: 'warning', [BOOKING_STATUS.cancelled]: 'danger', [BOOKING_STATUS.completed]: 'info' };
+const STATUS_TONE = { [BOOKING_STATUS.confirmed]: 'success', [BOOKING_STATUS.inProgress]: 'warning', [BOOKING_STATUS.serviceCompleted]: 'info', [BOOKING_STATUS.cancelled]: 'danger', [BOOKING_STATUS.missed]: 'danger' };
 
 function Row({ label, children }) {
-  return <div className="detail-row"><span>{label}</span><strong>{children || '—'}</strong></div>;
+  return <div className="detail-row"><span>{label}</span><strong>{children || 'â€”'}</strong></div>;
 }
 
 /**
@@ -27,38 +27,38 @@ function Row({ label, children }) {
  */
 export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNavigate }) {
   if (!job) {
-    return <section className="page-card panel"><div className="page-intro"><div><p className="eyebrow">Visit not found</p><h2>We couldn’t open this visit</h2><p>This booking is no longer on your record. Open it again from Reports › Job history.</p></div><button className="back" onClick={onBack}>← Back</button></div></section>;
+    return <section className="page-card panel"><div className="page-intro"><div><p className="eyebrow">Visit not found</p><h2>We couldnâ€™t open this visit</h2><p>This booking is no longer on your record. Open it again from Reports â€º Job history.</p></div><button className="back" onClick={onBack}>â† Back</button></div></section>;
   }
 
   const { booking } = job;
   const links = navigationLinks(booking);
-  const lastChange = [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.rescheduled || entry.action === BOOKING_STATUS.cancelled);
+  const lastChange = [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.cancelled || entry.action === BOOKING_STATUS.missed);
   const canComplete = job.active;
-  const isCompleted = booking.status === BOOKING_STATUS.completed;
-  // A finished visit stays fully readable — the caregiver still needs the care
+  const isCompleted = booking.status === BOOKING_STATUS.serviceCompleted;
+  // A finished visit stays fully readable â€” the caregiver still needs the care
   // plan, the address and the payout for their own records. Only the actions
   // that would change it are retired.
-  const completedEntry = isCompleted ? [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.completed) : null;
+  const completedEntry = isCompleted ? [...booking.history].reverse().find((entry) => entry.action === BOOKING_STATUS.serviceCompleted) : null;
 
   return <section className="page-card panel">
     <div className="page-intro">
       <div>
-        <p className="eyebrow">Booking {booking.id} · {job.dateLabel}, {booking.startTime}</p>
+        <p className="eyebrow">Booking {booking.id} Â· {job.dateLabel}, {booking.startTime}</p>
         <h2>{booking.serviceType}</h2>
-        <p>{booking.patientName} · {job.neighbourhood}</p>
+        <p>{booking.patientName} Â· {job.neighbourhood}</p>
       </div>
       <div className="job-actions">
-        {job.active && <Button variant="primary" size="sm" onClick={() => onNavigate(job)}>Navigate ↗</Button>}
-        <button className="back" onClick={onBack}>← Back to jobs</button>
+        {job.active && <Button variant="primary" size="sm" onClick={() => onNavigate(job)}>Navigate â†—</Button>}
+        <button className="back" onClick={onBack}>â† Back to jobs</button>
       </div>
     </div>
 
     {isCompleted && <div className="status-note job-banner job-banner--done">
-      <strong>This visit is complete{completedEntry ? ` · marked ${formatDate(String(completedEntry.at).slice(0, 10))}` : ''}</strong>
-      <p>The full record stays here for your reference. Nothing further is needed from you — your coordinator verifies the receipt and releases the payout.</p>
+      <strong>This visit is complete{completedEntry ? ` Â· marked ${formatDate(String(completedEntry.at).slice(0, 10))}` : ''}</strong>
+      <p>The full record stays here for your reference. Nothing further is needed from you â€” your coordinator verifies the receipt and releases the payout.</p>
     </div>}
     {booking.status === BOOKING_STATUS.cancelled && <div className="status-note status-note--warn job-banner"><strong>This booking was cancelled</strong><p>{lastChange?.reason || 'Cancelled by your coordinator.'} You don't need to attend.</p></div>}
-    {booking.status === BOOKING_STATUS.rescheduled && lastChange && <div className="status-note job-banner job-banner--moved"><strong>Rescheduled from {formatDate(lastChange.from.date)}, {lastChange.from.startTime}</strong><p>Reason: {lastChange.reason}</p></div>}
+    {lastChange && <div className="status-note job-banner job-banner--moved"><strong>Updated from {formatDate(lastChange.from?.date || booking.date)}, {lastChange.from?.startTime || booking.startTime}</strong><p>Reason: {lastChange.reason}</p></div>}
 
     <div className="detail-grid">
       <div className="detail-block">
@@ -66,14 +66,14 @@ export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNav
         <Row label="Name">{booking.patientName}</Row>
         <Row label="Contact number"><a className="job-link" href={`tel:${booking.patientPhone.replace(/[^\d+]/g, '')}`}>{booking.patientPhone}</a></Row>
         <Row label="Requested caregiver">{booking.preferredGender === 'No preference' ? 'No gender preference' : `${booking.preferredGender} caregiver`}</Row>
-        <Row label="Request">{booking.requestId} · {booking.source}</Row>
+        <Row label="Request">{booking.requestId} Â· {booking.source}</Row>
       </div>
 
       <div className="detail-block">
         <h3>Visit</h3>
         <Row label="Status"><Pill tone={STATUS_TONE[booking.status]}>{booking.status}</Pill></Row>
         <Row label="Date">{formatDate(booking.date)}</Row>
-        <Row label="Time">{booking.startTime}–{booking.endTime}</Row>
+        <Row label="Time">{booking.startTime}â€“{booking.endTime}</Row>
         <Row label="Duration">{formatDuration(booking.durationMins)}</Row>
         <Row label="Service type">{booking.serviceType}</Row>
       </div>
@@ -107,10 +107,10 @@ export default function JobDetailPage({ job, onBack, onNotify, onComplete, onNav
 
     <div className="payment">
       <div className="payment-head"><h3>Payment</h3><strong>{formatMoney(booking.caregiverPayout)}</strong></div>
-      <p>Your payout for this visit · booking price {formatMoney(booking.price)} at {formatMoney(booking.rate)}/hour · receipt: {booking.receiptStatus.toLowerCase()} · payout: {booking.payoutStatus.toLowerCase()}.</p>
+      <p>Your payout for this visit Â· booking price {formatMoney(booking.price)} at {formatMoney(booking.rate)}/hour Â· receipt: {booking.receiptStatus.toLowerCase()} Â· payout: {booking.payoutStatus.toLowerCase()}.</p>
       <div className="job-actions">
-        {canComplete && <button onClick={() => { onComplete(booking.id); onNotify('Visit marked complete — your coordinator will verify the receipt'); }}>Mark visit complete</button>}
-        {booking.status === BOOKING_STATUS.completed && <Pill tone="success">Visit completed</Pill>}
+        {canComplete && <button onClick={() => { onComplete(booking.id); onNotify('Visit marked complete â€” your coordinator will verify the receipt'); }}>Mark visit complete</button>}
+        {booking.status === BOOKING_STATUS.serviceCompleted && <Pill tone="success">Visit completed</Pill>}
         <button className="back" onClick={() => { onNotify('Preparing payment statement PDF'); window.setTimeout(() => window.print(), 350); }}>Payment statement PDF</button>
       </div>
     </div>

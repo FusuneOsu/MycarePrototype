@@ -49,7 +49,7 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
             <tr key={booking.id}>
               <td>{booking.patient_name}</td>
               <td>{booking.caregiver_name}</td>
-              <td>{formatDateTime(booking.scheduled_at)}</td>
+              <td>{formatDateTime(`${booking.date}T${booking.start_time}`)}</td>
               <td>{formatDuration(booking.duration_mins)}</td>
               <td>{booking.location}</td>
               <td>{booking.service_type}</td>
