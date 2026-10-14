@@ -75,7 +75,7 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.latitude, b.longitude,
+                `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.address, b.latitude, b.longitude,
                         b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
                         c.name AS caregiver_name
@@ -100,7 +100,7 @@ function localApiPlugin() {
 
             const {
               request_id, caregiver_id, patient_name, date, start_time, end_time,
-              duration_mins, location, latitude, longitude, service_type, status,
+              duration_mins, location, address, latitude, longitude, service_type, status,
               appointment_type, booking_type, caregiver_gender_preference,
               location_mode, tasks, special_instructions,
               rate_cents, service_amount_cents, caregiver_payment_cents,
@@ -128,15 +128,15 @@ function localApiPlugin() {
             database
               .prepare(`INSERT INTO bookings
                 (id, request_id, caregiver_id, caregiver_name, patient_name, date,
-                 start_time, end_time, duration_mins, location, latitude, longitude,
+                 start_time, end_time, duration_mins, location, address, latitude, longitude,
                  service_type, status, appointment_type, booking_type,
                  caregiver_gender_preference, location_mode, tasks, special_instructions,
                  rate_cents, service_amount_cents, caregiver_payment_cents)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(
                 newId, request_id || null, caregiver_id || null, caregiver_name,
                 patient_name, date, start_time, end_time, duration_mins || null,
-                location || '', latitude ?? null, longitude ?? null,
+                location || '', address || location || '', latitude ?? null, longitude ?? null,
                 service_type || 'General Care', status || 'Pending',
                 appointment_type || null, booking_type || 'standard',
                 caregiver_gender_preference || 'No preference',

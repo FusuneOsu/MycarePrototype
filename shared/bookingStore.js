@@ -231,6 +231,7 @@ export async function refreshCache() {
       if (!local.caregiverPayout) {
         local.caregiverPayout = Math.round((local.price || 0) * CAREGIVER_SHARE * 100) / 100;
       }
+      if (!local.address) local.address = local.location || '';
       mapped[local.id] = local;
     }
     write(BOOKINGS_KEY, mapped);
@@ -455,6 +456,7 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
     end_time: endTimeOf(startTime, durationMins),
     duration_mins: Number(durationMins),
     location: request.location || request.area || '',
+    address: request.address || request.location || '',
     latitude: request.lat,
     longitude: request.lng,
     service_type: request.careType,

@@ -131,6 +131,7 @@ CREATE TABLE bookings (
   end_time          TEXT NOT NULL,             -- HH:MM
   duration_mins     INTEGER NOT NULL DEFAULT 60,
   location          TEXT NOT NULL,
+  address           TEXT,
   latitude          REAL,
   longitude         REAL,
   service_type      TEXT NOT NULL,             -- e.g. Post-surgery care, Elderly care
