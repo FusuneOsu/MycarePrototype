@@ -1,5 +1,6 @@
 // Cloudflare Pages Function: PUT /api/appointments/:id
-// Updates an existing appointment. Requires the D1 binding named DB.
+// Updates an existing booking (appointments were merged into bookings).
+// Requires the D1 binding named DB.
 
 export async function onRequestPut(context) {
   const { request, env, params } = context;
@@ -19,11 +20,10 @@ export async function onRequestPut(context) {
     latitude, longitude, tasks, special_instructions, duration_mins,
   } = body;
 
-  // Build SET clause dynamically
+  // Build SET clause dynamically (map appointment field names to bookings column names)
   const sets = [];
   const values = [];
 
-  if (patient_id !== undefined) { sets.push('patient_id = ?'); values.push(patient_id || null); }
   if (patient_name !== undefined) { sets.push('patient_name = ?'); values.push(patient_name); }
   if (caregiver_id !== undefined) { sets.push('caregiver_id = ?'); values.push(caregiver_id || null); }
   if (caregiver_name !== undefined) { sets.push('caregiver_name = ?'); values.push(caregiver_name || null); }
@@ -35,7 +35,7 @@ export async function onRequestPut(context) {
   if (booking_type !== undefined) { sets.push('booking_type = ?'); values.push(booking_type); }
   if (caregiver_gender_preference !== undefined) { sets.push('caregiver_gender_preference = ?'); values.push(caregiver_gender_preference); }
   if (location_mode !== undefined) { sets.push('location_mode = ?'); values.push(location_mode); }
-  if (location_text !== undefined) { sets.push('location_text = ?'); values.push(location_text); }
+  if (location_text !== undefined) { sets.push('location = ?'); values.push(location_text); }
   if (latitude !== undefined) { sets.push('latitude = ?'); values.push(latitude || null); }
   if (longitude !== undefined) { sets.push('longitude = ?'); values.push(longitude || null); }
   if (tasks !== undefined) { sets.push('tasks = ?'); values.push(JSON.stringify(tasks)); }
@@ -50,7 +50,7 @@ export async function onRequestPut(context) {
   values.push(appointmentId);
 
   const result = await env.DB.prepare(
-    `UPDATE appointments SET ${sets.join(', ')} WHERE id = ?`
+    `UPDATE bookings SET ${sets.join(', ')} WHERE id = ?`
   ).bind(...values).run();
 
   if (!result.meta || result.meta.changes === 0) {

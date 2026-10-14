@@ -31,45 +31,6 @@ function localApiPlugin() {
       // Fresh database — run the full schema + seed.
       db.exec(readFileSync(resolve(dbDir, 'schema.sql'), 'utf8'));
       db.exec(readFileSync(resolve(dbDir, 'seed.sql'), 'utf8'));
-    } else {
-      // Existing database — apply any missing migrations.
-      // Migration 1: add patient_name column to appointments (added after initial schema).
-      try {
-        db.prepare("SELECT patient_name FROM appointments LIMIT 0").get();
-      } catch {
-        try { db.exec("ALTER TABLE appointments ADD COLUMN patient_name TEXT NOT NULL DEFAULT ''"); } catch { /* already added */ }
-      }
-      try {
-        db.prepare("SELECT caregiver_name FROM appointments LIMIT 0").get();
-      } catch {
-        try { db.exec("ALTER TABLE appointments ADD COLUMN caregiver_name TEXT"); } catch { /* already added */ }
-      }
-      // Migration: create caregiving_sites table if not present.
-      try {
-        db.prepare("SELECT id FROM caregiving_sites LIMIT 0").get();
-      } catch {
-        try {
-          db.exec(`CREATE TABLE IF NOT EXISTS caregiving_sites (
-            id TEXT PRIMARY KEY, name TEXT NOT NULL, area TEXT NOT NULL,
-            latitude REAL NOT NULL, longitude REAL NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-          )`);
-          db.exec(`INSERT OR IGNORE INTO caregiving_sites (id, name, area, latitude, longitude) VALUES
-            ('SITE-001', 'Caregiver Center 1', 'Petaling Jaya', 3.1073, 101.6064),
-            ('SITE-002', 'Caregiver Center 2', 'Subang Jaya', 3.0568, 101.5852),
-            ('SITE-003', 'Caregiver Center 3', 'Cheras', 3.1008, 101.7242),
-            ('SITE-004', 'Caregiver Center 4', 'Ampang', 3.1480, 101.7595),
-            ('SITE-005', 'Caregiver Center 5', 'Setiawangsa', 3.1905, 101.7380),
-            ('SITE-006', 'Caregiver Center 6', 'Shah Alam', 3.0733, 101.5185)`);
-        } catch { /* already exists */ }
-      }
-      // Migration: add latitude/longitude to bookings.
-      try {
-        db.prepare("SELECT latitude FROM bookings LIMIT 0").get();
-      } catch {
-        try { db.exec("ALTER TABLE bookings ADD COLUMN latitude REAL"); } catch { /* already added */ }
-        try { db.exec("ALTER TABLE bookings ADD COLUMN longitude REAL"); } catch { /* already added */ }
-      }
     }
     return db;
   }
@@ -326,23 +287,26 @@ function localApiPlugin() {
       });
 
       // ---- Appointments API middleware ----
+      // The appointments table was merged into bookings in the new schema.
+      // This middleware reads/writes the bookings table but exposes the
+      // appointment shape the frontend expects.
       server.middlewares.use('/api/appointments', async (req, res) => {
         const [pathname] = req.url.split('?');
         const segments = pathname.split('/').filter(Boolean);
 
-        // GET /api/appointments
+        // GET /api/appointments — read from bookings, map to appointment shape
         if (segments.length === 0 && req.method === 'GET') {
           try {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT a.id, a.patient_id, a.patient_name, a.caregiver_id, a.caregiver_name,
-                        a.date, a.start_time, a.end_time, a.status,
-                        a.appointment_type, a.booking_type,
-                        a.caregiver_gender_preference, a.location_mode, a.location_text,
-                        a.latitude, a.longitude, a.tasks, a.special_instructions, a.duration_mins
-                 FROM appointments a
-                 ORDER BY a.date DESC, a.start_time ASC`
+                `SELECT b.id, NULL AS patient_id, b.patient_name, b.caregiver_id, b.caregiver_name,
+                        b.date, b.start_time, b.end_time, b.status,
+                        b.appointment_type, b.booking_type,
+                        b.caregiver_gender_preference, b.location_mode, b.location AS location_text,
+                        b.latitude, b.longitude, b.tasks, b.special_instructions, b.duration_mins
+                 FROM bookings b
+                 ORDER BY b.date DESC, b.start_time ASC`
               )
               .all();
             const parsed = rows.map((row) => ({
@@ -356,7 +320,7 @@ function localApiPlugin() {
           }
         }
 
-        // POST /api/appointments
+        // POST /api/appointments — insert into bookings table
         if (segments.length === 0 && req.method === 'POST') {
           try {
             let body;
@@ -373,25 +337,28 @@ function localApiPlugin() {
             }
 
             const database = await getDb();
-            const maxRow = database.prepare('SELECT id FROM appointments ORDER BY id DESC LIMIT 1').get();
-            const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 3000;
-            const newId = `AP-${String(lastNum + 1)}`;
+            const maxRow = database.prepare('SELECT id FROM bookings ORDER BY id DESC LIMIT 1').get();
+            const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 5000;
+            const newId = `BK-${String(lastNum + 1)}`;
             const tasksJson = tasks ? JSON.stringify(tasks) : '[]';
             const calcDuration = duration_mins || Math.max(
               (parseInt(end_time.split(':')[0]) * 60 + parseInt(end_time.split(':')[1])) -
               (parseInt(start_time.split(':')[0]) * 60 + parseInt(start_time.split(':')[1])), 0);
 
             database
-              .prepare(`INSERT INTO appointments (id, patient_id, patient_name, caregiver_id, caregiver_name,
-                date, start_time, end_time, status, appointment_type, booking_type,
-                caregiver_gender_preference, location_mode, location_text,
-                latitude, longitude, tasks, special_instructions, duration_mins)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-              .run(newId, patient_id || null, patient_name, caregiver_id || null, caregiver_name || null,
+              .prepare(`INSERT INTO bookings
+                (id, patient_name, caregiver_id, caregiver_name,
+                 date, start_time, end_time, status, appointment_type, booking_type,
+                 caregiver_gender_preference, location_mode, location,
+                 latitude, longitude, tasks, special_instructions, duration_mins,
+                 service_type, rate_cents)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+              .run(newId, patient_name, caregiver_id || null, caregiver_name || null,
                 date, start_time, end_time, status || 'Scheduled', appointment_type || 'Home Visit',
                 booking_type || 'One time', caregiver_gender_preference || 'No preference',
                 location_mode || 'address', location_text || '',
-                latitude || null, longitude || null, tasksJson, special_instructions || '', calcDuration);
+                latitude || null, longitude || null, tasksJson, special_instructions || '', calcDuration,
+                appointment_type || 'Home Visit', 0);
 
             return sendJson(res, 201, { ok: true, id: newId });
           } catch (err) {
@@ -400,7 +367,7 @@ function localApiPlugin() {
           }
         }
 
-        // PUT /api/appointments/:id
+        // PUT /api/appointments/:id — update bookings table
         if (segments.length === 1 && req.method === 'PUT') {
           try {
             const appointmentId = decodeURIComponent(segments[0]);
@@ -416,7 +383,6 @@ function localApiPlugin() {
             const sets = [];
             const values = [];
 
-            if (patient_id !== undefined) { sets.push('patient_id = ?'); values.push(patient_id || null); }
             if (patient_name !== undefined) { sets.push('patient_name = ?'); values.push(patient_name); }
             if (caregiver_id !== undefined) { sets.push('caregiver_id = ?'); values.push(caregiver_id || null); }
             if (caregiver_name !== undefined) { sets.push('caregiver_name = ?'); values.push(caregiver_name || null); }
@@ -428,7 +394,7 @@ function localApiPlugin() {
             if (booking_type !== undefined) { sets.push('booking_type = ?'); values.push(booking_type); }
             if (caregiver_gender_preference !== undefined) { sets.push('caregiver_gender_preference = ?'); values.push(caregiver_gender_preference); }
             if (location_mode !== undefined) { sets.push('location_mode = ?'); values.push(location_mode); }
-            if (location_text !== undefined) { sets.push('location_text = ?'); values.push(location_text); }
+            if (location_text !== undefined) { sets.push('location = ?'); values.push(location_text); }
             if (latitude !== undefined) { sets.push('latitude = ?'); values.push(latitude || null); }
             if (longitude !== undefined) { sets.push('longitude = ?'); values.push(longitude || null); }
             if (tasks !== undefined) { sets.push('tasks = ?'); values.push(JSON.stringify(tasks)); }
@@ -440,7 +406,7 @@ function localApiPlugin() {
             values.push(appointmentId);
 
             const database = await getDb();
-            const result = database.prepare(`UPDATE appointments SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+            const result = database.prepare(`UPDATE bookings SET ${sets.join(', ')} WHERE id = ?`).run(...values);
             if (result.changes === 0) return sendJson(res, 404, { ok: false, error: 'Appointment not found.' });
             return sendJson(res, 200, { ok: true, id: appointmentId });
           } catch (err) {
