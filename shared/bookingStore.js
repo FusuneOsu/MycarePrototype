@@ -2,8 +2,10 @@
 //
 // The admin app turns a request into a confirmed booking; the caregiver app
 // reads the same booking as a job. One record, so the two views always tally.
-// Like the caregiver store, this sits on localStorage (same origin via the
-// /caregiver proxy) until the D1 tables exist.
+//
+// Storage: reads from localStorage (populated from SQLite API by refreshCache).
+// Falls back to existing localStorage data when the API is unavailable
+// (e.g. caregiver app running without the Vite API plugin).
 
 import { diff, logAudit } from './auditStore.js';
 
@@ -95,6 +97,85 @@ const SHIFT_WINDOWS = {
   'Night (11pm - 7am)': [23 * 60, 31 * 60],
 };
 
+/* API layer ------------------------------------------------------------------ */
+
+const API_BASE = '/api';
+
+/** Convert snake_case string to camelCase. */
+function snakeToCamel(str) {
+  return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/** Convert camelCase string to snake_case. */
+function camelToSnake(str) {
+  return str.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+}
+
+/** Recursively map all object keys through `fn`. */
+function mapKeys(obj, fn) {
+  if (Array.isArray(obj)) return obj.map((v) => mapKeys(v, fn));
+  if (obj && typeof obj === 'object' && obj.constructor === Object) {
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      result[fn(k)] = mapKeys(v, fn);
+    }
+    return result;
+  }
+  return obj;
+}
+
+/** Maps an API request row (snake_case) to the local camelCase shape. */
+function apiRequestToLocal(apiRow) {
+  const camel = mapKeys(apiRow, snakeToCamel);
+  if (camel.preferredLanguage !== undefined) camel.language = camel.preferredLanguage;
+  if (camel.zone !== undefined) camel.area = camel.zone;
+  if (camel.latitude !== undefined) camel.lat = camel.latitude;
+  if (camel.longitude !== undefined) camel.lng = camel.longitude;
+  if (camel.requestedDate !== undefined) camel.requestedDateISO = camel.requestedDate;
+  return camel;
+}
+
+/** Maps a local request object (camelCase) to API snake_case shape. */
+function localRequestToApi(local) {
+  const mapped = { ...local };
+  if (mapped.language !== undefined) mapped.preferredLanguage = mapped.language;
+  if (mapped.area !== undefined) mapped.zone = mapped.area;
+  if (mapped.lat !== undefined) mapped.latitude = mapped.lat;
+  if (mapped.lng !== undefined) mapped.longitude = mapped.lng;
+  if (mapped.requestedDateISO !== undefined) mapped.requestedDate = mapped.requestedDateISO;
+  delete mapped.language;
+  delete mapped.area;
+  delete mapped.lat;
+  delete mapped.lng;
+  delete mapped.requestedDateISO;
+  delete mapped.receivedAt;
+  delete mapped.updatedAt;
+  delete mapped.whatsappJid;
+  delete mapped.statusReason;
+  delete mapped.bookingId;
+  delete mapped.durationMins;
+  return mapKeys(mapped, camelToSnake);
+}
+
+/** Helper: fetch from the local API, return parsed JSON or null on failure. */
+async function apiFetch(path, options = {}) {
+  try {
+    const resp = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      console.warn('[bookingStore] API', options.method || 'GET', path, 'failed:', resp.status, body.error || '');
+      return null;
+    }
+    return await resp.json();
+  } catch (err) {
+    console.warn('[bookingStore] API', options.method || 'GET', path, 'error:', err.message);
+    return null;
+  }
+}
+
 /* Storage -------------------------------------------------------------------- */
 
 function read(key) {
@@ -108,6 +189,53 @@ function read(key) {
 
 const write = (key, value) => window.localStorage.setItem(key, JSON.stringify(value));
 const now = () => new Date().toISOString();
+
+/** Fetch latest data from the API and populate localStorage.
+ *  Call this on page mount (e.g. in a useEffect) to keep the local cache in sync.
+ *  Falls back silently to existing localStorage data if the API is unreachable. */
+export async function refreshCache() {
+  const [requestsResult, bookingsResult] = await Promise.all([
+    apiFetch('/requests'),
+    apiFetch('/bookings'),
+  ]);
+
+  if (requestsResult && Array.isArray(requestsResult)) {
+    const mapped = {};
+    for (const row of requestsResult) {
+      const local = apiRequestToLocal(row);
+      if (!local.receivedAt) local.receivedAt = now();
+      if (!local.updatedAt) local.updatedAt = now();
+      if (!local.preferredDate) local.preferredDate = local.requestedDateISO;
+      if (!local.durationMins) local.durationMins = 60;
+      if (!local.address) local.address = local.location || local.area || '';
+      mapped[local.id] = local;
+    }
+    write(REQUESTS_KEY, mapped);
+  }
+
+  if (bookingsResult && Array.isArray(bookingsResult)) {
+    const mapped = {};
+    for (const row of bookingsResult) {
+      const local = mapKeys(row, snakeToCamel);
+      if (typeof local.tasks === 'string') {
+        try { local.tasks = JSON.parse(local.tasks); } catch { local.tasks = []; }
+      }
+      if (!local.createdAt) local.createdAt = now();
+      if (!local.updatedAt) local.updatedAt = now();
+      if (!local.history) local.history = [{ at: now(), action: local.status || 'Created', reason: '' }];
+      if (!local.receiptStatus) local.receiptStatus = 'Receipt pending';
+      if (!local.payoutStatus) local.payoutStatus = 'Awaiting payout';
+      if (!local.price) {
+        local.price = local.rateCents ? priceFor(local.rateCents, local.durationMins || 60) : 0;
+      }
+      if (!local.caregiverPayout) {
+        local.caregiverPayout = Math.round((local.price || 0) * CAREGIVER_SHARE * 100) / 100;
+      }
+      mapped[local.id] = local;
+    }
+    write(BOOKINGS_KEY, mapped);
+  }
+}
 
 /* Requests ------------------------------------------------------------------- */
 
@@ -124,6 +252,21 @@ export function updateRequest(id, changes) {
   if (!requests[id]) return null;
   requests[id] = { ...requests[id], ...changes, updatedAt: now() };
   write(REQUESTS_KEY, requests);
+
+  // Push update to the API (fire-and-forget)
+  const apiBody = localRequestToApi(requests[id]);
+  const delta = {};
+  for (const key of Object.keys(changes)) {
+    const snakeKey = camelToSnake(key);
+    if (apiBody[snakeKey] !== undefined) delta[snakeKey] = apiBody[snakeKey];
+  }
+  if (Object.keys(delta).length > 0) {
+    apiFetch(`/requests/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(delta),
+    });
+  }
+
   return requests[id];
 }
 
@@ -173,6 +316,15 @@ export function createPatientRequest(requestData, sender, phone = '') {
 
   requests[newId] = newReq;
   write(REQUESTS_KEY, requests);
+
+  // POST to API (fire-and-forget)
+  const apiBody = localRequestToApi(newReq);
+  apiBody.source = 'WhatsApp';
+  apiFetch('/requests', {
+    method: 'POST',
+    body: JSON.stringify(apiBody),
+  });
+
   logAudit({ action: 'request.received', recordType: 'Request', recordId: newId, summary: `${newReq.source} request from ${newReq.patientName} — ${newReq.careType}, ${newReq.area}` });
   // Dispatch storage event so RequestsPage updates if it's open
   window.dispatchEvent(new Event('storage'));
@@ -292,6 +444,36 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
   });
   updateRequest(request.id, { status: REQUEST_STATUS.booked, statusReason: '', bookingId: booking.id });
   notifyBothParties(booking, 'Booking confirmed', 'your caregiver booking is confirmed.');
+
+  // POST booking to API (fire-and-forget)
+  const apiBody = {
+    request_id: request.id,
+    caregiver_id: caregiver.id,
+    patient_name: request.patientName,
+    date,
+    start_time: startTime,
+    end_time: endTimeOf(startTime, durationMins),
+    duration_mins: Number(durationMins),
+    location: request.location || request.area || '',
+    latitude: request.lat,
+    longitude: request.lng,
+    service_type: request.careType,
+    status: BOOKING_STATUS.confirmed,
+    appointment_type: appointmentType || 'Home Visit',
+    booking_type: bookingType || 'One time',
+    caregiver_gender_preference: request.preferredGender || 'No preference',
+    location_mode: locationMode || 'address',
+    tasks: tasks || [],
+    special_instructions: specialInstructions || request.notes || '',
+    rate_cents: Number(rate),
+    service_amount_cents: null,
+    caregiver_payment_cents: null,
+  };
+  apiFetch('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(apiBody),
+  });
+
   logAudit({
     action: 'booking.created', recordType: 'Booking', recordId: booking.id,
     summary: `${booking.patientName} with ${booking.caregiverName} on ${booking.date} ${booking.startTime}–${booking.endTime} (from ${request.id})`,
@@ -317,6 +499,19 @@ export function rescheduleBooking(id, { date, startTime, durationMins, reason })
     history: [...booking.history, { at: now(), action: BOOKING_STATUS.rescheduled, reason, from, to: { date, startTime, endTime: endTimeOf(startTime, durationMins) } }],
   });
   notifyBothParties(updated, 'Booking rescheduled', `your booking has been moved. Reason: ${reason}.`);
+
+  // PUT update to API (fire-and-forget)
+  apiFetch(`/appointments/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      date,
+      start_time: startTime,
+      end_time: endTimeOf(startTime, durationMins),
+      duration_mins: Number(durationMins),
+      status: BOOKING_STATUS.rescheduled,
+    }),
+  });
+
   logAudit({ action: 'booking.modified', recordType: 'Booking', recordId: id, summary: `Rescheduled — ${reason}`, changes: diff(booking, updated, ['date', 'startTime', 'endTime', 'durationMins', 'price', 'status']) });
   return updated;
 }
@@ -327,6 +522,13 @@ export function cancelBooking(id, reason) {
   if (!booking) return null;
   const updated = saveBooking({ ...booking, status: BOOKING_STATUS.cancelled, history: [...booking.history, { at: now(), action: BOOKING_STATUS.cancelled, reason }] });
   if (booking.requestId) updateRequest(booking.requestId, { status: REQUEST_STATUS.review, statusReason: `Booking ${booking.id} cancelled: ${reason}`, bookingId: '' });
+
+  // PUT update to API (fire-and-forget)
+  apiFetch(`/appointments/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: BOOKING_STATUS.cancelled }),
+  });
+
   notifyBothParties(updated, 'Booking cancelled', `your booking has been cancelled. Reason: ${reason}.`);
   logAudit({ action: 'booking.cancelled', recordType: 'Booking', recordId: id, summary: `Cancelled — ${reason}`, changes: diff(booking, updated, ['status']) });
   return updated;
@@ -337,6 +539,12 @@ export function completeBooking(id) {
   const booking = getBooking(id);
   if (!booking) return null;
   const updated = saveBooking({ ...booking, status: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt submitted', completedAt: now(), history: [...booking.history, { at: now(), action: BOOKING_STATUS.serviceCompleted, reason: '' }] });
+
+  apiFetch(`/appointments/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: BOOKING_STATUS.serviceCompleted }),
+  });
+
   logAudit({ action: 'booking.completed', recordType: 'Booking', recordId: id, summary: `Visit for ${booking.patientName} marked done`, changes: diff(booking, updated, ['status', 'receiptStatus']) });
   return updated;
 }
@@ -348,6 +556,15 @@ export function updateBookingPayment(id, changes) {
   const changed = diff(booking, updated, Object.keys(changes));
   if (changed.length) logAudit({ action: 'payment.status', recordType: 'Booking', recordId: id, summary: `Payment updated for ${booking.patientName}`, changes: changed });
   return updated;
+}
+
+/** Write arbitrary overrides to a request (e.g. receipt/payout status from the request page). */
+export function writeRequestOverrides(id, overrides) {
+  const requests = read(REQUESTS_KEY) || {};
+  if (!requests[id]) return null;
+  requests[id] = { ...requests[id], ...overrides, updatedAt: now() };
+  write(REQUESTS_KEY, requests);
+  return requests[id];
 }
 
 export const isActiveBooking = (booking) => booking.status !== BOOKING_STATUS.cancelled;

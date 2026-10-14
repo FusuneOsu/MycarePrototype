@@ -145,7 +145,7 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
       };
 
       // POST to the API (persists to SQLite).
-      const resp = await fetch('/api/patient-requests', {
+      const resp = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

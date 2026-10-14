@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import AddRequestModal from '../../components/requests/AddRequestModal.jsx';
-import { REQUEST_SOURCES, REQUEST_STATUS, REQUEST_STATUSES, formatDate, listRequests } from '../../../../shared/bookingStore.js';
+import { REQUEST_SOURCES, REQUEST_STATUS, REQUEST_STATUSES, formatDate, listRequests, refreshCache } from '../../../../shared/bookingStore.js';
 import { Button, Card, CellStack, Input, SectionHeader, Select, StatCard, StatGrid, Table, Toolbar } from '../../../../shared/ui/index.js';
 
 /** Central requests queue — every WhatsApp and website request, with its status. */
@@ -17,6 +17,7 @@ export default function RequestsPage() {
 
   const refresh = useCallback(() => setRequests(listRequests()), []);
   useEffect(() => {
+    refreshCache(); // Fetch latest data from SQLite API
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };

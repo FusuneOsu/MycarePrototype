@@ -8,7 +8,7 @@ import { formatRating } from '../../../../shared/bookingHistory.js';
 import {
   BOOKING_STATUS, REQUEST_STATUS, SERVICE_RATES, cancelBooking, confirmBooking, endTimeOf, filterMatches,
   formatDate, formatDuration, formatMoney, getBooking, getRequest, listBookings, listNotifications,
-  matchCaregivers, navigationLinks, priceFor, rescheduleBooking, setRequestStatus, updateBookingPayment, editPatientRequest
+  matchCaregivers, navigationLinks, priceFor, rescheduleBooking, setRequestStatus, updateBookingPayment, editPatientRequest, refreshCache
 } from '../../../../shared/bookingStore.js';
 import { logAudit } from '../../../../shared/auditStore.js';
 import { Button, Card, CellStack, Field, Input, Pill, SectionHeader, Segmented, Select, Table, Tag, Textarea } from '../../../../shared/ui/index.js';
@@ -341,6 +341,7 @@ function PatientRequestPage() {
 
   // The caregiver app writes to the same store (e.g. marking a visit complete).
   useEffect(() => {
+    refreshCache(); // Fetch latest data from SQLite API
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
