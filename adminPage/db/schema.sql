@@ -4,12 +4,19 @@
 -- The standalone appointments table has been merged into bookings.
 -- Run with: wrangler d1 execute mycarePrototypeRDBMS --file=./db/schema.sql
 
+-- Disable FK enforcement during DROP so tables can be dropped in any order.
+PRAGMA foreign_keys = OFF;
+
 DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS pto_requests;
-DROP TABLE IF EXISTS post_op_patients;
 DROP TABLE IF EXISTS requests;
+DROP TABLE IF EXISTS post_op_patients;
 DROP TABLE IF EXISTS caregiver_skills;
 DROP TABLE IF EXISTS caregivers;
+DROP TABLE IF EXISTS caregiving_sites;
+
+-- Re-enable FK enforcement for the CREATE statements and future operations.
+PRAGMA foreign_keys = ON;
 
 -- Caregivers -----------------------------------------------------------
 CREATE TABLE caregivers (
