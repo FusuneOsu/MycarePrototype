@@ -431,24 +431,12 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT c.id, c.name, c.phone, c.email, c.gender, c.zone, c.center,
-                        c.latitude, c.longitude, c.rating, c.status, c.profile_photo,
-                        c.availability, c.care_types, c.skills, c.languages,
-                        c.experience_years, c.max_distance_km,
-                        c.service_amount_cents, c.caregiver_payment_cents
+                `SELECT c.id, c.name, c.gender, c.center, c.availability, c.phone, c.email
                  FROM caregivers c
                  ORDER BY c.name`
               )
               .all();
-            // Parse JSON fields for convenience
-            const parsed = rows.map(r => ({
-              ...r,
-              availability: r.availability ? (typeof r.availability === 'string' ? JSON.parse(r.availability) : r.availability) : [],
-              skills: r.skills ? (typeof r.skills === 'string' ? JSON.parse(r.skills) : r.skills) : [],
-              care_types: r.care_types ? (typeof r.care_types === 'string' ? JSON.parse(r.care_types) : r.care_types) : [],
-              languages: r.languages ? (typeof r.languages === 'string' ? JSON.parse(r.languages) : r.languages) : [],
-            }));
-            return sendJson(res, 200, parsed);
+            return sendJson(res, 200, rows);
           } catch (err) {
             console.error('[caregivers GET]', err);
             return sendJson(res, 500, { ok: false, error: err.message });
@@ -461,21 +449,12 @@ function localApiPlugin() {
             const database = await getDb();
             const row = database
               .prepare(
-                `SELECT c.id, c.name, c.phone, c.email, c.gender, c.zone, c.center,
-                        c.latitude, c.longitude, c.rating, c.status, c.profile_photo,
-                        c.availability, c.care_types, c.skills, c.languages,
-                        c.experience_years, c.max_distance_km,
-                        c.service_amount_cents, c.caregiver_payment_cents
+                `SELECT c.id, c.name, c.gender, c.center, c.availability, c.phone, c.email
                  FROM caregivers c
                  WHERE c.id = ?`
               )
               .get(segments[0]);
             if (!row) return sendJson(res, 404, { ok: false, error: 'Caregiver not found.' });
-            // Parse JSON fields
-            if (row.availability && typeof row.availability === 'string') row.availability = JSON.parse(row.availability);
-            if (row.skills && typeof row.skills === 'string') row.skills = JSON.parse(row.skills);
-            if (row.care_types && typeof row.care_types === 'string') row.care_types = JSON.parse(row.care_types);
-            if (row.languages && typeof row.languages === 'string') row.languages = JSON.parse(row.languages);
             return sendJson(res, 200, row);
           } catch (err) {
             console.error('[caregivers GET by id]', err);
