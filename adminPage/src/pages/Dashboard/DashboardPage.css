@@ -124,12 +124,47 @@
   font-size: var(--ui-text-sm);
 }
 
-/* Stat row for inline StatCards */
+/* Toolbar for date range filter — matches appointments page style */
+.dashboard-page__toolbar {
+  margin-bottom: var(--ui-space-4);
+}
+
+/* Stat row for inline StatCards — uniform width */
 .dashboard-page__stat-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 4px;
+}
+
+.dashboard-page__stat-row .ui-stat {
+  flex: 1 1 0;
+  min-width: 130px;
+}
+
+/* Trend chart header — summary + range selector side-by-side */
+.dashboard-page__trend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.dashboard-page__trend-header .ui-stat {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 12px 16px;
+}
+
+.dashboard-page__trend-header .ui-stat__value {
+  margin: 6px 0 0;
+  font-size: var(--ui-text-2xl);
+}
+
+/* Field wrapping a custom Select needs margin-top like native inputs */
+.ui-field .ui-custom-select {
+  margin-top: 8px;
 }
 
 /* Export button bar */
@@ -147,8 +182,12 @@
   margin-bottom: 16px;
 }
 
-.dashboard-page__filters .ui-select {
-  min-width: 140px;
+.dashboard-page__filters {
+  gap: 14px;
+}
+
+.dashboard-page__filters .ui-custom-select {
+  min-width: 150px;
 }
 
 /* Subtitle for section headers inside cards */

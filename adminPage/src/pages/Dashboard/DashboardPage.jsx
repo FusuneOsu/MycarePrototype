@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
-import { Card, Select } from '../../../../shared/ui/index.js';
+import { Card, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../shared/i18n/LanguageContext.jsx';
 import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { listApplications } from '../../../../shared/caregiverStore.js';
@@ -20,12 +20,19 @@ import TrendChart from '../../components/dashboard/TrendChart.jsx';
 import ExportButton from '../../components/dashboard/ExportButton.jsx';
 import './DashboardPage.css';
 
+const TREND_RANGE_OPTIONS = [
+  { id: '1', label: 'Today' },
+  { id: '7', label: '7 days' },
+  { id: '30', label: '30 days' },
+];
+
 const RANGE_OPTIONS = ['Today', 'This week', 'This month', 'All time'];
 
 function DashboardPage() {
   const { t } = useLanguage();
-  const [selectedDateRange, setSelectedDateRange] = useState('This week');
+  const [selectedDateRange, setSelectedDateRange] = useState('All time');
   const [caregiverFilters, setCaregiverFilters] = useState({});
+  const [trendDays, setTrendDays] = useState('7');
   const [bookings, setBookings] = useState([]);
   const [caregivers, setCaregivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,8 +102,9 @@ function DashboardPage() {
     const requests = listRequests();
     return aggregateOnboarding(applications, requests);
   }, []);
-  const bookingTrend = useMemo(() => buildTrendSeries(bookings, 7), [bookings]);
-  const revenueTrend = useMemo(() => buildTrendSeries(bookings, 7), [bookings]);
+  const days = parseInt(trendDays, 10);
+  const bookingTrend = useMemo(() => buildTrendSeries(bookings, days), [bookings, days]);
+  const revenueTrend = useMemo(() => buildTrendSeries(bookings, days), [bookings, days]);
 
   const exportData = useMemo(() => ({
     bookings,
@@ -123,21 +131,24 @@ function DashboardPage() {
             {isManagement && (
               <span className="dashboard-page__role-badge">Read-only</span>
             )}
-            <Select
-              size="sm"
-              value={selectedDateRange}
-              onChange={(e) => setSelectedDateRange(e.target.value)}
-              aria-label="Date range"
-            >
-              {RANGE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </Select>
           </>
         )}
       />
 
       <ExportButton role={role} data={exportData} range={selectedDateRange} disabled={!bookings.length && !caregivers.length} />
+
+      <Toolbar className="dashboard-page__toolbar">
+        <Select
+          size="sm"
+          value={selectedDateRange}
+          onChange={(e) => setSelectedDateRange(e.target.value)}
+          aria-label="Date range"
+        >
+          {RANGE_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </Select>
+      </Toolbar>
 
       <div className="dashboard-page__grid">
         <BookingsOverviewCard bookingsAgg={bookingsAgg} />
@@ -149,16 +160,22 @@ function DashboardPage() {
         />
         <OnboardingPipelineCard onboardingAgg={onboardingAgg} />
         <TrendChart
-          title="Booking trend (7 days)"
+          title="Booking trend"
           series={bookingTrend}
           metric="bookings"
           color="var(--ui-green)"
+          trendDays={trendDays}
+          onTrendDaysChange={setTrendDays}
+          trendOptions={TREND_RANGE_OPTIONS}
         />
         <TrendChart
-          title="Revenue trend (7 days)"
+          title="Revenue trend"
           series={revenueTrend}
           metric="revenue"
           color="var(--ui-blue)"
+          trendDays={trendDays}
+          onTrendDaysChange={setTrendDays}
+          trendOptions={TREND_RANGE_OPTIONS}
         />
       </div>
     </div>

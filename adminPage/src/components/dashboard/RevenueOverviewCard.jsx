@@ -1,4 +1,5 @@
 import { Card, StatCard, Table, CellStack } from '../../../../shared/ui/index.js';
+import { fmtMoney } from '../../utils/dashboardUtils.js';
 
 export default function RevenueOverviewCard({ revenueAgg }) {
   if (!revenueAgg) return null;
@@ -10,8 +11,8 @@ export default function RevenueOverviewCard({ revenueAgg }) {
   return (
     <Card title="Revenue overview">
       <div className="dashboard-page__stat-row">
-        <StatCard label="Collected" value={paid} />
-        <StatCard label="Outstanding" value={unpaid} />
+        <StatCard label="Collected" value={fmtMoney(paidCents)} />
+        <StatCard label="Outstanding" value={fmtMoney(unpaidCents)} />
         <StatCard label="Collection rate" value={`${collectedPct}%`} />
       </div>
 

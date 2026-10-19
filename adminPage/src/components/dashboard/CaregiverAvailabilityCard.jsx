@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, Select } from '../../../../shared/ui/index.js';
+import { useMemo, useState } from 'react';
+import { Card, Field, Select } from '../../../../shared/ui/index.js';
 
 const DONUT_COLORS = ['var(--ui-green)', 'var(--ui-amber)', 'var(--ui-line)'];
 const DONUT_LABELS = ['Free', 'Assigned', 'Inactive'];
@@ -8,6 +8,17 @@ export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers,
   const [location, setLocation] = useState('');
   const [gender, setGender] = useState('');
   const [skill, setSkill] = useState('');
+
+  // Derive filter options dynamically from the actual caregiver data
+  const locationOptions = useMemo(() => {
+    const set = new Set((caregivers || []).map((c) => c.center).filter(Boolean));
+    return ['', ...set].sort();
+  }, [caregivers]);
+
+  const genderOptions = useMemo(() => {
+    const set = new Set((caregivers || []).map((c) => c.gender).filter(Boolean));
+    return ['', ...set].sort();
+  }, [caregivers]);
 
   if (!availabilityAgg) return null;
 
@@ -47,27 +58,43 @@ export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers,
   return (
     <Card title="Caregiver availability">
       <div className="dashboard-page__filters">
-        <Select
-          label="Location"
-          options={['', 'Kuala Lumpur', 'Penang', 'Johor Bahru', 'Ipoh']}
-          value={location}
-          onChange={(e) => handleFilter('location', e.target.value)}
-          placeholder="All locations"
-        />
-        <Select
-          label="Gender"
-          options={['', 'Female', 'Male']}
-          value={gender}
-          onChange={(e) => handleFilter('gender', e.target.value)}
-          placeholder="All genders"
-        />
-        <Select
-          label="Skill"
-          options={['', 'Post-operative care', 'Elderly care', 'Childcare', 'Physiotherapy']}
-          value={skill}
-          onChange={(e) => handleFilter('skill', e.target.value)}
-          placeholder="All skills"
-        />
+        <Field label="Location">
+          <Select
+            size="sm"
+            value={location}
+            onChange={(e) => handleFilter('location', e.target.value)}
+          >
+            <option value="">All locations</option>
+            {locationOptions.filter(Boolean).map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Gender">
+          <Select
+            size="sm"
+            value={gender}
+            onChange={(e) => handleFilter('gender', e.target.value)}
+          >
+            <option value="">All genders</option>
+            {genderOptions.filter(Boolean).map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Skill">
+          <Select
+            size="sm"
+            value={skill}
+            onChange={(e) => handleFilter('skill', e.target.value)}
+          >
+            <option value="">All skills</option>
+            <option value="Post-operative care">Post-operative care</option>
+            <option value="Elderly care">Elderly care</option>
+            <option value="Childcare">Childcare</option>
+            <option value="Physiotherapy">Physiotherapy</option>
+          </Select>
+        </Field>
       </div>
       <div className="dashboard-page__availability-wrap">
         <div className="dashboard-page__donut-chart">
