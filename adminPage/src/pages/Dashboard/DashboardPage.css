@@ -174,20 +174,34 @@
   margin-bottom: 12px;
 }
 
-/* Filters row for caregiver availability */
+/* Filters row for caregiver availability — grid layout so all fields are equal */
 .dashboard-page__filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.dashboard-page__filters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
+  margin-bottom: 16px;
+  align-items: start;
 }
 
-.dashboard-page__filters .ui-custom-select {
-  min-width: 150px;
+.dashboard-page__filters > .ui-field,
+.dashboard-page__filters > .ui-field + .ui-field {
+  display: block;
+  margin: 0;
+}
+
+.dashboard-page__filters .ui-field__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--ui-text-xs);
+  color: var(--ui-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.dashboard-page__filters .ui-field .ui-custom-select {
+  display: block;
+  width: 100%;
+  margin-top: 0;
 }
 
 /* Subtitle for section headers inside cards */

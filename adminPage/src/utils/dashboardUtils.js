@@ -116,7 +116,7 @@ export function aggregateCaregiverAvailability(caregivers, filters = {}) {
   }
   if (filters.skill) {
     list = list.filter((c) =>
-      (c.specialisations || []).some((s) =>
+      (c.skills || []).some((s) =>
         String(s).toLowerCase().includes(filters.skill.toLowerCase())
       )
     );

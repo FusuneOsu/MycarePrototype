@@ -14,11 +14,17 @@ export async function onRequestGet(context) {
        ORDER BY date DESC`
     ).all();
 
-    // 2. Caregiver availability
+    // 2. Caregiver availability (with skills aggregated from the join table)
     const { results: caregivers } = await env.DB.prepare(
-      `SELECT id, name, gender, center, availability
-       FROM caregivers
-       ORDER BY name`
+      `SELECT c.id, c.name, c.gender, c.center, c.availability,
+              COALESCE(
+                json_group_array(cs.skill) FILTER (WHERE cs.skill IS NOT NULL),
+                '[]'
+              ) AS skills
+       FROM caregivers c
+       LEFT JOIN caregiver_skills cs ON cs.caregiver_id = c.id
+       GROUP BY c.id
+       ORDER BY c.name`
     ).all();
 
     // 3. Request sources (WhatsApp vs Website)
@@ -35,9 +41,15 @@ export async function onRequestGet(context) {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+    // Parse skills JSON string → array for each caregiver
+    const parsedCaregivers = caregivers.map((c) => ({
+      ...c,
+      skills: typeof c.skills === 'string' ? JSON.parse(c.skills) : c.skills,
+    }));
+
     return Response.json({
       bookings,
-      caregivers,
+      caregivers: parsedCaregivers,
       requests,
       pendingApplications: pendingApps?.count || 0,
       generatedAt: today,

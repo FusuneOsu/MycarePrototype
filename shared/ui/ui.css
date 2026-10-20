@@ -117,6 +117,7 @@
 /* Form controls ----------------------------------------------------------- */
 .ui-field { display: block; color: #49606a; font-size: var(--ui-text-md); font-weight: var(--ui-weight-bold); }
 .ui-field + .ui-field { margin-top: var(--ui-space-4); }
+.ui-field__label { display: block; }
 .ui-field__hint { display: block; margin-top: 6px; color: var(--ui-muted); font-size: var(--ui-text-xs); font-weight: var(--ui-weight-regular); }
 .ui-input, .ui-select, .ui-textarea { width: 100%; padding: 11px 13px; border: 1px solid var(--ui-line-strong); border-radius: var(--ui-radius); color: var(--ui-ink); background: #fbfdfc; font-family: inherit; font-size: var(--ui-text-base); font-weight: var(--ui-weight-regular); outline: 0; }
 .ui-field .ui-input, .ui-field .ui-select, .ui-field .ui-textarea { margin-top: 8px; }

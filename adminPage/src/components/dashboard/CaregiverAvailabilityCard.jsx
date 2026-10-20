@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, Field, Select } from '../../../../shared/ui/index.js';
 
-const DONUT_COLORS = ['var(--ui-green)', 'var(--ui-amber)', 'var(--ui-line)'];
+const DONUT_COLORS = ['#a1d99b', '#31a354', '#e5f5e0'];
 const DONUT_LABELS = ['Free', 'Assigned', 'Inactive'];
 
 export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers, onFilterChange }) {
@@ -17,6 +17,14 @@ export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers,
 
   const genderOptions = useMemo(() => {
     const set = new Set((caregivers || []).map((c) => c.gender).filter(Boolean));
+    return ['', ...set].sort();
+  }, [caregivers]);
+
+  const skillOptions = useMemo(() => {
+    const set = new Set();
+    (caregivers || []).forEach((c) => {
+      (c.skills || []).forEach((s) => s && set.add(s));
+    });
     return ['', ...set].sort();
   }, [caregivers]);
 
@@ -48,6 +56,13 @@ export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers,
       offset += length;
     }
   });
+
+  // When no segments (total=0), show a full gray ring so the chart keeps its shape
+  if (segments.length === 0) {
+    segments.push(
+      <circle key="empty" cx="80" cy="80" r="60" fill="none" stroke="var(--ui-line)" strokeWidth="16" />
+    );
+  }
 
   const handleFilter = (key, value) => {
     const setters = { location: setLocation, gender: setGender, skill: setSkill };
@@ -89,10 +104,9 @@ export default function CaregiverAvailabilityCard({ availabilityAgg, caregivers,
             onChange={(e) => handleFilter('skill', e.target.value)}
           >
             <option value="">All skills</option>
-            <option value="Post-operative care">Post-operative care</option>
-            <option value="Elderly care">Elderly care</option>
-            <option value="Childcare">Childcare</option>
-            <option value="Physiotherapy">Physiotherapy</option>
+            {skillOptions.filter(Boolean).map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
           </Select>
         </Field>
       </div>
