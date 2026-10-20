@@ -1,290 +1,182 @@
 import { useEffect, useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
-import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
-import { Button, Card, CellStack, Select, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
-import { logAudit } from '../../../../shared/auditStore.js';
-import { downloadText, fileDate, toCsv } from '../../utils/download.js';
-import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
-import { mockBedInventory, mockDischargeBreakdown, mockPtoRequests, mockTrendSeries } from '../../data/mockDashboard.js';
+import { Card, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../shared/i18n/LanguageContext.jsx';
+import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
+import { listApplications } from '../../../../shared/caregiverStore.js';
+import { listRequests } from '../../../../shared/bookingStore.js';
+import {
+  aggregateBookings,
+  aggregateRevenue,
+  aggregateCaregiverAvailability,
+  aggregateOnboarding,
+  buildTrendSeries,
+} from '../../utils/dashboardUtils.js';
+import BookingsOverviewCard from '../../components/dashboard/BookingsOverviewCard.jsx';
+import RevenueOverviewCard from '../../components/dashboard/RevenueOverviewCard.jsx';
+import CaregiverAvailabilityCard from '../../components/dashboard/CaregiverAvailabilityCard.jsx';
+import OnboardingPipelineCard from '../../components/dashboard/OnboardingPipelineCard.jsx';
+import TrendChart from '../../components/dashboard/TrendChart.jsx';
+import ExportButton from '../../components/dashboard/ExportButton.jsx';
 import './DashboardPage.css';
 
-const STATUS_COLORS = {
-  available: 'var(--ui-green)',
-  unavailable: 'var(--ui-line)',
-};
+const TREND_RANGE_OPTIONS = [
+  { id: '1', label: 'Today' },
+  { id: '7', label: '7 days' },
+  { id: '30', label: '30 days' },
+];
 
-const APPOINTMENT_STATUS_ORDER = ['Scheduled', 'Completed', 'In progress', 'Cancelled', 'Missed'];
+const RANGE_OPTIONS = ['Today', 'This week', 'This month', 'All time'];
 
 function DashboardPage() {
   const { t } = useLanguage();
-  const [selectedLocation, setSelectedLocation] = useState('All locations');
-  const [selectedDateRange, setSelectedDateRange] = useState('This week');
+  const [selectedDateRange, setSelectedDateRange] = useState('All time');
+  const [caregiverFilters, setCaregiverFilters] = useState({});
+  const [trendDays, setTrendDays] = useState('7');
   const [bookings, setBookings] = useState([]);
+  const [caregivers, setCaregivers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const role = new URLSearchParams(window.location.search).get('role') || 'admin';
+  const isManagement = role === 'management';
+
+  // --- Data fetching: Cloudflare D1 -> API fallback -> localStorage ---
   useEffect(() => {
-    fetch('/api/bookings')
-      .then((response) => (response.ok ? response.json() : []))
-      .then(setBookings)
-      .catch(() => setBookings([]));
-  }, []);
+    let cancelled = false;
 
-  const revenueSummary = useMemo(() => {
-    const paid = bookings.filter((b) => b.status === 'Paid - Online' || b.status === 'Paid - Collected Directly');
-    const online = paid.filter((b) => b.status === 'Paid - Online');
-    const totalCents = paid.reduce((sum, b) => sum + b.rate_cents, 0);
-    const unpaidCents = bookings
-      .filter((b) => b.status === 'Link sent (Unpaid)' || b.status === 'Service completed')
-      .reduce((sum, b) => sum + b.rate_cents, 0);
-    return {
-      total: `RM ${(totalCents / 100).toFixed(2)}`,
-      onlineShare: paid.length ? Math.round((online.length / paid.length) * 100) : 0,
-      unpaid: `RM ${(unpaidCents / 100).toFixed(2)}`,
-    };
-  }, [bookings]);
-
-  const caregiverSummary = useMemo(() => {
-    // Active caregivers — includes approved applicants, excludes suspended ones.
-    const caregivers = listBookableCaregivers();
-    const map = {
-      Available: 0,
-      'On Duty': 0,
-      'Off Duty': 0,
-      'On Leave': 0,
-    };
-
-    caregivers.forEach((caregiver) => {
-      if (map[caregiver.availability] !== undefined) {
-        map[caregiver.availability] += 1;
+    const loadFromApi = async () => {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setBookings(data.bookings || []);
+            setCaregivers(data.caregivers || []);
+            setLoading(false);
+          }
+          return true;
+        }
+      } catch {
+        // fall through
       }
-    });
 
-    const available = map.Available;
-    const unavailable = caregivers.length - available;
-    return {
-      total: caregivers.length,
-      available,
-      unavailable,
-      availablePercent: Math.round((available / caregivers.length) * 100),
-      unavailablePercent: Math.round((unavailable / caregivers.length) * 100),
-      breakdown: [
-        { label: 'Available', value: available, color: STATUS_COLORS.available },
-        { label: 'Not available', value: unavailable, color: STATUS_COLORS.unavailable },
-      ],
-    };
-  }, []);
+      // Fallback 1: /api/bookings + /api/caregivers (Vite proxy)
+      try {
+        const [bRes, cRes] = await Promise.all([
+          fetch('/api/bookings'),
+          fetch('/api/caregivers'),
+        ]);
+        if (bRes.ok && cRes.ok) {
+          const bData = await bRes.json();
+          const cData = await cRes.json();
+          if (!cancelled) {
+            setBookings(bData);
+            setCaregivers(cData);
+            setLoading(false);
+          }
+          return true;
+        }
+      } catch {
+        // fall through
+      }
 
-  const filteredBeds = useMemo(() => {
-    if (selectedLocation === 'All locations') return mockBedInventory;
-    return mockBedInventory.filter((record) => record.location === selectedLocation);
-  }, [selectedLocation]);
-
-  const patientMetrics = useMemo(() => {
-    const appointmentStatusTotals = {
-      'Caregiver assigned': 8,
-      Scheduled: 11,
-      'In progress': 4,
-      Cancelled: 3,
-      Missed: 2,
-      Completed: 7,
-      'No caregiver assigned': 2,
+      // Fallback 2: localStorage stores (standalone dev)
+      if (!cancelled) {
+        setBookings([]);
+        setCaregivers(listBookableCaregivers());
+        setLoading(false);
+      }
+      return false;
     };
 
-    const total = Object.values(appointmentStatusTotals).reduce((sum, value) => sum + value, 0);
-    const distribution = APPOINTMENT_STATUS_ORDER.map((status) => ({
-      status,
-      value: appointmentStatusTotals[status] || 0,
-      percent: Math.round(((appointmentStatusTotals[status] || 0) / total) * 100),
-    }));
-
-    const discharged = 42;
-    const active = 58;
-
-    return { distribution, discharged, active };
+    loadFromApi();
+    return () => { cancelled = true; };
   }, []);
 
-  const ptoSummary = useMemo(() => {
-    const approved = mockPtoRequests.filter((item) => item.status === 'Approved').length;
-    const pending = mockPtoRequests.filter((item) => item.status === 'Pending').length;
-    return { approved, pending, total: mockPtoRequests.length };
+  // --- Derived data via pure aggregation functions ---
+  const bookingsAgg = useMemo(() => aggregateBookings(bookings, selectedDateRange), [bookings, selectedDateRange]);
+  const revenueAgg = useMemo(() => aggregateRevenue(bookings, selectedDateRange), [bookings, selectedDateRange]);
+  const availabilityAgg = useMemo(() => aggregateCaregiverAvailability(caregivers, caregiverFilters), [caregivers, caregiverFilters]);
+  const onboardingAgg = useMemo(() => {
+    const applications = listApplications();
+    const requests = listRequests();
+    return aggregateOnboarding(applications, requests);
   }, []);
+  const days = parseInt(trendDays, 10);
+  const bookingTrend = useMemo(() => buildTrendSeries(bookings, days), [bookings, days]);
+  const revenueTrend = useMemo(() => buildTrendSeries(bookings, days), [bookings, days]);
 
-  const maxTrendValue = useMemo(
-    () => Math.max(...mockTrendSeries.flatMap((item) => [item.appointments, item.patients])),
-    []
-  );
+  const exportData = useMemo(() => ({
+    bookings,
+    caregivers,
+    applications: listApplications(),
+    requests: listRequests(),
+  }), [bookings, caregivers]);
 
-  const locations = ['All locations', ...mockBedInventory.map((item) => item.location)];
-
-  // Exports what the dashboard is showing for the chosen filters, and records who took it.
-  const exportDashboard = () => {
-    const beds = filteredBeds.reduce((sum, item) => sum + item.available, 0);
-    const rows = [
-      ['Metric', 'Value', 'Note'],
-      ['Location filter', selectedLocation, ''],
-      ['Date range filter', selectedDateRange, ''],
-      ['Available caregivers', caregiverSummary.available, `${caregiverSummary.availablePercent}% of the active team`],
-      ['Not available', caregiverSummary.unavailable, `${caregiverSummary.unavailablePercent}% on duty, off duty or on leave`],
-      ['Beds available', beds, `Across ${filteredBeds.length} location(s)`],
-      ['PTO requests', ptoSummary.total, `${ptoSummary.approved} approved, ${ptoSummary.pending} pending`],
-      ['Revenue collected', revenueSummary.total, `${revenueSummary.onlineShare}% paid online, ${revenueSummary.unpaid} outstanding`],
-    ];
-    const filename = `dashboard-${fileDate()}.csv`;
-    downloadText(filename, toCsv(rows));
-    logAudit({ action: 'data.exported', recordType: 'Report', recordId: 'Dashboard', summary: `Dashboard exported as ${filename} (${selectedLocation}, ${selectedDateRange})` });
-  };
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <Topbar title={t('nav.dashboard')} />
+        <div className="dashboard-page__loading">Loading dashboard…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
       <Topbar
-        title={t('dashboard.title')}
-        subtitle={t('dashboard.subtitle')}
+        title={t('nav.dashboard')}
         actions={(
           <>
-            <Select size="sm" value={selectedLocation} onChange={(event) => setSelectedLocation(event.target.value)} aria-label="Location">
-              {locations.map((location) => <option key={location} value={location}>{location}</option>)}
-            </Select>
-            <Select size="sm" value={selectedDateRange} onChange={(event) => setSelectedDateRange(event.target.value)} aria-label="Date range">
-              <option value="Today">Today</option>
-              <option value="This week">This week</option>
-              <option value="This month">This month</option>
-            </Select>
-            <Button size="sm" onClick={exportDashboard}>Export CSV</Button>
+            {isManagement && (
+              <span className="dashboard-page__role-badge">Read-only</span>
+            )}
           </>
         )}
       />
 
-      <div className="dashboard-page__content">
-        <StatGrid>
-          <StatCard label="Available caregivers" value={caregiverSummary.available} note={`${caregiverSummary.availablePercent}% of the active team`} icon="✓" />
-          <StatCard label="Not available" value={caregiverSummary.unavailable} note={`${caregiverSummary.unavailablePercent}% on duty, off duty or on leave`} icon="◷" tone="warn" />
-          <StatCard label="Beds available" value={filteredBeds.reduce((sum, item) => sum + item.available, 0)} note={`Across ${filteredBeds.length} location(s)`} icon="▣" />
-          <StatCard label="PTO requests" value={ptoSummary.total} note={`${ptoSummary.approved} approved · ${ptoSummary.pending} pending`} icon="◫" tone="gold" />
-          <StatCard label="Revenue collected" value={revenueSummary.total} note={`${revenueSummary.onlineShare}% paid online · ${revenueSummary.unpaid} outstanding`} icon="RM" />
-        </StatGrid>
+      <ExportButton role={role} data={exportData} range={selectedDateRange} disabled={!bookings.length && !caregivers.length} />
 
-        <div className="dashboard-page__grid">
-          <Card title="Caregiver availability" className="dashboard-page__wide">
-            <div className="dashboard-page__availability-wrap">
-              <div className="dashboard-page__donut-chart" aria-label="Caregiver availability chart">
-                <svg viewBox="0 0 120 120" role="img">
-                  <circle cx="60" cy="60" r="38" fill="none" strokeWidth="18" style={{ stroke: 'var(--ui-neutral-soft)' }} />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="38"
-                    fill="none"
-                    strokeWidth="18"
-                    strokeDasharray={`${caregiverSummary.availablePercent * 2.39} 239`}
-                    transform="rotate(-90 60 60)"
-                    strokeLinecap="round"
-                    style={{ stroke: 'var(--ui-green)' }}
-                  />
-                </svg>
-                <div className="dashboard-page__donut-label">
-                  <strong>{caregiverSummary.availablePercent}%</strong>
-                  <span>Available</span>
-                </div>
-              </div>
+      <Toolbar className="dashboard-page__toolbar">
+        <Select
+          size="sm"
+          value={selectedDateRange}
+          onChange={(e) => setSelectedDateRange(e.target.value)}
+          aria-label="Date range"
+        >
+          {RANGE_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </Select>
+      </Toolbar>
 
-              <div className="dashboard-page__legend">
-                {caregiverSummary.breakdown.map((item) => (
-                  <div key={item.label} className="dashboard-page__legend-item">
-                    <span className="dashboard-page__legend-dot" style={{ background: item.color }} />
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Appointment status">
-            <div className="dashboard-page__bar-list">
-              {patientMetrics.distribution.map((item) => (
-                <div key={item.status} className="dashboard-page__bar-row">
-                  <div className="dashboard-page__bar-labels">
-                    <span>{item.status}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                  <div className="dashboard-page__bar-track">
-                    <span style={{ width: `${item.percent}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="Discharge mix">
-            <div className="dashboard-page__ring-wrap">
-              {mockDischargeBreakdown.map((segment) => (
-                <div key={segment.label} className="dashboard-page__ring-item">
-                  <div className="dashboard-page__mini-donut" style={{ background: `conic-gradient(${segment.color} 0 ${segment.value}%, var(--ui-neutral-soft) ${segment.value}% 100%)` }}>
-                    <span>{segment.value}%</span>
-                  </div>
-                  <small>{segment.label}</small>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="In-house beds by location" className="dashboard-page__wide">
-            <Table columns={['Location', 'Available', 'Occupied', 'Occupancy']} label="Beds by location">
-              {filteredBeds.map((bed) => (
-                <tr key={bed.location}>
-                  <td><CellStack primary={bed.location} /></td>
-                  <td>{bed.available}</td>
-                  <td>{bed.occupied}</td>
-                  <td>{bed.occupancyRate}%</td>
-                </tr>
-              ))}
-            </Table>
-          </Card>
-
-          <Card
-            title="Patient and appointment trend"
-            className="dashboard-page__wide"
-            action={(
-              <div className="dashboard-page__trend-legend">
-                <span className="dashboard-page__key dashboard-page__key--patients">Patients</span>
-                <span className="dashboard-page__key dashboard-page__key--appointments">Appointments</span>
-              </div>
-            )}
-          >
-            <div className="dashboard-page__trend-chart" aria-label="Patient and appointment trend chart">
-              {mockTrendSeries.map((point) => (
-                <div key={point.label} className="dashboard-page__trend-day">
-                  <div className="dashboard-page__trend-bars">
-                    <span
-                      className="dashboard-page__trend-bar dashboard-page__trend-bar--patients"
-                      style={{ height: `${(point.patients / maxTrendValue) * 100}%` }}
-                      title={`${point.patients} patients`}
-                    />
-                    <span
-                      className="dashboard-page__trend-bar dashboard-page__trend-bar--appointments"
-                      style={{ height: `${(point.appointments / maxTrendValue) * 100}%` }}
-                      title={`${point.appointments} appointments`}
-                    />
-                  </div>
-                  <span className="dashboard-page__trend-label">{point.label}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="PTO requests" className="dashboard-page__wide">
-            <Table columns={['Caregiver', 'Dates', 'Days', 'Status']} label="PTO requests">
-              {mockPtoRequests.map((request) => (
-                <tr key={`${request.caregiver}-${request.dates}`}>
-                  <td><CellStack primary={request.caregiver} /></td>
-                  <td className="ui-table__muted">{request.dates}</td>
-                  <td>{request.days} day(s)</td>
-                  <td><StatusPill status={request.status} /></td>
-                </tr>
-              ))}
-            </Table>
-          </Card>
-        </div>
+      <div className="dashboard-page__grid">
+        <BookingsOverviewCard bookingsAgg={bookingsAgg} />
+        <RevenueOverviewCard revenueAgg={revenueAgg} />
+        <CaregiverAvailabilityCard
+          availabilityAgg={availabilityAgg}
+          caregivers={caregivers}
+          onFilterChange={setCaregiverFilters}
+        />
+        <OnboardingPipelineCard onboardingAgg={onboardingAgg} />
+        <TrendChart
+          title="Booking trend"
+          series={bookingTrend}
+          metric="bookings"
+          color="var(--ui-green)"
+          trendDays={trendDays}
+          onTrendDaysChange={setTrendDays}
+          trendOptions={TREND_RANGE_OPTIONS}
+        />
+        <TrendChart
+          title="Revenue trend"
+          series={revenueTrend}
+          metric="revenue"
+          color="var(--ui-blue)"
+          trendDays={trendDays}
+          onTrendDaysChange={setTrendDays}
+          trendOptions={TREND_RANGE_OPTIONS}
+        />
       </div>
     </div>
   );

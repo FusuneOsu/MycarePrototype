@@ -11,7 +11,7 @@ const neighbourhoodOf = (address, fallback) => String(address).split(',').map((p
  * and the booking always tally. Keyed by booking id, in visit order.
  */
 export function jobsFor(caregiverId) {
-  const bookings = listBookings({ caregiverId }).filter((booking) => booking.date >= localDate(0) || booking.status === BOOKING_STATUS.completed);
+  const bookings = listBookings({ caregiverId }).filter((booking) => booking.date >= localDate(0) || booking.status === BOOKING_STATUS.serviceCompleted);
   return Object.fromEntries(bookings.map((booking, index) => [booking.id, {
     id: booking.id,
     booking,
@@ -24,7 +24,7 @@ export function jobsFor(caregiverId) {
     payout: formatMoney(booking.caregiverPayout),
     tone: TONES[index % TONES.length],
     status: booking.status,
-    active: booking.status === BOOKING_STATUS.confirmed || booking.status === BOOKING_STATUS.rescheduled,
+    active: booking.status === BOOKING_STATUS.confirmed || booking.status === BOOKING_STATUS.inProgress,
   }]));
 }
 

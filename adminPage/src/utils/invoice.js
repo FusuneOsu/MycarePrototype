@@ -46,7 +46,7 @@ export function buildInvoicePdf(booking) {
   y += 16;
   doc.text(`Caregiver: ${booking.caregiver_name}`, margin, y);
   y += 16;
-  doc.text(`Date/time: ${formatDateTime(booking.scheduled_at)}`, margin, y);
+  doc.text(`Date/time: ${formatDateTime(`${booking.date}T${booking.start_time}`)}`, margin, y);
   y += 16;
   doc.text(`Duration: ${booking.duration_mins} min`, margin, y);
   y += 32;

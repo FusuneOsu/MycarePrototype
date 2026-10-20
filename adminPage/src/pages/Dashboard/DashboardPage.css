@@ -101,64 +101,118 @@
   background: var(--ui-green);
 }
 
-/* Discharge mix */
-.dashboard-page__ring-wrap {
+/* Role badge for read-only management view */
+.dashboard-page__role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ui-amber);
+  color: #fff;
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-bold);
+  letter-spacing: var(--ui-tracking-wide);
+  text-transform: uppercase;
+}
+
+/* Loading state */
+.dashboard-page__loading {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  color: var(--ui-muted);
+  font-size: var(--ui-text-sm);
+}
+
+/* Toolbar for date range filter — matches appointments page style */
+.dashboard-page__toolbar {
+  margin-bottom: var(--ui-space-4);
+}
+
+/* Stat row for inline StatCards — uniform width */
+.dashboard-page__stat-row {
   display: flex;
   flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.dashboard-page__stat-row .ui-stat {
+  flex: 1 1 0;
+  min-width: 130px;
+}
+
+/* Trend chart header — summary + range selector side-by-side */
+.dashboard-page__trend-header {
+  display: flex;
   align-items: center;
-  justify-content: space-around;
-  gap: var(--ui-space-4);
-  padding: var(--ui-space-2) 0;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
-.dashboard-page__ring-item {
+.dashboard-page__trend-header .ui-stat {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 12px 16px;
+}
+
+.dashboard-page__trend-header .ui-stat__value {
+  margin: 6px 0 0;
+  font-size: var(--ui-text-2xl);
+}
+
+/* Field wrapping a custom Select needs margin-top like native inputs */
+.ui-field .ui-custom-select {
+  margin-top: 8px;
+}
+
+/* Export button bar */
+.dashboard-page__export-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+/* Filters row for caregiver availability — grid layout so all fields are equal */
+.dashboard-page__filters {
   display: grid;
-  justify-items: center;
-  gap: var(--ui-space-2);
-  color: var(--ui-muted);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.dashboard-page__filters > .ui-field,
+.dashboard-page__filters > .ui-field + .ui-field {
+  display: block;
+  margin: 0;
+}
+
+.dashboard-page__filters .ui-field__label {
+  display: block;
+  margin-bottom: 8px;
   font-size: var(--ui-text-xs);
+  color: var(--ui-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
 }
 
-.dashboard-page__mini-donut {
-  width: 84px;
-  height: 84px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+.dashboard-page__filters .ui-field .ui-custom-select {
+  display: block;
+  width: 100%;
+  margin-top: 0;
 }
 
-.dashboard-page__mini-donut span {
-  width: 58px;
-  height: 58px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--ui-ink);
-  background: var(--ui-surface);
+/* Subtitle for section headers inside cards */
+.dashboard-page__subtitle {
+  margin: 18px 0 10px;
+  color: var(--ui-ink-soft);
   font-size: var(--ui-text-sm);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-semibold);
 }
 
 /* Trend chart — same bars as the caregiver reports chart */
-.dashboard-page__trend-legend {
-  display: flex;
-  gap: 14px;
-  color: var(--ui-muted);
-  font-size: var(--ui-text-xs);
-}
-
-.dashboard-page__key::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 6px;
-  border-radius: 2px;
-}
-
-.dashboard-page__key--patients::before { background: var(--ui-green); }
-.dashboard-page__key--appointments::before { background: #8fcfb9; }
-
 .dashboard-page__trend-chart {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -191,8 +245,8 @@
   border-radius: 4px 4px 0 0;
 }
 
-.dashboard-page__trend-bar--patients { background: var(--ui-green); }
-.dashboard-page__trend-bar--appointments { background: #8fcfb9; }
+.dashboard-page__trend-bar--green { background: var(--ui-green); }
+.dashboard-page__trend-bar--blue { background: var(--ui-blue); }
 
 .dashboard-page__trend-label {
   color: var(--ui-muted);
@@ -234,7 +288,4 @@
     width: 9px;
   }
 
-  .dashboard-page__trend-legend {
-    flex-wrap: wrap;
-  }
 }

@@ -5,7 +5,7 @@ import { cx } from './Avatar.jsx';
 export function Field({ label, hint, className, children }) {
   return (
     <label className={cx('ui-field', className)}>
-      {label}
+      <span className="ui-field__label">{label}</span>
       {children}
       {hint && <small className="ui-field__hint">{hint}</small>}
     </label>
@@ -22,14 +22,19 @@ export function Select({ size = 'md', className, children, value, onChange, 'ari
   const containerRef = useRef(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     function handleClickOutside(event) {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    // Use a short timeout so React can process the current click first
+    const id = setTimeout(() => document.addEventListener("click", handleClickOutside), 0);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const options = [];
   Children.forEach(children, (child) => {
@@ -55,24 +60,21 @@ export function Select({ size = 'md', className, children, value, onChange, 'ari
       </button>
       
       {isOpen && (
-        <>
-          <div className="ui-custom-select__overlay" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
-          <div className="ui-custom-select__menu">
-            {options.map((opt) => (
-              <button 
-                key={opt.value}
-                type="button" 
-                className={cx('ui-custom-select__option', String(opt.value) === String(value) && 'is-selected')}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(opt.value); }}
-              >
-                <span>{opt.label}</span>
-                {String(opt.value) === String(value) && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                )}
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="ui-custom-select__menu">
+          {options.map((opt) => (
+            <button 
+              key={opt.value}
+              type="button" 
+              className={cx('ui-custom-select__option', String(opt.value) === String(value) && 'is-selected')}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(opt.value); }}
+            >
+              <span>{opt.label}</span>
+              {String(opt.value) === String(value) && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              )}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
