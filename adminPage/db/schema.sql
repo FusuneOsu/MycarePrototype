@@ -23,7 +23,8 @@ CREATE TABLE caregivers (
   id            TEXT PRIMARY KEY,            -- e.g. 'CG-1001'
   name          TEXT NOT NULL,
   gender        TEXT NOT NULL,
-  center        TEXT NOT NULL,               -- location / branch, also used as the matching zone
+  center        TEXT NOT NULL,               -- area/zone, kept for backward compat / display
+  base_site_id  TEXT REFERENCES caregiving_sites (id),  -- the site where caregiver is stationed
   availability  TEXT NOT NULL DEFAULT 'Available',
     -- one of: Available, On Duty, Off Duty, On Leave
   phone         TEXT,
@@ -34,6 +35,7 @@ CREATE TABLE caregivers (
 
 CREATE INDEX idx_caregivers_center ON caregivers (center);
 CREATE INDEX idx_caregivers_availability ON caregivers (availability);
+CREATE INDEX idx_caregivers_base_site ON caregivers (base_site_id);
 
 -- Caregiver skills / specializations (many-to-many) ----------------------
 CREATE TABLE caregiver_skills (
@@ -78,13 +80,19 @@ CREATE TABLE pto_requests (
 CREATE INDEX idx_pto_caregiver ON pto_requests (caregiver_id);
 
 -- Caregiving sites (locations with GPS coordinates for OpenStreetMap) ------
+-- A caregiving site is a physical location where services can happen.
+-- A caregiver's "base" (their reporting branch) references one of these sites.
 CREATE TABLE caregiving_sites (
-  id            TEXT PRIMARY KEY,            -- e.g. 'SITE-001'
-  name          TEXT NOT NULL,               -- e.g. 'Caregiver Center 1'
-  area          TEXT NOT NULL,               -- e.g. 'Petaling Jaya'
-  latitude      REAL NOT NULL,
-  longitude     REAL NOT NULL,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  id              TEXT PRIMARY KEY,            -- e.g. 'SITE-001'
+  name            TEXT NOT NULL,               -- e.g. 'Caregiver Center 1'
+  area            TEXT NOT NULL,               -- e.g. 'Petaling Jaya'
+  address         TEXT,                        -- full street address
+  latitude        REAL NOT NULL,
+  longitude       REAL NOT NULL,
+  phone           TEXT,                        -- site contact number
+  facility_fee    INTEGER NOT NULL DEFAULT 0,  -- RM per hour for center-based care
+  operating_hours TEXT,                        -- JSON: { "open": "07:00", "close": "23:00" }
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX idx_caregiving_sites_area ON caregiving_sites (area);
@@ -157,6 +165,7 @@ CREATE TABLE bookings (
     -- address, pinpoint, center
   tasks             TEXT,                     -- JSON array of task strings
   special_instructions TEXT DEFAULT '',
+  cost_breakdown    TEXT,                     -- JSON: itemised service / travel / caregiver / site fees
   rate_cents        INTEGER NOT NULL DEFAULT 0,
   invoice_pdf         TEXT,     -- data: URL of the generated invoice PDF (base64)
   stripe_session_id   TEXT,     -- Stripe Checkout Session id for the payment link

@@ -19,7 +19,17 @@ function formatRate(cents) {
   return `RM ${(cents / 100).toFixed(2)}`;
 }
 
-function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onViewDocuments, actionBusyId }) {
+/**
+ * Try to parse a cost_breakdown from a booking.
+ */
+function getCostTotal(booking) {
+  const raw = booking.cost_breakdown || booking.costBreakdown;
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw.total || null;
+  try { return JSON.parse(raw).total || null; } catch { return null; }
+}
+
+function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onViewDocuments, onViewCosts, actionBusyId }) {
   if (bookings.length === 0) {
     return (
       <div className="booking-table__empty">
@@ -40,12 +50,15 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
             <th>Location</th>
             <th>Service type</th>
             <th>Status</th>
-            <th>Price/Rate</th>
+            <th>Price</th>
+            <th>Costs</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {bookings.map((booking) => (
+          {bookings.map((booking) => {
+            const costTotal = getCostTotal(booking);
+            return (
             <tr key={booking.id}>
               <td>{booking.patient_name}</td>
               <td>{booking.caregiver_name}</td>
@@ -55,6 +68,20 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
               <td>{booking.service_type}</td>
               <td><BookingStatusPill status={booking.status} /></td>
               <td>{formatRate(booking.rate_cents)}</td>
+              <td>
+                {costTotal != null ? (
+                  <span className="booking-table__cost-total">RM {costTotal.toFixed(2)}</span>
+                ) : (
+                  <span className="booking-table__cost-na">—</span>
+                )}
+                <button
+                  className="booking-table__cost-btn"
+                  onClick={() => onViewCosts(booking)}
+                  title="View cost breakdown"
+                >
+                  Details
+                </button>
+              </td>
               <td className="booking-table__actions">
                 {booking.status === 'Service completed' && (
                   <Button
@@ -81,7 +108,8 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
                 )}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

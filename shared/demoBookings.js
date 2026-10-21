@@ -4,7 +4,7 @@
 // the request store is empty, so anything you create is never overwritten.
 import {
   BOOKING_STATUS, BOOKING_STORE_KEYS, CAREGIVER_SHARE, REQUESTS_KEY, REQUEST_STATUS, BOOKINGS_KEY,
-  SERVICE_RATES, endTimeOf, localDate, priceFor,
+  SERVICE_RATES, endTimeOf, localDate, priceFor, buildCostBreakdown,
 } from './bookingStore.js';
 
 const hoursAgo = (hours) => new Date(Date.now() - hours * 3600000).toISOString();
@@ -81,6 +81,14 @@ export function seedBookingData() {
     const id = `BK-${nextId++}`;
     const rate = SERVICE_RATES[request.careType] || 40;
     const price = priceFor(rate, request.durationMins);
+    // Build a sample cost breakdown for seeded bookings
+    const sampleDistance = { 'Kuala Lumpur City': 5.2, 'Petaling Jaya': 3.1, 'Subang Jaya': 8.7, Cheras: 6.4, Bangsar: 2.8 }[request.area] || 4.0;
+    const costBreakdown = buildCostBreakdown({
+      serviceType: request.careType,
+      durationMins: request.durationMins,
+      distanceKm: sampleDistance,
+      tollFee: request.area === 'Bangsar' || request.area === 'Kuala Lumpur City' ? 2.0 : 0,
+    });
     requests[request.id].bookingId = id;
     bookings[id] = {
       id,
@@ -109,8 +117,9 @@ export function seedBookingData() {
       tasks: [],
       specialInstructions: request.notes || '',
       rate,
-      price,
-      caregiverPayout: Math.round(price * CAREGIVER_SHARE * 100) / 100,
+      price: costBreakdown.total,
+      caregiverPayout: costBreakdown.caregiverPayout.subtotal,
+      costBreakdown: JSON.stringify(costBreakdown),
       status: BOOKING_STATUS.confirmed,
       receiptStatus: 'Receipt pending',
       payoutStatus: 'Awaiting payout',

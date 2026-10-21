@@ -66,20 +66,54 @@ export function aggregateBookings(bookings, range) {
 
 /* Revenue aggregation ----------------------------------------------------- */
 
+/**
+ * Try to parse a cost_breakdown from a booking row.
+ * Accepts JSON string or already-parsed object.
+ */
+function parseBreakdown(booking) {
+  if (!booking) return null;
+  const raw = booking.cost_breakdown || booking.costBreakdown;
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export function aggregateRevenue(bookings, range) {
   const filtered = range
     ? bookings.filter((b) => PAYMENT_RELEVANT.includes(b.status) && inRange(b.date, range))
     : bookings.filter((b) => PAYMENT_RELEVANT.includes(b.status));
 
   let paidCents = 0; let unpaidCents = 0;
+  let travelPaid = 0; let travelUnpaid = 0;
+  let sitePaid = 0; let siteUnpaid = 0;
   const byServiceType = {};
   const byCaregiver = {};
 
   filtered.forEach((b) => {
-    const cents = b.rate_cents || 0;
     const isPaid = PAID_STATUSES.includes(b.status);
-    if (isPaid) paidCents += cents;
-    else unpaidCents += cents;
+    const breakdown = parseBreakdown(b);
+
+    let cents;
+    let travelCents = 0;
+    let siteCents = 0;
+
+    if (breakdown) {
+      cents = Math.round((breakdown.total || 0) * 100);
+      travelCents = Math.round((breakdown.travelCost?.subtotal || 0) * 100);
+      siteCents = Math.round((breakdown.siteFee?.subtotal || 0) * 100);
+    } else {
+      cents = b.rate_cents || 0;
+    }
+
+    if (isPaid) {
+      paidCents += cents;
+      travelPaid += travelCents;
+      sitePaid += siteCents;
+    } else {
+      unpaidCents += cents;
+      travelUnpaid += travelCents;
+      siteUnpaid += siteCents;
+    }
 
     const st = b.service_type || 'Other';
     if (!byServiceType[st]) byServiceType[st] = { service: st, paidCents: 0, unpaidCents: 0, count: 0 };
@@ -96,6 +130,8 @@ export function aggregateRevenue(bookings, range) {
 
   return {
     paid: fmtMoney(paidCents), unpaid: fmtMoney(unpaidCents), paidCents, unpaidCents,
+    travelPaid: fmtMoney(travelPaid), travelUnpaid: fmtMoney(travelUnpaid),
+    sitePaid: fmtMoney(sitePaid), siteUnpaid: fmtMoney(siteUnpaid),
     byServiceType: Object.values(byServiceType),
     byCaregiver: Object.values(byCaregiver),
   };
