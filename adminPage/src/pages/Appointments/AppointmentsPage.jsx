@@ -4,14 +4,13 @@ import MonthView from '../../components/appointments/MonthView.jsx';
 import WeekView from '../../components/appointments/WeekView.jsx';
 import DayView from '../../components/appointments/DayView.jsx';
 import EditAppointmentModal from '../../components/appointments/EditAppointmentModal.jsx';
-import { Button, Input, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
+import { Input, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
 import { fetchAppointments, updateAppointment } from '../../api/appointments.js';
 import { toISODate, toApiFormat, normalizeAppointment, formatDateLabel, STATUS_OPTIONS } from '../../utils/appointmentUtils.js';
 import './AppointmentsPage.css';
 
 function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedView, setSelectedView] = useState('week');
   const [selectedDate, setSelectedDate] = useState(toISODate(new Date()));
   const [caregiverFilter, setCaregiverFilter] = useState('');
@@ -22,11 +21,9 @@ function AppointmentsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const loadAppointments = useCallback(() => {
-    setLoading(true);
     fetchAppointments()
       .then((data) => setAppointments(data.map(normalizeAppointment)))
-      .catch((err) => { console.error('Failed:', err); setAppointments([]); })
-      .finally(() => setLoading(false));
+      .catch((err) => { console.error('Failed:', err); setAppointments([]); });
   }, []);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
@@ -129,4 +126,3 @@ function AppointmentsPage() {
 }
 
 export default AppointmentsPage;
-

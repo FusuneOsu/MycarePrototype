@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
-import { Card, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
+import { Select, Toolbar } from '../../../../shared/ui/index.js';
 import { useLanguage } from '../../../../shared/i18n/LanguageContext.jsx';
 import { listBookableCaregivers } from '../../data/caregiverAccounts.js';
 import { listApplications } from '../../../../shared/caregiverStore.js';

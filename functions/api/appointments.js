@@ -38,7 +38,7 @@ export async function onRequestPost(context) {
   }
 
   const {
-    patient_id, patient_name, caregiver_id, caregiver_name,
+    _patient_id, patient_name, caregiver_id, caregiver_name,
     date, start_time, end_time, status, appointment_type, booking_type,
     caregiver_gender_preference, location_mode, location_text,
     latitude, longitude, tasks, special_instructions, duration_mins,

@@ -4,7 +4,7 @@ import { fmtMoney } from '../../utils/dashboardUtils.js';
 export default function RevenueOverviewCard({ revenueAgg }) {
   if (!revenueAgg) return null;
 
-  const { paid, unpaid, paidCents, unpaidCents, byServiceType, byCaregiver } = revenueAgg;
+  const { paidCents, unpaidCents, byServiceType, byCaregiver } = revenueAgg;
   const totalCents = paidCents + unpaidCents;
   const collectedPct = totalCents ? Math.round((paidCents / totalCents) * 100) : 0;
 
