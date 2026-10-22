@@ -1,14 +1,14 @@
 ﻿// Seed requests and bookings so the Requests queue, the calendar and the
 // caregiver's job list all have (the same) data on a fresh browser. Dates are
-// relative to today so the demo never goes stale. Idempotent: runs only when
-// the request store is empty, so anything you create is never overwritten.
+// relative to today so the demo never goes stale. Idempotent: it only adds
+// missing demo records, so anything you create is never overwritten.
 import {
   BOOKING_STATUS, BOOKING_STORE_KEYS, CAREGIVER_SHARE, REQUESTS_KEY, REQUEST_STATUS, BOOKINGS_KEY,
   SERVICE_RATES, endTimeOf, localDate, priceFor,
 } from './bookingStore.js';
 
 const SEED_VERSION_KEY = 'mycare.demoBookings.version';
-const SEED_VERSION = '2';
+const SEED_VERSION = '3';
 const hoursAgo = (hours) => new Date(Date.now() - hours * 3600000).toISOString();
 
 const REQUESTS = [
@@ -76,7 +76,7 @@ const REQUESTS = [
     careType: 'Post-operative care', preferredDate: localDate(-2), preferredStart: '09:00', durationMins: 120, preferredGender: 'No preference',
     notes: 'Support with safe transfers and recovery exercises after hip surgery.',
     booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-    bookingStatus: BOOKING_STATUS.completed, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
+    bookingStatus: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
   },
   {
     id: 'WA-REQ-0979', source: 'WhatsApp', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(240),
@@ -85,7 +85,7 @@ const REQUESTS = [
     careType: 'Elderly care', preferredDate: localDate(-5), preferredStart: '11:00', durationMins: 90, preferredGender: 'Female',
     notes: 'Morning wellbeing check, light meal preparation, and companionship.',
     booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-    bookingStatus: BOOKING_STATUS.completed, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
+    bookingStatus: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
   },
   {
     id: 'WEB-REQ-0976', source: 'Website', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(260),
@@ -99,14 +99,13 @@ const REQUESTS = [
 
 export function seedBookingData() {
   const seededVersion = window.localStorage.getItem(SEED_VERSION_KEY);
-  if (seededVersion === SEED_VERSION) return;
 
   // Refresh only records owned by this demo seed. User-created requests and
   // bookings remain untouched when an existing browser gets a new seed.
   const requests = JSON.parse(window.localStorage.getItem(REQUESTS_KEY) || '{}');
   const bookings = JSON.parse(window.localStorage.getItem(BOOKINGS_KEY) || '{}');
   const demoRequestIds = new Set(REQUESTS.map((request) => request.id));
-  Object.keys(requests).filter((id) => demoRequestIds.has(id)).forEach((id) => {
+  if (seededVersion !== SEED_VERSION) Object.keys(requests).filter((id) => demoRequestIds.has(id)).forEach((id) => {
     const bookingId = requests[id].bookingId;
     if (bookingId) delete bookings[bookingId];
     delete requests[id];
@@ -128,6 +127,9 @@ function seedFreshBookings() {
   let nextId = highestBookingId + 1;
 
   REQUESTS.forEach(({ booking: assignment, bookingStatus, receiptStatus, payoutStatus, ...request }) => {
+    const existingRequest = existingRequests[request.id];
+    if (existingRequest?.bookingId && existingBookings[existingRequest.bookingId]) return;
+
     requests[request.id] = { ...request, statusReason: request.statusReason || '', bookingId: '', updatedAt: request.receivedAt };
     if (!assignment) return;
 
