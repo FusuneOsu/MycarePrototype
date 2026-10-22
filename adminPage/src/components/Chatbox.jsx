@@ -3,9 +3,13 @@ import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { createPatientRequest } from '../../../shared/bookingStore.js';
 import { Icon } from '../../../shared/ui/index.js';
+import { createMockWhatsApp } from './whatsappMock.js';
 import './Chatbox.css';
 
-const socket = io('http://localhost:3001');
+// Mock conversations by default, so the inbox works without the WhatsApp
+// service. Set VITE_WHATSAPP_MODE=live in .env to use the real connection.
+const MOCK_WHATSAPP = import.meta.env.VITE_WHATSAPP_MODE !== 'live';
+const socket = MOCK_WHATSAPP ? createMockWhatsApp() : io('http://localhost:3001');
 
 /** Digits of a JID, whatever its domain. */
 const userOf = (jid) => String(jid || '').split('@')[0].split(':')[0];
@@ -135,7 +139,8 @@ const Chatbox = () => {
             pushName,
             phone,
             name: pushName || (phone ? `+${phone}` : userOf(jid)),
-            messages: [...existing.messages, { from: isFromMe ? 'Me' : jid, text, at: new Date().toISOString() }],
+            // `at` is only set on mock history; live messages are stamped on arrival.
+            messages: [...existing.messages, { from: isFromMe ? 'Me' : jid, text, at: msg.at || new Date().toISOString() }],
           },
         };
       });
@@ -257,7 +262,7 @@ const Chatbox = () => {
       <header className="wa-head">
         <div>
           <h2 className="wa-head__title">WhatsApp requests</h2>
-          <p className="wa-head__sub">Patient intake inbox</p>
+          <p className="wa-head__sub">Patient intake inbox{MOCK_WHATSAPP && ' · demo data'}</p>
         </div>
         <div className="wa-head__right">
           <span className={connected ? 'wa-status wa-status--on' : 'wa-status'}>
