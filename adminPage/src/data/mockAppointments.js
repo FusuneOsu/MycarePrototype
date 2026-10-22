@@ -1,3 +1,10 @@
+// mockAppointments.js — Legacy seed data for the calendar page.
+// After the schema merge, appointments data lives in bookings.
+// This file provides a compatibility layer that surfaces bookings as
+// appointment-shaped objects so the calendar and AssignCaregiverModal
+// still work without changes.
+import { listBookings } from '../../../shared/bookingStore.js';
+
 const today = new Date();
 
 function offsetDate(days) {
@@ -181,53 +188,46 @@ export function fetchAppointments() {
   return Promise.resolve(mockAppointments);
 }
 
-// Bookings confirmed from the Requests flow (see mockRequests.js) live here,
-// keyed by request id, so re-assigning a request updates the same visit
-// instead of duplicating it. Kept separate from mockAppointments so the
-// existing calendar seed data stays untouched.
-const REQUEST_APPOINTMENTS_KEY = 'mycare.requestAppointments';
-
-function readRequestAppointments() {
-  try {
-    return JSON.parse(window.localStorage.getItem(REQUEST_APPOINTMENTS_KEY) || '{}');
-  } catch {
-    return {};
-  }
-}
-
-// Creates or updates the calendar visit tied to a patient request once a
-// caregiver is confirmed — this is what makes the booking show up in the
-// Appointments calendar. No payment step is required for this to happen.
-export function upsertAppointmentFromRequest(request, caregiver) {
-  const byRequestId = readRequestAppointments();
-  byRequestId[request.id] = {
-    id: `AP-${request.id}`,
-    patientId: request.patientId,
-    patientName: request.patientName,
-    caregiverId: caregiver.id,
-    caregiverName: caregiver.name,
-    date: request.requestedDateISO,
-    startTime: request.preferredStart,
-    endTime: request.preferredEnd,
-    status: 'Caregiver assigned',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: request.genderPreference,
-    locationMode: 'address',
-    locationText: request.location,
-    latitude: null,
-    longitude: null,
-    tasks: [],
-    specialInstructions: request.notes || '',
+// Converts a booking object to the appointment shape expected by the
+// calendar and AssignCaregiverModal.
+function bookingToAppointment(booking) {
+  return {
+    id: `AP-${booking.id}`,
+    patientId: null,
+    patientName: booking.patientName,
+    caregiverId: booking.caregiverId,
+    caregiverName: booking.caregiverName,
+    date: booking.date,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    status: booking.status,
+    appointmentType: booking.appointmentType || 'Home Visit',
+    bookingType: booking.bookingType || 'One time',
+    caregiverGenderPreference: booking.caregiverGenderPreference || 'No preference',
+    locationMode: booking.locationMode || 'address',
+    locationText: booking.location || '',
+    latitude: booking.lat || null,
+    longitude: booking.lng || null,
+    tasks: booking.tasks || [],
+    specialInstructions: booking.specialInstructions || '',
     isConflict: false,
-    sourceRequestId: request.id,
+    sourceBookingId: booking.id,
   };
-  window.localStorage.setItem(REQUEST_APPOINTMENTS_KEY, JSON.stringify(byRequestId));
-  return byRequestId[request.id];
 }
 
-// mockAppointments (calendar seed data) + any bookings confirmed via Requests.
+// Returns ALL appointments: legacy mock seed + live bookings.
 export function getAllAppointments() {
-  return [...mockAppointments, ...Object.values(readRequestAppointments())];
+  const legacy = [...mockAppointments];
+  const live = listBookings().map(bookingToAppointment);
+  const merged = [...legacy];
+  const seen = new Set(legacy.map((a) => `${a.date}|${a.startTime}|${a.caregiverId}`));
+  for (const a of live) {
+    const key = `${a.date}|${a.startTime}|${a.caregiverId}`;
+    if (!seen.has(key)) {
+      merged.push(a);
+      seen.add(key);
+    }
+  }
+  return merged;
 }
 

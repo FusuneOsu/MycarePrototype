@@ -7,11 +7,13 @@ export async function onRequestGet(context) {
   const { env } = context;
 
   const { results } = await env.DB.prepare(
-    `SELECT b.id, b.patient_name, b.scheduled_at, b.duration_mins, b.location,
-            b.service_type, b.status, b.rate_cents, c.name AS caregiver_name
+    `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location,
+            b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
+            b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
+            c.name AS caregiver_name
      FROM bookings b
      JOIN caregivers c ON c.id = b.caregiver_id
-     ORDER BY b.scheduled_at DESC`
+     ORDER BY b.date DESC, b.start_time DESC`
   ).all();
 
   return Response.json(results);

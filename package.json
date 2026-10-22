@@ -4,28 +4,30 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-
     "dev:npx": "concurrently \"npx wrangler pages dev ./dist\" \"stripe listen --forward-to localhost:8788/api/payments/webhook --events checkout.session.completed\"",
+    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\" \"npm run dev:whatsapp\"",
 
     "dev:admin": "set VITE_APP_PAGE=admin&& vite dev",
     "dev:caregiver": "set VITE_APP_PAGE=caregiver&& vite dev",
     "dev:whatsapp": "cd whatsapp-service && npm start",
-    "dev:all": "concurrently \"npm run dev:admin\" \"npm run dev:caregiver\" \"npm run dev:whatsapp\"",
+    
     "build:admin": "set VITE_APP_PAGE=admin&& vite build",
     "build:caregiver": "set VITE_APP_PAGE=caregiver&& vite build",
     "build": "npm run build:admin && npm run build:caregiver",
-    "admin:db:schema:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/schema.sql",
-    "admin:db:schema:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql",
     
-    "admin:db:seed:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/seed.sql",
-    "admin:db:seed:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
+    "admin:db:setup:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/schema.sql && wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/seed.sql",
+    "admin:db:setup:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql && wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
+    
     "lint": "oxlint"
   },
   "dependencies": {
     "jspdf": "^4.2.1",
+    "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.3",
+    "socket-io": "^1.0.0",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {

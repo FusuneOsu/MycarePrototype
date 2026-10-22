@@ -12,7 +12,21 @@ export const LANGUAGES = ['Malay', 'English', 'Chinese', 'Tamil'];
 
 export const TRAVEL_MODES = ['Car', 'Motorcycle', 'Public Transport', 'Ride-sharing'];
 
-export const CENTERS = ['Ampang', 'Cheras', 'Petaling Jaya', 'Subang Jaya'];
+export const CENTERS = ['Ampang', 'Cheras', 'Petaling Jaya', 'Setiawangsa', 'Shah Alam', 'Subang Jaya'];
+
+// Caregiving sites with approximate GPS coordinates for OpenStreetMap.
+// id is the primary key in the `caregiving_sites` SQL table.
+export const CAREGIVING_SITES = [
+  { id: 'SITE-001', name: 'Caregiver Center 1', area: 'Petaling Jaya', latitude: 3.1073, longitude: 101.6064 },
+  { id: 'SITE-002', name: 'Caregiver Center 2', area: 'Subang Jaya',    latitude: 3.0568, longitude: 101.5852 },
+  { id: 'SITE-003', name: 'Caregiver Center 3', area: 'Cheras',         latitude: 3.1008, longitude: 101.7242 },
+  { id: 'SITE-004', name: 'Caregiver Center 4', area: 'Ampang',         latitude: 3.1480, longitude: 101.7595 },
+  { id: 'SITE-005', name: 'Caregiver Center 5', area: 'Setiawangsa',    latitude: 3.1905, longitude: 101.7380 },
+  { id: 'SITE-006', name: 'Caregiver Center 6', area: 'Shah Alam',      latitude: 3.0733, longitude: 101.5185 },
+];
+
+// Area → zone mapping used for "nearest to patient" recommendations.
+export const SITE_AREAS = CAREGIVING_SITES.map(s => s.area);
 
 // Neighbourhoods a caregiver is willing to travel to for home visits. Separate
 // from CENTERS: a caregiver is based at one center but covers several areas.

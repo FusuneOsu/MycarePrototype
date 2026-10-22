@@ -25,7 +25,7 @@ const SEEDED = [
 /** Bookings the caregiver has marked complete in the app (not yet rated by the patient). */
 function completedBookings(caregiverId) {
   return listBookings({ caregiverId })
-    .filter((booking) => booking.status === BOOKING_STATUS.completed)
+    .filter((booking) => booking.status === BOOKING_STATUS.serviceCompleted)
     .map((booking) => ({
       id: booking.id,
       caregiverId: booking.caregiverId,

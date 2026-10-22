@@ -1,15 +1,22 @@
 import { BOOKING_STATUS, listBookings } from '../../../shared/bookingStore.js';
 
 const CALENDAR_STATUS = {
-  [BOOKING_STATUS.confirmed]: 'Scheduled',
-  [BOOKING_STATUS.rescheduled]: 'Scheduled',
+  [BOOKING_STATUS.confirmed]: 'Caregiver assigned',
+  [BOOKING_STATUS.inProgress]: 'In progress',
+  [BOOKING_STATUS.serviceCompleted]: 'Service completed',
+  [BOOKING_STATUS.paymentPending]: 'Service completed',
+  [BOOKING_STATUS.linkSent]: 'Service completed',
+  [BOOKING_STATUS.paidOnline]: 'Service completed',
+  [BOOKING_STATUS.paidCollected]: 'Service completed',
   [BOOKING_STATUS.cancelled]: 'Cancelled',
-  [BOOKING_STATUS.completed]: 'Completed',
+  [BOOKING_STATUS.missed]: 'Missed',
 };
 
 /**
- * Confirmed bookings (Module 1) shaped as calendar appointments, so every
- * booking made from a patient request also shows on the Appointments page.
+ * Confirmed bookings shaped as calendar appointments.
+ * Since the schema merge, bookings already contain appointment fields
+ * (appointmentType, bookingType, locationMode, tasks, specialInstructions),
+ * so this mapping is minimal.
  */
 export function bookingsAsAppointments() {
   return listBookings().map((booking) => ({
@@ -21,16 +28,16 @@ export function bookingsAsAppointments() {
     date: booking.date,
     startTime: booking.startTime,
     endTime: booking.endTime,
-    status: CALENDAR_STATUS[booking.status] || 'Scheduled',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: booking.preferredGender,
-    locationMode: 'address',
-    locationText: booking.address,
+    status: CALENDAR_STATUS[booking.status] || booking.status,
+    appointmentType: booking.appointmentType || 'Home Visit',
+    bookingType: booking.bookingType || 'One time',
+    caregiverGenderPreference: booking.caregiverGenderPreference || 'No preference',
+    locationMode: booking.locationMode || 'address',
+    locationText: booking.location || '',
     latitude: booking.lat ? String(booking.lat) : null,
     longitude: booking.lng ? String(booking.lng) : null,
-    tasks: [booking.serviceType],
-    specialInstructions: booking.notes,
+    tasks: booking.tasks || [booking.serviceType],
+    specialInstructions: booking.specialInstructions || '',
     isConflict: false,
     fromBooking: true,
   }));
