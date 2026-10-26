@@ -1,0 +1,307 @@
+Caregiver Booking System — Requirements & Workflows
+
+Caregiver Booking System — Requirements &
+Workflows
+
+2026-09-17  · ​@Someone
+
+Overview & Scope
+This document breaks down the requirements for a Caregiver Booking System — a short,
+focused platform for the admin team to manage patient requests, caregiver bookings,
+onboarding, and reporting, with WhatsApp and website intake channels.
+Assumptions made for this draft:
+
+"No third-party integration for the website" is read as: the website's request form and
+WhatsApp click-to-chat button feed directly into our own system (no third-party form
+builders/chat widgets), while WhatsApp itself is used via its standard Business API —
+not a layered third-party chat platform.
+Payment is demo/UI-only: the system shows a payment link/screen and a "mark as
+paid" status, with no live payment gateway (Stripe/PayPal/FPX/etc.) wired in for this
+phase.
+"Gender based" is read as a matching filter (patient can request a male/female
+caregiver), not a hard system restriction.
+
+Core capabilities in scope:
+
+1. Patient request intake (via WhatsApp and website) → admin-managed booking
+2. Caregiver onboarding (self-request → admin approval)
+
+3. Booking/matching engine (availability, location, gender)
+
+4. Admin & management dashboard (bookings, "revenue" , free caregivers)
+
+5. Audit trail
+6. Branding (logo, Malaysia team identity)
+7. WhatsApp integration
+8. Website integration
+9. Payment (demo screen only)
+
+Page 1 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+Module 1 — Patient Request Intake & Booking
+Purpose: capture a patient's request (from WhatsApp or website) and let the admin turn
+it into a confirmed booking.
+Requirements:
+
+Module 1 — Patient Request Intake & Booking
+Purpose: capture a patient's request (from WhatsApp or website) and let the admin turn
+it into a confirmed booking. ✅ish
+Requirements:
+
+Central Requests queue showing all incoming requests, tagged by source (WhatsApp /
+Website), with status (New / In Review / Booked / Rejected)✅
+
+Each request captures: patient name, contact number, address/location, care type
+needed, preferred date/time, preferred caregiver gender, special notes.✅-except preferred gender
+
+Admin can search/filter available caregivers by:
+Location (nearest to patient, by area/zone or radius)
+Availability (free on the requested date/time — no clash with existing bookings)
+Gender (matching patient's preference)
+Optionally: skill/specialization (e.g. elderly care, post-surgery, pediatric)
+
+Admin selects a caregiver from the filtered/available list and confirms the booking.
+
+Booking record stores: patient, caregiver, date/time, duration, location, service type,
+status, price/rate.
+
+Patient and caregiver both notified of the confirmed booking (via WhatsApp message
+and/or system notification).
+
+Module 2 — Caregiver Onboarding
+Purpose: let new caregivers apply and let the admin vet and activate them.
+Requirements:
+
+Caregiver applies via a simple intake form (from WhatsApp link or website), or admin
+manually adds them.
+Application captures: name, gender, contact, location/coverage area, ID/certification
+documents (upload), skills/specialization, languages spoken, years of experience,
+availability (days/hours).
+Applications land in an Onboarding queue for admin review: Pending → Approved /
+Rejected.
+On approval, caregiver becomes visible/searchable in the booking engine (Module 1) as
+"Active."
+
+Page 2 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+Admin can deactivate/suspend a caregiver at any time (e.g. on leave, offboarded),
+removing them from the available pool without deleting their record.
+Caregiver profile page: personal details, documents, rating/history of completed
+bookings, current status.
+
+Module 3 — Admin & Management Dashboard
+Purpose: give admin and management a single view of operational and business health.
+Requirements:
+
+Bookings overview: total bookings (today/week/month), by status (upcoming, in-
+progress, completed, cancelled).
+Revenue overview: revenue generated (today/week/month/custom range), broken
+down by service type and/or caregiver, outstanding vs. collected payments.
+Caregiver availability: count of caregivers currently free vs. assigned vs. inactive,
+filterable by location/gender/skill.
+Onboarding pipeline: count of pending caregiver applications awaiting review.
+Source breakdown: requests received via WhatsApp vs. website.
+Charts/graphs for trends (bookings over time, revenue over time).
+Role-based access: Admin (day-to-day operations) vs. Management (read-only
+reporting view), if needed.
+Exportable reports (CSV/PDF) for management review.
+
+Module 4 — Audit Trail
+Purpose: a traceable, tamper-evident log of who did what, for accountability and dispute
+resolution.
+Requirements:
+
+Every key action is logged: request received, booking created/modified/cancelled,
+caregiver onboarded/approved/rejected/deactivated, payment status changed,
+dashboard data exported.
+Each log entry captures: timestamp, actor (admin user), action type, affected record
+(patient/caregiver/booking ID), before/after values where relevant.
+Audit log is searchable/filterable by date range, actor, action type, or record.
+
+Page 3 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+Log entries are read-only (cannot be edited or deleted by admins) to preserve
+integrity.
+Accessible to management for review; optionally exportable for compliance purposes.
+
+Module 5 — Branding & Malaysia Team Alignment
+Requirements:
+
+Company logo displayed in the system header/login screen and on any
+patient/caregiver-facing screens (WhatsApp message templates, payment screen,
+booking confirmations).
+Malaysia-specific configuration: local timezone (MYT), currency (MYR), local phone
+number format, and service areas/zones relevant to the Malaysia team.
+Team members and their roles (admin, ops) set up in the system so bookings,
+onboarding approvals, and audit entries are attributed to the right person.
+
+Module 6 — WhatsApp Integration
+Purpose: most patient requests arrive via WhatsApp today — bring that channel directly
+into the system instead of the admin manually re-typing requests.
+
+Requirements:
+Connect to WhatsApp Business API (via Meta's official API or an approved BSP) so
+incoming messages to the business number are received by the system.
+Incoming WhatsApp messages create/update a request in the Requests queue
+(Module 1), preserving the conversation so admin has context.
+Structured intake option: a WhatsApp "quick reply" flow or template form (name,
+location, care type, preferred date, gender preference) so requests arrive structured
+rather than free text, reducing manual admin re-entry.
+Outbound WhatsApp messages from the system: booking confirmations, caregiver
+assignment notice, reminders, and (later) payment link.
+Admin can view/reply to WhatsApp threads from within the system (or at minimum,
+see the full message history tied to each request).
+
+Page 4 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+Module 7 — Website Integration
+Purpose: requests submitted on the existing website should flow straight into the same
+system as WhatsApp requests — no manual copy-paste, no third-party form tool in
+between.
+Requirements:
+
+A request form embedded on the existing website (built to match site branding),
+submitting directly to the caregiver system's API/backend — not routed through a
+third-party form service.
+A "Chat on WhatsApp" button/widget on the website that opens WhatsApp with a
+pre-filled message, so website visitors who prefer WhatsApp land in the same intake
+flow as Module 6.
+Website submissions appear in the same Requests queue (Module 1), tagged "Source:
+Website," alongside WhatsApp-sourced requests.
+Confirmation shown to the website visitor after submission (e.g. "Request received,
+our team will contact you shortly").
+
+Module 8 — Payment (Demo Scope)
+Purpose: show the intended payment flow without wiring up a live gateway — sufficient
+for the demo.
+Requirements:
+
+Once a caregiver marks a booking "Service Completed," the system generates a
+payment screen/link (mock — no real gateway call).
+Payment screen shows: amount due, service summary, patient details, and a "Pay Now"
+button (non-functional for demo, or simulates success).
+Admin/caregiver can alternatively mark the booking as "Paid — Collected Directly"
+for cash/direct payments.
+Booking record reflects payment status: Unpaid / Link Sent / Paid, feeding into the
+revenue figures on the dashboard (Module 3).
+Noted for a later phase (post-demo): real gateway integration (e.g. FPX, GrabPay, card)
+— out of scope for now.
+
+Page 5 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+End-to-End Workflows
+
+Workflow 1 — Patient Request via WhatsApp
+1. Patient messages the business WhatsApp number.
+2. System receives the message via WhatsApp Business API, creates a new Request
+
+(Source: WhatsApp), status "New."
+3. If structured flow is used, patient is guided through quick-reply questions (location,
+
+care type, date/time, gender preference); otherwise admin fills these in from the free-
+text chat.
+
+4. Request appears in admin's Requests queue.
+
+Workflow 2 — Patient Request via Website
+1. Visitor fills the request form on the website (or clicks the WhatsApp button, which
+
+routes into Workflow 1).
+2. Form submits directly to the system backend, creating a new Request (Source:
+
+Website), status "New."
+3. Visitor sees an on-screen confirmation.
+4. Request appears in admin's Requests queue, same as Workflow 1.
+
+Workflow 3 — Caregiver Booking / Matching
+1. Admin opens a "New" request.
+2. Admin runs the matching filter: location, availability on requested date/time, gender
+
+preference (+ skill, if used).
+3. System returns a list of eligible, currently-free caregivers.
+4. Admin selects a caregiver and confirms the booking.
+5. Booking record created (status "Confirmed"); request status updates to "Booked."
+6. System sends confirmation to patient and caregiver via WhatsApp.
+7. Audit log entry created ("Booking created by [admin], caregiver [X] assigned to patient
+
+[Y]").
+
+Workflow 4 — Caregiver Onboarding
+1. New caregiver submits an application (via WhatsApp link or website form), or admin
+
+adds them manually.
+
+Page 6 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+2. Application enters the Onboarding queue, status "Pending."
+3. Admin reviews details and documents.
+4. Admin approves → caregiver status becomes "Active," now visible in the booking-
+
+matching pool (Workflow 3). Admin rejects → status "Rejected," caregiver notified.
+5. Audit log entry created for the decision.
+
+Workflow 5 — Service Completion & Payment (Demo)
+1. Caregiver (or admin on their behalf) marks the booking "Service Completed."
+2. System generates the payment screen/link for the booking amount.
+3. Link is sent to patient via WhatsApp, or patient pays caregiver directly.
+4. Admin marks booking as "Paid" (via link simulation or "Paid — Collected Directly").
+5. Revenue figures on the dashboard update; audit log entry created.
+
+Workflow 6 — Admin/Management Dashboard Review
+1. Admin or management logs in and opens the Dashboard.
+2. Views bookings by status, revenue by period, caregiver availability, onboarding
+
+pipeline, and request source breakdown.
+3. Optionally exports a report for a given date range.
+
+Workflow 7 — Audit Trail Lookup
+1. Management or admin opens the Audit Trail.
+2. Filters by date range, actor, action type, or specific booking/caregiver/patient record.
+3. Reviews the chronological, read-only log of actions for accountability or dispute
+
+resolution.
+
+Non-Functional Notes & Demo Boundaries
+Roles: Admin (full operational access) and Management/Owner (dashboard + audit,
+read-mostly).
+Data captured should be enough to support the dashboard metrics and audit trail
+from day one, even in the demo build.
+Out of scope for the demo: live payment gateway, patient/caregiver-facing mobile app
+(this spec assumes admin-operated system + WhatsApp/website as the only
+patient/caregiver touchpoints), multi-language support (unless required).
+
+Page 7 of 8
+
+
+
+Caregiver Booking System — Requirements & Workflows
+
+Environment & setup: hosting/environment, WhatsApp Business API provider (Meta
+direct vs. a BSP), and whether the website is custom-built or on a CMS (affects how
+the request form and WhatsApp button are embedded).
+
+Page 8 of 8

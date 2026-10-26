@@ -4,9 +4,12 @@ import BookingFilters from '../../components/bookings/BookingFilters/BookingFilt
 import BookingTable from '../../components/bookings/BookingTable/BookingTable.jsx';
 import BookingDocumentsModal from '../../components/bookings/BookingDocumentsModal/BookingDocumentsModal.jsx';
 import CollectPaymentModal from '../../components/bookings/CollectPaymentModal/CollectPaymentModal.jsx';
+import CostBreakdownModal from '../../components/bookings/CostBreakdownModal/CostBreakdownModal.jsx';
 import { buildInvoicePdf } from '../../utils/invoice.js';
 import { logAudit } from '../../../../shared/auditStore.js';
+import { mockCaregivers, fetchCaregivers } from '../../data/mockCaregivers.js';
 import './BookingRecordsPage.css';
+import '../../components/bookings/CostBreakdownModal/CostBreakdownModal.css';
 
 function BookingRecordsPage() {
   const [bookings, setBookings] = useState([]);
@@ -18,6 +21,8 @@ function BookingRecordsPage() {
   const [actionError, setActionError] = useState('');
   const [documentsBooking, setDocumentsBooking] = useState(null);
   const [collectBooking, setCollectBooking] = useState(null);
+  const [costBooking, setCostBooking] = useState(null);
+  const [caregivers, setCaregivers] = useState([]);
 
   const loadBookings = () => {
     setLoading(true);
@@ -31,7 +36,10 @@ function BookingRecordsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(loadBookings, []);
+  useEffect(() => {
+    loadBookings();
+    fetchCaregivers().then(setCaregivers);
+  }, []);
 
   const generatePaymentLink = async (booking) => {
     setActionError('');
@@ -72,6 +80,34 @@ function BookingRecordsPage() {
     logAudit({ action: 'payment.status', recordType: 'Booking', recordId: bookingId, summary: `Payment collected directly${collectBooking ? ` from ${collectBooking.patient_name}` : ''}, receipt attached`, changes: [{ field: 'status', before: collectBooking?.status ?? null, after: 'Paid - Collected Directly' }] });
     setCollectBooking(null);
     loadBookings();
+  };
+
+  const handleEditCostBreakdown = async (booking, updatedBreakdown) => {
+    setActionError('');
+    setActionBusyId(booking.id);
+    try {
+      const breakdownJson = JSON.stringify(updatedBreakdown);
+      const response = await fetch(`/api/bookings/${encodeURIComponent(booking.id)}/cost`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost_breakdown: breakdownJson }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Could not save the cost breakdown.');
+
+      logAudit({
+        action: 'booking.cost', recordType: 'Booking', recordId: booking.id,
+        summary: `Cost breakdown updated for ${booking.patient_name || booking.patientName}`,
+        changes: [{ field: 'cost_breakdown', before: null, after: breakdownJson }],
+      });
+
+      setCostBooking(null);
+      loadBookings();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setActionBusyId(null);
+    }
   };
 
   const filteredBookings = useMemo(() => {
@@ -120,12 +156,21 @@ function BookingRecordsPage() {
             onGeneratePaymentLink={generatePaymentLink}
             onMarkCollected={setCollectBooking}
             onViewDocuments={setDocumentsBooking}
+            onViewCosts={setCostBooking}
           />
         )}
       </div>
 
       <BookingDocumentsModal booking={documentsBooking} onClose={() => setDocumentsBooking(null)} />
       <CollectPaymentModal booking={collectBooking} onClose={() => setCollectBooking(null)} onSubmit={markCollected} />
+      {costBooking && (
+        <CostBreakdownModal
+          booking={costBooking}
+          caregiver={caregivers.find((c) => c.id === (costBooking.caregiver_id || costBooking.caregiverId))}
+          onSave={(bd) => handleEditCostBreakdown(costBooking, bd)}
+          onClose={() => setCostBooking(null)}
+        />
+      )}
     </div>
   );
 }

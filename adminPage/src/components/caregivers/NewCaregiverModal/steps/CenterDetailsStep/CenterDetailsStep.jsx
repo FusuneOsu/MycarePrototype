@@ -1,4 +1,5 @@
 import { TRAVEL_MODES, CENTER_PLACES, WORK_ACCOMMODATIONS_MAX_WORDS } from '../../../../../data/caregiverFormOptions.js';
+import { CAREGIVING_SITES } from '../../../../../../../shared/careVocabulary.js';
 import { countWords, limitToWordCount } from '../../../../../utils/text.js';
 import './CenterDetailsStep.css';
 
@@ -38,6 +39,25 @@ function CenterDetailsStep({ formData, onFieldChange }) {
             <option key={place} value={place}>{place}</option>
           ))}
         </select>
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="base-site">Base site (reporting branch)</label>
+        <select
+          id="base-site"
+          value={formData.baseSiteId}
+          onChange={(e) => onFieldChange('baseSiteId', e.target.value)}
+        >
+          <option value="" disabled>Select a base site</option>
+          {CAREGIVING_SITES.map((site) => (
+            <option key={site.id} value={site.id}>
+              {site.name} — {site.area}
+            </option>
+          ))}
+        </select>
+        <span className="form-field__hint">
+          The specific branch or center where this caregiver is stationed.
+        </span>
       </div>
 
       <div className="form-field">

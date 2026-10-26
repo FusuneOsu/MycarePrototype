@@ -76,9 +76,9 @@ function localApiPlugin() {
             const rows = database
               .prepare(
                 `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.address, b.latitude, b.longitude,
-                        b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
+                        b.service_type, b.status, b.rate_cents, b.cost_breakdown, b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
-                        c.name AS caregiver_name
+                        b.caregiver_id, c.name AS caregiver_name
                  FROM bookings b
                  JOIN caregivers c ON c.id = b.caregiver_id
                  ORDER BY b.date DESC, b.start_time DESC`
@@ -229,6 +229,35 @@ function localApiPlugin() {
             return sendJson(res, 200, { ok: true });
           } catch (err) {
             console.error('[bookings collect]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+
+        // PUT /api/bookings/:id/cost — update cost breakdown
+        if (segments.length === 2 && segments[1] === 'cost' && req.method === 'PUT') {
+          try {
+            const bookingId = decodeURIComponent(segments[0]);
+            let body;
+            try { body = await readJsonBody(req); }
+            catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
+
+            const costBreakdown = body.cost_breakdown;
+            if (costBreakdown === undefined || costBreakdown === null) {
+              return sendJson(res, 400, { ok: false, error: 'cost_breakdown is required.' });
+            }
+
+            const database = await getDb();
+            const result = database
+              .prepare(`UPDATE bookings SET cost_breakdown = ?, updated_at = datetime('now') WHERE id = ?`)
+              .run(costBreakdown, bookingId);
+
+            if (result.changes === 0) {
+              return sendJson(res, 404, { ok: false, error: 'Booking not found.' });
+            }
+
+            return sendJson(res, 200, { ok: true });
+          } catch (err) {
+            console.error('[bookings cost]', err);
             return sendJson(res, 500, { ok: false, error: err.message });
           }
         }

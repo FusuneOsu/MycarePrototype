@@ -13,6 +13,7 @@ export const DEMO_CAREGIVER = {
   email: 'sarah.tan@example.com',
   gender: 'Female',
   center: 'Petaling Jaya',
+  baseSiteId: 'SITE-001',
   coverageAreas: ['Petaling Jaya', 'Bangsar', 'Kuala Lumpur City'],
   availability: 'Available',
   travelMode: 'Car',

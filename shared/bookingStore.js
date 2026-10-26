@@ -61,6 +61,124 @@ export const SERVICE_RATES = {
 /** Share of the booking price paid out to the caregiver. */
 export const CAREGIVER_SHARE = 0.75;
 
+/** Default travel cost parameters used when building a cost breakdown. */
+export const TRAVEL_COST_DEFAULTS = {
+  baseFee: 5,       // RM flat "show up" fee
+  ratePerKm: 1.50,  // RM per km from base site to patient
+  tollFee: 0,       // RM toll surcharge (manual entry, default 0)
+};
+
+/** Default caregiver travel allowance rate (RM/hr travel time compensation). */
+export const CAREGIVER_TRAVEL_ALLOWANCE_RATE = 15;
+
+/**
+ * Build a default cost breakdown for a booking.
+ * Every component is zeroable — the admin can override any field.
+ *
+ * @param {object} params
+ * @param {string} params.serviceType      - e.g. 'Post-operative care'
+ * @param {number} params.durationMins     - Duration in minutes
+ * @param {number} params.hourlyRate       - Override the service rate (optional)
+ * @param {number} params.distanceKm       - Distance from base to patient (optional, 0 = none)
+ * @param {number} params.travelBaseFee    - Override base fee (optional)
+ * @param {number} params.travelRatePerKm  - Override rate per km (optional)
+ * @param {number} params.tollFee          - Toll surcharge (optional, default 0)
+ * @param {number} params.siteFee          - Facility fee if center-based (optional)
+ * @param {number} params.caregiverShare   - Override caregiver share fraction (optional)
+ * @returns {object} costBreakdown
+ */
+export function buildCostBreakdown({
+  serviceType,
+  durationMins,
+  hourlyRate,
+  distanceKm = 0,
+  travelBaseFee,
+  travelRatePerKm,
+  tollFee = 0,
+  siteFee = 0,
+  caregiverShare = CAREGIVER_SHARE,
+}) {
+  const hours = Math.round((durationMins / 60) * 100) / 100;
+  const rate = hourlyRate || SERVICE_RATES[serviceType] || 40;
+  const serviceSubtotal = Math.round(rate * hours * 100) / 100;
+
+  // Travel — each sub-component zeroable independently
+  const tBaseFee = travelBaseFee !== undefined ? travelBaseFee : (distanceKm > 0 ? TRAVEL_COST_DEFAULTS.baseFee : 0);
+  const tRateKm = travelRatePerKm !== undefined ? travelRatePerKm : TRAVEL_COST_DEFAULTS.ratePerKm;
+  const distanceSubtotal = distanceKm > 0 ? Math.round(distanceKm * tRateKm * 100) / 100 : 0;
+  const travelSubtotal = Math.round((tBaseFee + distanceSubtotal + tollFee) * 100) / 100;
+
+  // Caregiver payout
+  const caregiverTime = Math.round(serviceSubtotal * caregiverShare * 100) / 100;
+  const travelAllowance = distanceKm > 0 ? CAREGIVER_TRAVEL_ALLOWANCE_RATE : 0;
+  const caregiverSubtotal = Math.round((caregiverTime + travelAllowance) * 100) / 100;
+
+  // Site fee
+  const siteSubtotal = Math.round(siteFee * hours * 100) / 100;
+
+  const total = Math.round((serviceSubtotal + travelSubtotal + caregiverSubtotal + siteSubtotal) * 100) / 100;
+
+  return {
+    serviceFee: { hourlyRate: rate, hours, subtotal: serviceSubtotal },
+    travelCost: { baseFee: tBaseFee, distanceKm, ratePerKm: tRateKm, distanceSubtotal, tollFee, subtotal: travelSubtotal },
+    caregiverPayout: { hourlyRate: Math.round(rate * caregiverShare * 100) / 100, hours, travelAllowance, subtotal: caregiverSubtotal },
+    siteFee: { facilityFee: siteFee, supervisionFee: 0, subtotal: siteSubtotal },
+    total,
+  };
+}
+
+/**
+ * Apply admin overrides to an existing cost breakdown.
+ * Only the fields provided are changed; everything else stays.
+ * Setting a component's rate to 0 zeros its subtotal.
+ */
+export function overrideCostBreakdown(breakdown, overrides) {
+  const updated = JSON.parse(JSON.stringify(breakdown));
+
+  if (overrides.hourlyRate !== undefined) {
+    updated.serviceFee.hourlyRate = overrides.hourlyRate;
+    updated.serviceFee.subtotal = Math.round(overrides.hourlyRate * updated.serviceFee.hours * 100) / 100;
+    updated.caregiverPayout.hourlyRate = Math.round(overrides.hourlyRate * CAREGIVER_SHARE * 100) / 100;
+    updated.caregiverPayout.subtotal = Math.round((updated.serviceFee.subtotal * CAREGIVER_SHARE + updated.caregiverPayout.travelAllowance) * 100) / 100;
+  }
+
+  // Travel overrides
+  if (overrides.travelBaseFee !== undefined) updated.travelCost.baseFee = overrides.travelBaseFee;
+  if (overrides.distanceKm !== undefined) updated.travelCost.distanceKm = overrides.distanceKm;
+  if (overrides.travelRatePerKm !== undefined) updated.travelCost.ratePerKm = overrides.travelRatePerKm;
+  if (overrides.tollFee !== undefined) updated.travelCost.tollFee = overrides.tollFee;
+  updated.travelCost.distanceSubtotal = updated.travelCost.distanceKm > 0
+    ? Math.round(updated.travelCost.distanceKm * updated.travelCost.ratePerKm * 100) / 100
+    : 0;
+  updated.travelCost.subtotal = Math.round(
+    (updated.travelCost.baseFee + updated.travelCost.distanceSubtotal + updated.travelCost.tollFee) * 100
+  ) / 100;
+
+  if (overrides.travelAllowance !== undefined) updated.caregiverPayout.travelAllowance = overrides.travelAllowance;
+  updated.caregiverPayout.subtotal = Math.round(
+    (updated.serviceFee.subtotal * CAREGIVER_SHARE + updated.caregiverPayout.travelAllowance) * 100
+  ) / 100;
+
+  if (overrides.siteFee !== undefined) updated.siteFee.facilityFee = overrides.siteFee;
+  updated.siteFee.subtotal = Math.round(updated.siteFee.facilityFee * updated.serviceFee.hours * 100) / 100;
+
+  updated.total = Math.round(
+    (updated.serviceFee.subtotal + updated.travelCost.subtotal + updated.caregiverPayout.subtotal + updated.siteFee.subtotal) * 100
+  ) / 100;
+
+  return updated;
+}
+
+/** Check if a cost breakdown has all zero/empty values. */
+export function isEmptyCostBreakdown(breakdown) {
+  if (!breakdown) return true;
+  return breakdown.total === 0
+    && breakdown.serviceFee.subtotal === 0
+    && breakdown.travelCost.subtotal === 0
+    && breakdown.caregiverPayout.subtotal === 0
+    && breakdown.siteFee.subtotal === 0;
+}
+
 /* Time helpers ---------------------------------------------------------------- */
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -220,16 +338,27 @@ export async function refreshCache() {
       if (typeof local.tasks === 'string') {
         try { local.tasks = JSON.parse(local.tasks); } catch { local.tasks = []; }
       }
+      if (typeof local.costBreakdown === 'string') {
+        try { local.costBreakdown = JSON.parse(local.costBreakdown); } catch { local.costBreakdown = null; }
+      }
       if (!local.createdAt) local.createdAt = now();
       if (!local.updatedAt) local.updatedAt = now();
       if (!local.history) local.history = [{ at: now(), action: local.status || 'Created', reason: '' }];
       if (!local.receiptStatus) local.receiptStatus = 'Receipt pending';
       if (!local.payoutStatus) local.payoutStatus = 'Awaiting payout';
       if (!local.price) {
-        local.price = local.rateCents ? priceFor(local.rateCents, local.durationMins || 60) : 0;
+        if (local.costBreakdown) {
+          local.price = local.costBreakdown.total;
+        } else {
+          local.price = local.rateCents ? priceFor(local.rateCents, local.durationMins || 60) : 0;
+        }
       }
       if (!local.caregiverPayout) {
-        local.caregiverPayout = Math.round((local.price || 0) * CAREGIVER_SHARE * 100) / 100;
+        if (local.costBreakdown) {
+          local.caregiverPayout = local.costBreakdown.caregiverPayout.subtotal;
+        } else {
+          local.caregiverPayout = Math.round((local.price || 0) * CAREGIVER_SHARE * 100) / 100;
+        }
       }
       if (!local.address) local.address = local.location || '';
       mapped[local.id] = local;
@@ -406,8 +535,9 @@ function nextBookingId() {
 export const priceFor = (rate, durationMins) => Math.round(Number(rate) * (Number(durationMins) / 60) * 100) / 100;
 
 /** Admin confirms the booking: creates the record, marks the request Booked, notifies both sides. */
-export function confirmBooking({ request, caregiver, date, startTime, durationMins, rate, appointmentType, bookingType, locationMode, tasks, specialInstructions }) {
-  const price = priceFor(rate, durationMins);
+export function confirmBooking({ request, caregiver, date, startTime, durationMins, rate, appointmentType, bookingType, locationMode, tasks, specialInstructions, costBreakdown }) {
+  const price = costBreakdown ? costBreakdown.total : priceFor(rate, durationMins);
+  const breakdownJson = costBreakdown ? JSON.stringify(costBreakdown) : '';
   const booking = saveBooking({
     id: nextBookingId(),
     requestId: request.id,
@@ -429,7 +559,8 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
     durationMins: Number(durationMins),
     rate: Number(rate),
     price,
-    caregiverPayout: Math.round(price * CAREGIVER_SHARE * 100) / 100,
+    caregiverPayout: costBreakdown ? costBreakdown.caregiverPayout.subtotal : Math.round(price * CAREGIVER_SHARE * 100) / 100,
+    costBreakdown: breakdownJson,
     status: BOOKING_STATUS.confirmed,
     // Appointment fields merged into bookings
     appointmentType: appointmentType || 'Home Visit',
@@ -473,7 +604,10 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
   };
   apiFetch('/bookings', {
     method: 'POST',
-    body: JSON.stringify(apiBody),
+    body: JSON.stringify({
+      ...apiBody,
+      cost_breakdown: breakdownJson || null,
+    }),
   });
 
   logAudit({
