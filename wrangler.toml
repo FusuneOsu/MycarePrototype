@@ -9,4 +9,4 @@ VITE_CAREGIVER_URL = "https://mycare.pages.dev/caregiver/"
 [[d1_databases]]
 binding = "DB"
 database_name = "mycarePrototypeRDBMS"
-database_id = "1944c5c6-7c20-4425-be39-122bc98adc8a"
+database_id = "a8d74cec-ff6b-4b55-9f5f-6918dda34a44"
