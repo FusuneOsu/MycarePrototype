@@ -30,9 +30,30 @@ export default function AuthPage({ onAuth, onApply, onNotify }) {
     }
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     setError('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && data.user) {
+        if (data.user.role === 'admin') {
+          const target = new URL(adminUrl, window.location.origin);
+          target.searchParams.set('session', 'admin');
+          window.location.assign(target.toString());
+          return;
+        }
+        onAuth({ role: 'caregiver', email: data.user.email, name: data.user.full_name, id: data.user.id });
+        return;
+      }
+    } catch {
+      // Fall back to local check if API is unreachable
+    }
 
     if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       const target = new URL(adminUrl, window.location.origin);

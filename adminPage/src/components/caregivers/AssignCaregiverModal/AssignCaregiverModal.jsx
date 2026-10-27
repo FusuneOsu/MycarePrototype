@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../../common/Modal/Modal.jsx';
 import StatusPill from '../StatusPill/StatusPill.jsx';
-import { mockCaregivers } from '../../../data/mockCaregivers.js';
+import { fetchCaregivers } from '../../../data/mockCaregivers.js';
 import { getAllAppointments } from '../../../data/mockAppointments.js';
 import './AssignCaregiverModal.css';
 
@@ -23,8 +23,15 @@ function findSchedulingClash(caregiverId, requestedDateISO, preferredStart, pref
 }
 
 function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
+  const [caregivers, setCaregivers] = useState([]);
   const [filters, setFilters] = useState({ zone: ANY_OPTION, gender: ANY_OPTION, skill: ANY_OPTION, onlyAvailable: false });
   const [selectedCaregiver, setSelectedCaregiver] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCaregivers().then(setCaregivers);
+    }
+  }, [isOpen]);
 
   // Pre-apply the patient's own zone/gender/skill preferences every time the
   // modal is opened for a request, instead of starting from "Any".
@@ -39,14 +46,14 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
     setSelectedCaregiver('');
   }, [isOpen, request]);
 
-  const zoneOptions = useMemo(() => Array.from(new Set(mockCaregivers.map((c) => c.center))).sort(), []);
-  const genderOptions = useMemo(() => Array.from(new Set(mockCaregivers.map((c) => c.gender))).sort(), []);
-  const skillOptions = useMemo(() => Array.from(new Set(mockCaregivers.flatMap((c) => c.skills || []))).sort(), []);
+  const zoneOptions = useMemo(() => Array.from(new Set(caregivers.map((c) => c.center))).sort(), [caregivers]);
+  const genderOptions = useMemo(() => Array.from(new Set(caregivers.map((c) => c.gender))).sort(), [caregivers]);
+  const skillOptions = useMemo(() => Array.from(new Set(caregivers.flatMap((c) => c.skills || []))).sort(), [caregivers]);
 
   // Flags scheduling clashes against booked appointments, then surfaces the
   // nearest, free-at-the-requested-time matches first.
   const rows = useMemo(() => {
-    return mockCaregivers
+    return caregivers
       .filter((c) => filters.zone === ANY_OPTION || c.center === filters.zone)
       .filter((c) => filters.gender === ANY_OPTION || c.gender === filters.gender)
       .filter((c) => filters.skill === ANY_OPTION || (c.skills || []).includes(filters.skill))
@@ -63,7 +70,7 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
         if (a.isAssignable !== b.isAssignable) return a.isAssignable ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
-  }, [filters, request]);
+  }, [caregivers, filters, request]);
 
   const setFilter = (field, value) => setFilters((prev) => ({ ...prev, [field]: value }));
   const resetFilters = () => setFilters({ zone: ANY_OPTION, gender: ANY_OPTION, skill: ANY_OPTION, onlyAvailable: false });
@@ -75,7 +82,7 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
   };
 
   const handleConfirm = () => {
-    const caregiver = mockCaregivers.find((c) => c.id === selectedCaregiver);
+    const caregiver = caregivers.find((c) => c.id === selectedCaregiver);
     if (!caregiver) return;
     onAssign(caregiver);
     handleClose();

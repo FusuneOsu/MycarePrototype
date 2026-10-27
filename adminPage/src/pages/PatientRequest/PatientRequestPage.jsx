@@ -21,7 +21,7 @@ function PatientRequestPage() {
 
   // The caregiver app writes to the same store (e.g. marking a visit complete).
   useEffect(() => {
-    refreshCache();
+    refreshCache().then(() => refresh());
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };

@@ -1,233 +1,51 @@
-// mockAppointments.js — Legacy seed data for the calendar page.
-// After the schema merge, appointments data lives in bookings.
-// This file provides a compatibility layer that surfaces bookings as
-// appointment-shaped objects so the calendar and AssignCaregiverModal
-// still work without changes.
+// mockAppointments.js — Dummy data removed.
+// Live appointments are surfaced from PostgreSQL bookings.
 import { listBookings } from '../../../shared/bookingStore.js';
 
-const today = new Date();
+export const mockAppointments = [];
 
-function offsetDate(days) {
-  const date = new Date(today);
-  date.setDate(today.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-export const mockAppointments = [
-  {
-    id: 'AP-3001',
-    patientId: 'PT-1001',
-    patientName: 'Aisha Rahman',
-    caregiverId: 'CG-1001',
-    caregiverName: 'Adam Tan',
-    date: offsetDate(0),
-    startTime: '09:00',
-    endTime: '10:30',
-    status: 'Scheduled',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: 'Female',
-    locationMode: 'address',
-    locationText: '12 Jalan Ampang, Kuala Lumpur',
-    latitude: null,
-    longitude: null,
-    tasks: ['Assess mobility', 'Update wound notes'],
-    specialInstructions: 'Please verify the stair rail and ensure medication schedule is reviewed.',
-    isConflict: false,
-  },
-  {
-    id: 'AP-3002',
-    patientId: 'PT-1002',
-    patientName: 'Daniel Lim',
-    caregiverId: 'CG-1001',
-    caregiverName: 'Adam Tan',
-    date: offsetDate(0),
-    startTime: '09:30',
-    endTime: '11:00',
-    status: 'Caregiver assigned',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: 'Male',
-    locationMode: 'pinpoint',
-    locationText: 'Pinpointed location for Daniel Lim',
-    latitude: '3.0849',
-    longitude: '101.5860',
-    tasks: ['Check blood pressure', 'Document recovery progress'],
-    specialInstructions: 'Use the side gate and call before arrival.',
-    isConflict: true,
-  },
-  {
-    id: 'AP-3003',
-    patientId: 'PT-1005',
-    patientName: 'Nadia Ismail',
-    caregiverId: 'CG-1004',
-    caregiverName: 'Siti Aminah',
-    date: offsetDate(1),
-    startTime: '14:00',
-    endTime: '15:00',
-    status: 'Completed',
-    appointmentType: 'Care Center',
-    bookingType: 'Recurring',
-    caregiverGenderPreference: 'No preference',
-    locationMode: 'center',
-    locationText: 'Bangsar Care Centre',
-    latitude: null,
-    longitude: null,
-    tasks: ['Review physiotherapy goals'],
-    specialInstructions: 'Bring the updated recovery booklet for review.',
-    isConflict: false,
-  },
-  {
-    id: 'AP-3004',
-    patientId: 'PT-1006',
-    patientName: 'Ravi Nair',
-    caregiverId: 'CG-1009',
-    caregiverName: 'Mei Ling Ong',
-    date: offsetDate(2),
-    startTime: '11:00',
-    endTime: '12:00',
-    status: 'In progress',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: 'No preference',
-    locationMode: 'address',
-    locationText: '88 Jalan Sentral, Kuala Lumpur',
-    latitude: null,
-    longitude: null,
-    tasks: ['Monitor hydration', 'Prepare education checklist'],
-    specialInstructions: 'Patient may request additional rest after 20 minutes.',
-    isConflict: false,
-  },
-  {
-    id: 'AP-3005',
-    patientId: 'PT-1007',
-    patientName: 'Maya Binti Idris',
-    caregiverId: 'CG-1012',
-    caregiverName: 'Marcus D\'Souza',
-    date: offsetDate(0),
-    startTime: '15:00',
-    endTime: '16:30',
-    status: 'No caregiver assigned',
-    appointmentType: 'Care Center',
-    bookingType: 'Recurring',
-    caregiverGenderPreference: 'Female',
-    locationMode: 'center',
-    locationText: 'Sungai Buloh Care Centre',
-    latitude: null,
-    longitude: null,
-    tasks: ['Await caregiver assignment'],
-    specialInstructions: 'Keep an empty bed slot ready at the care centre reception desk.',
-    isConflict: true,
-  },
-  {
-    id: 'AP-3006',
-    patientId: 'PT-1009',
-    patientName: 'Leela Ramachandran',
-    caregiverId: 'CG-1002',
-    caregiverName: 'Nurul Huda',
-    date: offsetDate(4),
-    startTime: '08:30',
-    endTime: '09:30',
-    status: 'Cancelled',
-    appointmentType: 'Home Visit',
-    bookingType: 'One time',
-    caregiverGenderPreference: 'Female',
-    locationMode: 'pinpoint',
-    locationText: 'Patient-shortlisted location',
-    latitude: '3.0823',
-    longitude: '101.6802',
-    tasks: ['Cancel and reschedule'],
-    specialInstructions: 'Check whether the patient wants a male caregiver for the next cycle.',
-    isConflict: false,
-  },
-  {
-    id: 'AP-3007',
-    patientId: 'PT-1010',
-    patientName: 'Irfan Abdullah',
-    caregiverId: 'CG-1006',
-    caregiverName: 'Rajesh Kumar',
-    date: offsetDate(5),
-    startTime: '10:15',
-    endTime: '11:45',
-    status: 'Scheduled',
-    appointmentType: 'Home Visit',
-    bookingType: 'Recurring',
-    caregiverGenderPreference: 'Male',
-    locationMode: 'address',
-    locationText: '15 Lorong Bukit, Shah Alam',
-    latitude: null,
-    longitude: null,
-    tasks: ['Review medication reminders'],
-    specialInstructions: 'Patient prefers short visits after breakfast.',
-    isConflict: false,
-  },
-  {
-    id: 'AP-3008',
-    patientId: 'PT-1003',
-    patientName: 'Sofia Hassan',
-    caregiverId: 'CG-1007',
-    caregiverName: 'Farah Aziz',
-    date: offsetDate(6),
-    startTime: '13:00',
-    endTime: '14:00',
-    status: 'Missed',
-    appointmentType: 'Care Center',
-    bookingType: 'One time',
-    caregiverGenderPreference: 'No preference',
-    locationMode: 'center',
-    locationText: 'Cyberjaya Care Centre',
-    latitude: null,
-    longitude: null,
-    tasks: ['Follow-up call'],
-    specialInstructions: 'Confirm if patient is available for a rebook after the missed visit.',
-    isConflict: false,
-  },
-];
-
-export function fetchAppointments() {
-  return Promise.resolve(mockAppointments);
+export async function fetchAppointments() {
+  try {
+    const res = await fetch('/api/appointments');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+    }
+  } catch (err) {
+    console.warn('[fetchAppointments] error:', err.message);
+  }
+  return [];
 }
 
 // Converts a booking object to the appointment shape expected by the
-// calendar and AssignCaregiverModal.
-function bookingToAppointment(booking) {
+// calendar and modal views.
+export function bookingToAppointment(booking) {
   return {
-    id: `AP-${booking.id}`,
-    patientId: null,
-    patientName: booking.patientName,
-    caregiverId: booking.caregiverId,
-    caregiverName: booking.caregiverName,
-    date: booking.date,
-    startTime: booking.startTime,
-    endTime: booking.endTime,
-    status: booking.status,
-    appointmentType: booking.appointmentType || 'Home Visit',
-    bookingType: booking.bookingType || 'One time',
-    caregiverGenderPreference: booking.caregiverGenderPreference || 'No preference',
-    locationMode: booking.locationMode || 'address',
-    locationText: booking.location || '',
-    latitude: booking.lat || null,
-    longitude: booking.lng || null,
-    tasks: booking.tasks || [],
-    specialInstructions: booking.specialInstructions || '',
+    id: booking.id,
+    patientId: booking.patientId || booking.patient_id || null,
+    patientName: booking.patientName || booking.patient_name || '',
+    caregiverId: booking.caregiverId || booking.caregiver_id || null,
+    caregiverName: booking.caregiverName || booking.caregiver_name || '',
+    date: booking.date ? (typeof booking.date === 'string' ? booking.date.slice(0, 10) : booking.date) : '',
+    startTime: booking.startTime || booking.start_time || '',
+    endTime: booking.endTime || booking.end_time || '',
+    status: booking.status || 'Scheduled',
+    appointmentType: booking.appointmentType || booking.appointment_type || 'Home Visit',
+    bookingType: booking.bookingType || booking.booking_type || 'One time',
+    caregiverGenderPreference: booking.caregiverGenderPreference || booking.caregiver_gender_preference || 'No preference',
+    locationMode: booking.locationMode || booking.location_mode || 'address',
+    locationText: booking.locationText || booking.location || booking.address || '',
+    latitude: booking.lat || booking.latitude || null,
+    longitude: booking.lng || booking.longitude || null,
+    tasks: Array.isArray(booking.tasks) ? booking.tasks : [],
+    specialInstructions: booking.specialInstructions || booking.special_instructions || '',
     isConflict: false,
     sourceBookingId: booking.id,
   };
 }
 
-// Returns ALL appointments: legacy mock seed + live bookings.
+// Returns ONLY live database bookings as appointments
 export function getAllAppointments() {
-  const legacy = [...mockAppointments];
   const live = listBookings().map(bookingToAppointment);
-  const merged = [...legacy];
-  const seen = new Set(legacy.map((a) => `${a.date}|${a.startTime}|${a.caregiverId}`));
-  for (const a of live) {
-    const key = `${a.date}|${a.startTime}|${a.caregiverId}`;
-    if (!seen.has(key)) {
-      merged.push(a);
-      seen.add(key);
-    }
-  }
-  return merged;
+  return live;
 }
-

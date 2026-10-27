@@ -1,4 +1,4 @@
-import { caregiverEmail, mockCaregivers } from './mockCaregivers.js';
+import { caregiverEmail } from './mockCaregivers.js';
 import {
   documentSlots, getAccountHold, getAvailability, getChangeRequest, getProfileOverlay,
   listApplications, listManualCaregivers, OPEN_STATUSES, STATUS,
@@ -128,21 +128,48 @@ export function listCaregiverAccounts() {
   const applications = listApplications().filter(
     (application) => OPEN_STATUSES.includes(application.status) || application.status === STATUS.approved || application.status === STATUS.rejected,
   );
-  const applicantEmails = new Set(applications.map((application) => String(application.data.email).toLowerCase()));
   const manual = listManualCaregivers();
-  const manualIds = new Set(manual.map((caregiver) => caregiver.id));
 
   return [
     ...applications.map(fromApplication),
     ...manual.map((caregiver) => fromDirectory(caregiver, 'manual')),
-    ...mockCaregivers
-      .filter((caregiver) => !manualIds.has(caregiver.id) && !applicantEmails.has(caregiverEmail(caregiver).toLowerCase()))
-      .map((caregiver) => fromDirectory(caregiver, 'directory')),
   ];
 }
 
-// Async wrapper so swapping in a real API later is a one-line change.
+// Async fetch with PostgreSQL API integration.
 export async function fetchCaregiverAccounts() {
+  try {
+    const res = await fetch('/api/caregivers');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data.map((cg) => ({
+          id: cg.id,
+          name: cg.name,
+          gender: cg.gender,
+          center: cg.center || cg.center_name,
+          availability: cg.availability || 'Available',
+          username: cg.username || cg.email?.split('@')[0],
+          email: cg.email,
+          phone: cg.phone,
+          accountStatus: cg.account_status || 'Active',
+          source: 'database',
+          languages: Array.isArray(cg.languages) ? cg.languages : ['Malay', 'English'],
+          specialisations: Array.isArray(cg.skills) ? cg.skills : [],
+          coverageAreas: [cg.center || cg.center_name].filter(Boolean),
+          experienceBand: cg.experience_band || '3 - 5 years',
+          workingDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+          shift: cg.shift_preference || 'Morning (7am - 3pm)',
+          travelMode: cg.travel_mode || 'Car',
+          bio: cg.bio || '',
+          bookings: [],
+          bookingSummary: { total: 0, completed: 0, pending: 0, cancelled: 0 },
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('[fetchCaregiverAccounts] API fetch error:', err.message);
+  }
   return listCaregiverAccounts();
 }
 

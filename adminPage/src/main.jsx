@@ -4,12 +4,13 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { seedDemoApplications } from '../../shared/demoApplications.js';
 import { seedBookingData } from '../../shared/demoBookings.js';
+import { refreshCache } from '../../shared/bookingStore.js';
 import './styles/global.css';
 
-// Gives the Caregivers approval queue something to review on a fresh browser.
-// Idempotent — never overwrites applications submitted through the wizard.
+// Ensure legacy mock entries are wiped and database cache is populated
 seedDemoApplications();
 seedBookingData();
+refreshCache();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
