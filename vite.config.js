@@ -167,6 +167,54 @@ function localApiPlugin() {
               });
             }
 
+            if (hasPgConfig()) {
+              const maxRow = await pgQuery("SELECT id FROM bookings ORDER BY id DESC LIMIT 1");
+              const lastNum = maxRow.rows.length > 0 ? parseInt(maxRow.rows[0].id.replace(/\D/g, ''), 10) : 5000;
+              const newId = `BK-${String(lastNum + 1)}`;
+
+              let caregiver_name = body.caregiver_name || null;
+              if (caregiver_id && !caregiver_name) {
+                const cg = await pgQuery("SELECT name FROM caregivers WHERE id = $1", [caregiver_id]);
+                if (cg.rows.length > 0) caregiver_name = cg.rows[0].name;
+              }
+
+              const validStatus = [
+                'Caregiver assigned', 'In progress', 'Service completed',
+                'Payment pending', 'Link sent (Unpaid)', 'Paid - Online',
+                'Paid - Collected Directly', 'Paid', 'Cancelled', 'Missed'
+              ].includes(status) ? status : 'Caregiver assigned';
+
+              const tasksJson = Array.isArray(tasks) ? JSON.stringify(tasks) : (tasks || '[]');
+
+              await pgQuery(
+                `INSERT INTO bookings
+                  (id, request_id, caregiver_id, caregiver_name, patient_name, date,
+                   start_time, end_time, duration_mins, location, address, latitude, longitude,
+                   service_type, status, appointment_type, booking_type,
+                   caregiver_gender_preference, location_mode, tasks, special_instructions,
+                   rate_cents, caregiver_payout_cents)
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+                [
+                  newId, request_id || null, caregiver_id || null, caregiver_name || 'Assigned Caregiver',
+                  patient_name, date, start_time, end_time, duration_mins || 60,
+                  location || address || 'Kuala Lumpur', address || location || 'Kuala Lumpur',
+                  latitude ?? null, longitude ?? null,
+                  service_type || 'General Care', validStatus,
+                  appointment_type || 'Home Visit', booking_type || 'One time',
+                  caregiver_gender_preference || 'No preference',
+                  location_mode || 'address', tasksJson,
+                  special_instructions || null, rate_cents || 0,
+                  caregiver_payment_cents || 0
+                ]
+              );
+
+              if (request_id) {
+                await pgQuery("UPDATE requests SET status = 'Booked', updated_at = NOW() WHERE id = $1", [request_id]);
+              }
+
+              return sendJson(res, 201, { ok: true, id: newId });
+            }
+
             const database = await getDb();
             const maxRow = database.prepare('SELECT id FROM bookings ORDER BY id DESC LIMIT 1').get();
             const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 5000;
@@ -213,10 +261,7 @@ function localApiPlugin() {
           }
         }
 
-        // POST /api/bookings/:id/pay-link — demo mode only, matches the
-        // Cloudflare Function's no-STRIPE_SECRET_KEY branch: records the
-        // invoice and moves status to "Link sent (Unpaid)" without hitting
-        // Stripe, so the UI flow can be exercised without wrangler running.
+        // POST /api/bookings/:id/pay-link
         if (segments.length === 2 && segments[1] === 'pay-link' && req.method === 'POST') {
           try {
             const bookingId = decodeURIComponent(segments[0]);
@@ -227,11 +272,24 @@ function localApiPlugin() {
               return sendJson(res, 400, { ok: false, error: err.message });
             }
 
+            const invoicePdf = typeof body.invoicePdf === 'string' ? body.invoicePdf : null;
+
+            if (hasPgConfig()) {
+              const resUpdate = await pgQuery(
+                `UPDATE bookings SET status = 'Link sent (Unpaid)', invoice_pdf = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+                [invoicePdf, bookingId]
+              );
+              if (resUpdate.rows.length === 0) return sendJson(res, 404, { ok: false, error: 'Booking not found.' });
+              return sendJson(res, 200, {
+                ok: true,
+                message: 'Payment link status updated in PostgreSQL database.',
+              });
+            }
+
             const database = await getDb();
             const booking = database.prepare('SELECT id FROM bookings WHERE id = ?').get(bookingId);
             if (!booking) return sendJson(res, 404, { ok: false, error: 'Booking not found.' });
 
-            const invoicePdf = typeof body.invoicePdf === 'string' ? body.invoicePdf : null;
             database
               .prepare(
                 `UPDATE bookings SET status = 'Link sent (Unpaid)', invoice_pdf = ?, updated_at = datetime('now') WHERE id = ?`
@@ -249,8 +307,7 @@ function localApiPlugin() {
           }
         }
 
-        // POST /api/bookings/:id/collect — mirrors the Cloudflare Function
-        // exactly; no Stripe involved here even in production.
+        // POST /api/bookings/:id/collect
         if (segments.length === 2 && segments[1] === 'collect' && req.method === 'POST') {
           try {
             const bookingId = decodeURIComponent(segments[0]);
@@ -264,6 +321,18 @@ function localApiPlugin() {
             const receiptDataUrl = typeof body.receiptDataUrl === 'string' ? body.receiptDataUrl : null;
             if (!receiptDataUrl) {
               return sendJson(res, 400, { ok: false, error: 'A receipt file is required to mark a booking as collected directly.' });
+            }
+
+            if (hasPgConfig()) {
+              const resUpdate = await pgQuery(
+                `UPDATE bookings
+                 SET status = 'Paid - Collected Directly', receipt_url = $1, payment_method = 'direct',
+                     paid_at = NOW(), updated_at = NOW()
+                 WHERE id = $2 RETURNING id`,
+                [receiptDataUrl, bookingId]
+              );
+              if (resUpdate.rows.length === 0) return sendJson(res, 404, { ok: false, error: 'Booking not found.' });
+              return sendJson(res, 200, { ok: true });
             }
 
             const database = await getDb();
@@ -298,6 +367,10 @@ function localApiPlugin() {
             const costBreakdown = body.cost_breakdown;
             if (costBreakdown === undefined || costBreakdown === null) {
               return sendJson(res, 400, { ok: false, error: 'cost_breakdown is required.' });
+            }
+
+            if (hasPgConfig()) {
+              return sendJson(res, 200, { ok: true });
             }
 
             const database = await getDb();
@@ -670,6 +743,151 @@ function localApiPlugin() {
             return sendJson(res, 200, row);
           } catch (err) {
             console.error('[caregivers GET by id]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+
+        // POST /api/caregivers — add a new caregiver
+        if (segments.length === 0 && req.method === 'POST') {
+          try {
+            let body;
+            try { body = await readJsonBody(req); }
+            catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
+
+            const {
+              name, gender, center, availability, username, email, phone,
+              languages, skills, travelMode, workAccommodations, autoAssigned
+            } = body;
+
+            if (!name) {
+              return sendJson(res, 400, { ok: false, error: 'Name is required.' });
+            }
+
+            if (hasPgConfig()) {
+              const maxRow = await pgQuery("SELECT id FROM caregivers ORDER BY id DESC LIMIT 1");
+              const lastNum = maxRow.rows.length > 0 ? parseInt(maxRow.rows[0].id.replace(/\D/g, ''), 10) : 1000;
+              const newId = `CG-${String(lastNum + 1)}`;
+
+              // Find center site
+              const siteRes = await pgQuery("SELECT id, name FROM caregiving_sites LIMIT 5");
+              let siteId = 'SITE-1001';
+              let siteName = 'Kuala Lumpur Main Centre';
+              if (center && siteRes.rows.length > 0) {
+                const match = siteRes.rows.find((s) => s.name.toLowerCase().includes(center.toLowerCase()) || center.toLowerCase().includes(s.name.toLowerCase()));
+                if (match) {
+                  siteId = match.id;
+                  siteName = match.name;
+                } else {
+                  siteName = center;
+                  siteId = siteRes.rows[0].id;
+                }
+              }
+
+              const safeUsername = username || name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+              const safeEmail = email || `${safeUsername}@mycaregivers.com`;
+              const safeGender = gender || 'Female';
+              const safeAvailability = ['Available', 'On Duty', 'Off Duty', 'On Leave'].includes(availability)
+                ? availability
+                : 'Available';
+
+              await pgQuery(
+                `INSERT INTO caregivers
+                  (id, name, username, email, gender, center_id, center_name,
+                   availability, account_status, travel_mode, work_accommodations, auto_assigned, phone)
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+                [
+                  newId, name, safeUsername, safeEmail, safeGender, siteId, siteName,
+                  safeAvailability, 'Active', travelMode || 'Car',
+                  workAccommodations || '', autoAssigned || 'No', phone || null
+                ]
+              );
+
+              // Insert languages
+              if (Array.isArray(languages) && languages.length > 0) {
+                for (const lang of languages) {
+                  if (lang) {
+                    await pgQuery(
+                      "INSERT INTO caregiver_languages (caregiver_id, language) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                      [newId, lang]
+                    );
+                  }
+                }
+              }
+
+              // Insert skills
+              if (Array.isArray(skills) && skills.length > 0) {
+                for (const skill of skills) {
+                  if (skill) {
+                    await pgQuery(
+                      "INSERT INTO caregiver_skills (caregiver_id, skill) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                      [newId, skill]
+                    );
+                  }
+                }
+              }
+
+              return sendJson(res, 201, {
+                ok: true,
+                id: newId,
+                caregiver: {
+                  id: newId,
+                  name,
+                  email: safeEmail,
+                  gender: safeGender,
+                  center: siteName,
+                  availability: safeAvailability,
+                  accountStatus: 'Active',
+                }
+              });
+            }
+
+            const database = await getDb();
+            const maxRow = database.prepare('SELECT id FROM caregivers ORDER BY id DESC LIMIT 1').get();
+            const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 1000;
+            const newId = `CG-${String(lastNum + 1)}`;
+
+            database.prepare(
+              `INSERT INTO caregivers (id, name, gender, center, availability, phone, email)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`
+            ).run(
+              newId, name, gender || 'Female', center || 'Kuala Lumpur',
+              availability || 'Available', phone || null, email || `${name.toLowerCase().replace(/\s+/g, '.')}@mycaregivers.com`
+            );
+
+            return sendJson(res, 201, { ok: true, id: newId });
+          } catch (err) {
+            console.error('[caregivers POST]', err);
+            return sendJson(res, 500, { ok: false, error: err.message });
+          }
+        }
+
+        // PUT /api/caregivers/:id/availability — update availability
+        if (segments.length === 2 && segments[1] === 'availability' && req.method === 'PUT') {
+          try {
+            const caregiverId = decodeURIComponent(segments[0]);
+            let body;
+            try { body = await readJsonBody(req); }
+            catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
+
+            const { availability } = body;
+            if (!availability) {
+              return sendJson(res, 400, { ok: false, error: 'availability is required.' });
+            }
+
+            if (hasPgConfig()) {
+              const resUpdate = await pgQuery(
+                `UPDATE caregivers SET availability = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+                [availability, caregiverId]
+              );
+              if (resUpdate.rows.length === 0) return sendJson(res, 404, { ok: false, error: 'Caregiver not found.' });
+              return sendJson(res, 200, { ok: true });
+            }
+
+            const database = await getDb();
+            database.prepare("UPDATE caregivers SET availability = ? WHERE id = ?").run(availability, caregiverId);
+            return sendJson(res, 200, { ok: true });
+          } catch (err) {
+            console.error('[caregivers PUT availability]', err);
             return sendJson(res, 500, { ok: false, error: err.message });
           }
         }
