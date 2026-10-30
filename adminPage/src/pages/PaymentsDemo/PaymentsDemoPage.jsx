@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import StatusPill from '../../components/caregivers/StatusPill/StatusPill.jsx';
 import { Button, Card, CellStack, Pill, SectionHeader, StatCard, StatGrid, Table } from '../../../../shared/ui/index.js';
 import './PaymentsDemoPage.css';
 
-const initialPayments = [
-  { id: 'PAY-1001', patient: 'Nur Aisyah Rahman', caregiver: 'Sarah Tan', amount: 'RM 120.00', date: '28 Sep 2026', patientStatus: 'Payment link sent', caregiverStatus: 'Awaiting payout' },
-  { id: 'PAY-0998', patient: 'Daniel Lim', caregiver: 'Adam Tan', amount: 'RM 95.00', date: '26 Sep 2026', patientStatus: 'Receipt verified', caregiverStatus: 'Ready to pay' },
-  { id: 'PAY-0992', patient: 'Nadia Ismail', caregiver: 'Siti Aminah', amount: 'RM 110.00', date: '24 Sep 2026', patientStatus: 'Paid', caregiverStatus: 'Paid to caregiver' },
-];
-
 export default function PaymentsDemoPage() {
-  const [payments, setPayments] = useState(initialPayments);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/payments')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        setPayments(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn('Failed to load payments:', err);
+        setPayments([]);
+        setLoading(false);
+      });
+  }, []);
+
   const verify = (id) => setPayments((items) => items.map((item) => (item.id === id ? { ...item, patientStatus: 'Receipt verified', caregiverStatus: 'Ready to pay' } : item)));
   const payout = (id) => setPayments((items) => items.map((item) => (item.id === id ? { ...item, caregiverStatus: 'Paid to caregiver' } : item)));
 
@@ -21,7 +31,7 @@ export default function PaymentsDemoPage() {
 
   return (
     <div className="payments-demo-page">
-      <Topbar title="Payments" subtitle="Demo the patient payment and caregiver payout workflow." />
+      <Topbar title="Payments" subtitle="Review patient payment and caregiver payout records from the database." />
 
       <StatGrid>
         <StatCard label="Awaiting receipts" value={awaitingReceipts} note="Payment link sent to patient" icon="◌" tone="gold" />
@@ -31,13 +41,20 @@ export default function PaymentsDemoPage() {
 
       <Card padded>
         <SectionHeader
-          eyebrow="Mock payment gateway"
+          eyebrow="Payment gateway"
           title="Payment operations"
           intro="Review receipts, verify patient payments, and release caregiver payouts."
-          actions={<Pill tone="warning">Test mode · no real charges</Pill>}
+          actions={<Pill tone="success">Live Database</Pill>}
         />
 
         <Table columns={['Payment', 'Patient', 'Amount', 'Patient status', 'Caregiver payout', '']} label="Payments">
+          {payments.length === 0 && !loading && (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--color-ink-faint)' }}>
+                No payment records in the database yet.
+              </td>
+            </tr>
+          )}
           {payments.map((payment) => (
             <tr key={payment.id}>
               <td><CellStack primary={payment.id} secondary={payment.date} /></td>
@@ -53,7 +70,6 @@ export default function PaymentsDemoPage() {
             </tr>
           ))}
         </Table>
-        <p className="payments-demo-page__note">Demo only. This screen does not connect to Stripe or move money.</p>
       </Card>
     </div>
   );

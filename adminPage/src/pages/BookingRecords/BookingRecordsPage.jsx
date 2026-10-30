@@ -7,7 +7,7 @@ import CollectPaymentModal from '../../components/bookings/CollectPaymentModal/C
 import CostBreakdownModal from '../../components/bookings/CostBreakdownModal/CostBreakdownModal.jsx';
 import { buildInvoicePdf } from '../../utils/invoice.js';
 import { logAudit } from '../../../../shared/auditStore.js';
-import { mockCaregivers, fetchCaregivers } from '../../data/mockCaregivers.js';
+import { fetchCaregivers } from '../../data/mockCaregivers.js';
 import './BookingRecordsPage.css';
 import '../../components/bookings/CostBreakdownModal/CostBreakdownModal.css';
 

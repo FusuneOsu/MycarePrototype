@@ -17,7 +17,7 @@ export default function RequestsPage() {
 
   const refresh = useCallback(() => setRequests(listRequests()), []);
   useEffect(() => {
-    refreshCache(); // Fetch latest data from SQLite API
+    refreshCache().then(() => refresh()); // Fetch latest data from database API
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
@@ -34,7 +34,7 @@ export default function RequestsPage() {
       (source === 'All' || request.source === source)
       && (status === 'All' || request.status === status)
       && (!term || `${request.id} ${request.patientName} ${request.phone} ${request.area} ${request.careType}`.toLowerCase().includes(term)));
-  }, [requests, requests, source, status, search]);
+  }, [requests, source, status, search]);
 
   return (
     <div className="requests-page">

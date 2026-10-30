@@ -1,195 +1,27 @@
-﻿// Seed requests and bookings so the Requests queue, the calendar and the
-// caregiver's job list all have (the same) data on a fresh browser. Dates are
-// relative to today so the demo never goes stale. Idempotent: it only adds
-// missing demo records, so anything you create is never overwritten.
+// demoBookings.js — All dummy data removed. Only live database data is used.
 import {
-  BOOKING_STATUS, BOOKING_STORE_KEYS, REQUESTS_KEY, REQUEST_STATUS, BOOKINGS_KEY,
-  SERVICE_RATES, endTimeOf, localDate, buildCostBreakdown,
+  BOOKING_STORE_KEYS,
 } from './bookingStore.js';
 
 const SEED_VERSION_KEY = 'mycare.demoBookings.version';
-const SEED_VERSION = '4';
-const hoursAgo = (hours) => new Date(Date.now() - hours * 3600000).toISOString();
 
-const REQUESTS = [
-  {
-    id: 'WA-REQ-1001', source: 'WhatsApp', status: REQUEST_STATUS.new, receivedAt: hoursAgo(1),
-    patientName: 'Nur Aisyah Rahman', phone: '+60 12-345 6789',
-    address: '24 Jalan Damai, Kampung Datuk Keramat, 54000 Kuala Lumpur', area: 'Kuala Lumpur City', lat: 3.1641, lng: 101.7295,
-    careType: 'Post-operative care', preferredDate: localDate(7), preferredStart: '10:00', durationMins: 120, preferredGender: 'Female',
-    notes: 'Needs help with mobility, medication reminders, and wound-care observation after knee surgery.',
-  },
-  {
-    id: 'WEB-REQ-1002', source: 'Website', status: REQUEST_STATUS.review, receivedAt: hoursAgo(20),
-    patientName: 'Daniel Lim', phone: '+60 17-221 4480',
-    address: '8 Jalan SS 15/4, 47500 Subang Jaya', area: 'Subang Jaya', lat: 3.0751, lng: 101.5877,
-    careType: 'Elderly care', preferredDate: localDate(8), preferredStart: '09:00', durationMins: 180, preferredGender: 'No preference',
-    notes: 'Father has mild dementia and prefers a calm, patient caregiver. Ground-floor unit, no stairs.',
-  },
-  {
-    id: 'WA-REQ-0998', source: 'WhatsApp', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(70),
-    patientName: 'Nadia Ismail', phone: '+60 19-876 5501',
-    address: '15 Jalan 17/29, Seksyen 17, 46400 Petaling Jaya', area: 'Petaling Jaya', lat: 3.1215, lng: 101.6360,
-    careType: 'Physiotherapy support', preferredDate: localDate(3), preferredStart: '14:00', durationMins: 60, preferredGender: 'Female',
-    notes: 'Post-stroke mobility exercises. Please bring a resistance band.',
-    booking: { caregiverId: 'CG-1004', caregiverName: 'Siti Aminah' },
-  },
-  {
-    id: 'WEB-REQ-0995', source: 'Website', status: REQUEST_STATUS.rejected, receivedAt: hoursAgo(96),
-    statusReason: 'Asked for a single 15-minute reminder call; our minimum home visit is 1 hour.',
-    patientName: 'Sofia Hassan', phone: '+60 11-3350 7712',
-    address: '3 Jalan Cheras Hartamas, 56100 Cheras', area: 'Cheras', lat: 3.0900, lng: 101.7450,
-    careType: 'Medication management', preferredDate: localDate(5), preferredStart: '11:00', durationMins: 60, preferredGender: 'No preference',
-    notes: 'Medication reminder only.',
-  },
-  // Today's jobs for the demo caregiver, Sarah Tan (CG-1013).
-  {
-    id: 'WA-REQ-0991', source: 'WhatsApp', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(120),
-    patientName: 'Mei Ling', phone: '+60 12-610 3321',
-    address: '18 Jalan Desa Bakti, Taman Desa, 58100 Kuala Lumpur', area: 'Kuala Lumpur City', lat: 3.1027, lng: 101.6852,
-    careType: 'Medication management', preferredDate: localDate(0), preferredStart: '08:30', durationMins: 45, preferredGender: 'Female',
-    notes: 'Morning medication and a quick wellbeing check. Emergency contact: Daniel Ling, 012-345 6789.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-  },
-  {
-    id: 'WEB-REQ-0989', source: 'Website', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(118),
-    patientName: 'Ahmad Ibrahim', phone: '+60 13-448 9012',
-    address: '22 Jalan Telawi 5, Bangsar Baru, 59100 Kuala Lumpur', area: 'Bangsar', lat: 3.1310, lng: 101.6710,
-    careType: 'Physiotherapy support', preferredDate: localDate(0), preferredStart: '10:30', durationMins: 60, preferredGender: 'No preference',
-    notes: 'Knee-strengthening routine from his physiotherapist. Parking is at the back lane.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-  },
-  {
-    id: 'WA-REQ-0987', source: 'WhatsApp', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(110),
-    patientName: 'Lily Wong', phone: '+60 16-720 5518',
-    address: '9 Jalan Seputeh, Taman Seputeh, 58000 Kuala Lumpur', area: 'Kuala Lumpur City', lat: 3.1142, lng: 101.6846,
-    careType: 'Elderly care', preferredDate: localDate(0), preferredStart: '14:00', durationMins: 90, preferredGender: 'Female',
-    notes: 'Grocery run and companionship. Enjoys a short walk to the park if the weather is fine.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-  },
-  // A couple of completed visits keep the caregiver's reports and payment
-  // history useful on a fresh demo account.
-  {
-    id: 'WEB-REQ-0982', source: 'Website', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(168),
-    patientName: 'Tan Ah Kow', phone: '+60 12-554 2190',
-    address: '31 Jalan 19/6, Seksyen 19, 46300 Petaling Jaya', area: 'Petaling Jaya', lat: 3.1018, lng: 101.6252,
-    careType: 'Post-operative care', preferredDate: localDate(-2), preferredStart: '09:00', durationMins: 120, preferredGender: 'No preference',
-    notes: 'Support with safe transfers and recovery exercises after hip surgery.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-    bookingStatus: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
-  },
-  {
-    id: 'WA-REQ-0979', source: 'WhatsApp', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(240),
-    patientName: 'Rosnah Abdullah', phone: '+60 13-908 4421',
-    address: '7 Jalan SS 2/64, 47300 Petaling Jaya', area: 'Petaling Jaya', lat: 3.1178, lng: 101.6224,
-    careType: 'Elderly care', preferredDate: localDate(-5), preferredStart: '11:00', durationMins: 90, preferredGender: 'Female',
-    notes: 'Morning wellbeing check, light meal preparation, and companionship.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-    bookingStatus: BOOKING_STATUS.serviceCompleted, receiptStatus: 'Receipt verified', payoutStatus: 'Paid',
-  },
-  {
-    id: 'WEB-REQ-0976', source: 'Website', status: REQUEST_STATUS.booked, receivedAt: hoursAgo(260),
-    patientName: 'Farah Zainal', phone: '+60 17-440 7821',
-    address: '12 Jalan SS 21/39, Damansara Utama, 47400 Petaling Jaya', area: 'Petaling Jaya', lat: 3.1335, lng: 101.6220,
-    careType: 'Medication management', preferredDate: localDate(2), preferredStart: '08:00', durationMins: 60, preferredGender: 'Female',
-    notes: 'Medication reconciliation and blood pressure check before the family leaves for work.',
-    booking: { caregiverId: 'CG-1013', caregiverName: 'Sarah Tan' },
-  },
-];
+// Dummy requests removed: all data must come from the live database.
+export const REQUESTS = [];
 
 export function seedBookingData() {
-  const seededVersion = window.localStorage.getItem(SEED_VERSION_KEY);
-
-  // Refresh only records owned by this demo seed. User-created requests and
-  // bookings remain untouched when an existing browser gets a new seed.
-  const requests = JSON.parse(window.localStorage.getItem(REQUESTS_KEY) || '{}');
-  const bookings = JSON.parse(window.localStorage.getItem(BOOKINGS_KEY) || '{}');
-  const demoRequestIds = new Set(REQUESTS.map((request) => request.id));
-  if (seededVersion !== SEED_VERSION) Object.keys(requests).filter((id) => demoRequestIds.has(id)).forEach((id) => {
-    const bookingId = requests[id].bookingId;
-    if (bookingId) delete bookings[bookingId];
-    delete requests[id];
-  });
-  window.localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
-  window.localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-  seedFreshBookings();
-  window.localStorage.setItem(SEED_VERSION_KEY, SEED_VERSION);
-}
-
-function seedFreshBookings() {
-  const existingRequests = JSON.parse(window.localStorage.getItem(REQUESTS_KEY) || '{}');
-  const existingBookings = JSON.parse(window.localStorage.getItem(BOOKINGS_KEY) || '{}');
-  const requests = {};
-  const bookings = {};
-  const highestBookingId = Object.keys(existingBookings)
-    .map((id) => Number(String(id).match(/^BK-(\d+)$/)?.[1] || 0))
-    .reduce((highest, id) => Math.max(highest, id), 7000);
-  let nextId = highestBookingId + 1;
-
-  REQUESTS.forEach(({ booking: assignment, bookingStatus, receiptStatus, payoutStatus, ...request }) => {
-    const existingRequest = existingRequests[request.id];
-    if (existingRequest?.bookingId && existingBookings[existingRequest.bookingId]) return;
-
-    requests[request.id] = { ...request, statusReason: request.statusReason || '', bookingId: '', updatedAt: request.receivedAt };
-    if (!assignment) return;
-
-    const id = `BK-${nextId++}`;
-    const rate = SERVICE_RATES[request.careType] || 40;
-    // Build a sample cost breakdown for seeded bookings
-    const sampleDistance = { 'Kuala Lumpur City': 5.2, 'Petaling Jaya': 3.1, 'Subang Jaya': 8.7, Cheras: 6.4, Bangsar: 2.8 }[request.area] || 4.0;
-    const costBreakdown = buildCostBreakdown({
-      serviceType: request.careType,
-      durationMins: request.durationMins,
-      distanceKm: sampleDistance,
-      tollFee: request.area === 'Bangsar' || request.area === 'Kuala Lumpur City' ? 2.0 : 0,
-    });
-    requests[request.id].bookingId = id;
-    bookings[id] = {
-      id,
-      requestId: request.id,
-      source: request.source,
-      patientName: request.patientName,
-      patientPhone: request.phone,
-      address: request.address,
-      area: request.area,
-      lat: request.lat,
-      lng: request.lng,
-      serviceType: request.careType,
-      preferredGender: request.preferredGender,
-      notes: request.notes,
-      caregiverId: assignment.caregiverId,
-      caregiverName: assignment.caregiverName,
-      date: request.preferredDate,
-      startTime: request.preferredStart,
-      endTime: endTimeOf(request.preferredStart, request.durationMins),
-      durationMins: request.durationMins,
-      // Appointment fields merged into bookings
-      appointmentType: 'Home Visit',
-      bookingType: 'One time',
-      caregiverGenderPreference: request.preferredGender || 'No preference',
-      locationMode: 'address',
-      tasks: [],
-      specialInstructions: request.notes || '',
-      rate,
-      price: costBreakdown.total,
-      caregiverPayout: costBreakdown.caregiverPayout.subtotal,
-      costBreakdown: JSON.stringify(costBreakdown),
-      status: bookingStatus || BOOKING_STATUS.confirmed,
-      receiptStatus: receiptStatus || 'Receipt pending',
-      payoutStatus: payoutStatus || 'Awaiting payout',
-      createdAt: request.receivedAt,
-      updatedAt: request.receivedAt,
-      history: [{ at: request.receivedAt, action: bookingStatus || BOOKING_STATUS.confirmed, reason: '' }],
-    };
-  });
-
-  const mergedRequests = { ...existingRequests, ...requests };
-  const mergedBookings = { ...existingBookings, ...bookings };
-  window.localStorage.setItem(REQUESTS_KEY, JSON.stringify(mergedRequests));
-  window.localStorage.setItem(BOOKINGS_KEY, JSON.stringify(mergedBookings));
+  // Ensure legacy seeded demo bookings are cleaned up so only live database records show
+  const version = typeof window !== 'undefined' ? window.localStorage.getItem(SEED_VERSION_KEY) : null;
+  if (version !== 'database-only') {
+    resetBookingData();
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SEED_VERSION_KEY, 'database-only');
+    }
+  }
 }
 
 export function resetBookingData() {
-  BOOKING_STORE_KEYS.forEach((key) => window.localStorage.removeItem(key));
-  window.localStorage.removeItem(SEED_VERSION_KEY);
+  if (typeof window !== 'undefined') {
+    BOOKING_STORE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.removeItem(SEED_VERSION_KEY);
+  }
 }

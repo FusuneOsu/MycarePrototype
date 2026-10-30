@@ -47,16 +47,34 @@ function CaregiversPage() {
 
   // Admin-added caregivers are already vetted, so they go straight in as Active
   // — and are saved, so they survive a reload and reach the booking pool.
-  const handleCreateCaregiver = (newCaregiver) => {
+  const handleCreateCaregiver = async (newCaregiver) => {
+    try {
+      await fetch('/api/caregivers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCaregiver),
+      });
+    } catch (err) {
+      console.warn('[handleCreateCaregiver] API error:', err.message);
+    }
     saveManualCaregiver(newCaregiver);
-    load();
+    await load();
   };
 
-  const handleAvailabilityChange = (caregiverId, availability) => {
+  const handleAvailabilityChange = async (caregiverId, availability) => {
     const caregiver = caregivers.find((item) => item.id === caregiverId);
     if (!caregiver) return;
+    try {
+      await fetch(`/api/caregivers/${encodeURIComponent(caregiverId)}/availability`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availability }),
+      });
+    } catch (err) {
+      console.warn('[handleAvailabilityChange] API error:', err.message);
+    }
     setAvailability(caregiver.email, availability);
-    load();
+    await load();
   };
 
   const handleHold = (caregiver, state, reason) => {
