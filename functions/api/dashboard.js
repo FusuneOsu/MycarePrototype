@@ -8,7 +8,7 @@ export async function onRequestGet(context) {
   try {
     // 1. Bookings aggregation
     const { results: bookings } = await env.DB.prepare(
-      `SELECT id, date, status, rate_cents, service_type, caregiver_name,
+      `SELECT id, date, status, rate_cents, cost_breakdown, service_type, caregiver_name,
               caregiver_id, appointment_type
        FROM bookings
        ORDER BY date DESC`

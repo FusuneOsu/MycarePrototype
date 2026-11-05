@@ -9,6 +9,7 @@ Backend and storage handoff for the admin-authored patient price calculation. Th
 - Each line item is `{ "id", "label", "note", "expression" }`. On a saved slate, the server also returns its calculated `amount_cents` and `amount`.
 - Each expression is evaluated by a small allowlisted arithmetic parser. It supports decimal numbers, parentheses, unary `+`/`-`, and `+`, `-`, `*`, `/`. It does not use JavaScript `eval` and rejects functions, property access, unknown names, non-finite results, and division by zero.
 - Supported variables: `rate` (RM per hour), `duration_mins`, `duration_hrs`, `branch_facility_fee` (RM), and `subtotal` (sum of prior rows, in RM). Row results round to the nearest sen; negative rows are allowed for discounts, but the final total cannot be negative.
+- Rate compatibility: new booking writes convert hourly RM to cents. For older rows, `rate_cents` values below 1,000 are interpreted as raw RM/hour values (legacy creator behavior); values of 1,000 or more are interpreted as cents. This is a transitional rule for the existing mixed data.
 - Maximum 100 rows; labels up to 120 characters; notes up to 500; expressions up to 256 characters.
 
 When a slate is saved, its total and line items are also snapshotted in `bookings.cost_breakdown` as:

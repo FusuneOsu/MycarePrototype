@@ -1,0 +1,96 @@
+.price-slate-receipt {
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.price-slate-receipt__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.price-slate-receipt__heading p {
+  margin: 0 0 7px;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.1em;
+}
+
+.price-slate-receipt__heading h3 {
+  margin: 0 0 4px;
+  font-size: var(--fs-md);
+}
+
+.price-slate-receipt__heading span,
+.price-slate-receipt__booking {
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.price-slate-receipt__booking {
+  white-space: nowrap;
+}
+
+.price-slate-receipt__items {
+  display: grid;
+  padding: 5px 0;
+}
+
+.price-slate-receipt__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-slate-receipt__item > div {
+  min-width: 0;
+}
+
+.price-slate-receipt__item strong {
+  display: block;
+  font-size: var(--fs-sm);
+}
+
+.price-slate-receipt__item small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.price-slate-receipt__item > span {
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+
+.price-slate-receipt__empty {
+  margin: 12px 0;
+  color: var(--color-ink-faint);
+  font-size: var(--fs-sm);
+}
+
+.price-slate-receipt__total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-slate-receipt__notice {
+  margin: 10px 0 0;
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}

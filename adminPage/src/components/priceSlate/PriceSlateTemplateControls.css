@@ -1,0 +1,75 @@
+.price-slate-templates {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.price-slate-templates__apply,
+.price-slate-templates__save {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.price-slate-templates label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.price-slate-templates label > span {
+  color: var(--color-ink-soft);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+
+.price-slate-templates input,
+.price-slate-templates select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.price-slate-templates button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.price-slate-templates button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.price-slate-templates .price-slate-templates__delete {
+  color: var(--color-danger, #b42318);
+}
+
+.price-slate-templates__error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: var(--fs-xs);
+}
+
+@media (max-width: 640px) {
+  .price-slate-templates__apply,
+  .price-slate-templates__save {
+    grid-template-columns: 1fr 1fr;
+  }
+  .price-slate-templates label {
+    grid-column: 1 / -1;
+  }
+}

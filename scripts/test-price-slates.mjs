@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { registerPriceSlateApi } from './price-slate-api.mjs';
+import { hourlyRateToCents, rateCentsToCents, rateCentsToRm } from '../shared/pricing.js';
 import {
   calculatePriceSlate, compilePriceFormula, evaluatePriceFormula, normalizePriceTemplateItems,
 } from '../functions/_shared/priceSlateUtils.js';
@@ -12,6 +13,10 @@ assert.equal(evaluatePriceFormula('subtotal * 0.06', { subtotal: 80 }), 4.8);
 assert.throws(() => evaluatePriceFormula('1 / 0'), /divide by zero/i);
 assert.throws(() => compilePriceFormula('process.exit()'), /Unexpected character|Unknown variable/i);
 assert.throws(() => compilePriceFormula('rate + unknown_value'), /Unknown variable/i);
+assert.equal(rateCentsToRm(45), 45);
+assert.equal(rateCentsToRm(6000), 60);
+assert.equal(rateCentsToCents(45), 4500);
+assert.equal(hourlyRateToCents(45), 4500);
 
 const booking = { rate_cents: 4000, duration_mins: 120, branch_facility_fee_cents: 1000 };
 const calculated = calculatePriceSlate([
@@ -24,6 +29,9 @@ assert.equal(calculated.ok, true);
 assert.deepEqual(calculated.items.map((item) => item.amount_cents), [8000, 1000, 450, -250]);
 assert.equal(calculated.total_cents, 9200);
 assert.equal(calculated.total, 92);
+assert.equal(calculatePriceSlate([{ label: 'Hourly', expression: 'rate' }], {
+  rate_cents: 45, duration_mins: 60,
+}).total_cents, 4500);
 
 const badFormula = calculatePriceSlate([{ label: 'Bad row', expression: 'rate / 0' }], booking);
 assert.equal(badFormula.ok, false);

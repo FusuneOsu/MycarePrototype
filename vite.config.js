@@ -1254,8 +1254,11 @@ function localApiPlugin() {
                           b.start_time::text AS start_time, b.end_time::text AS end_time,
                            b.duration_mins, b.location, b.status, b.caregiver_id, b.caregiver_name,
                            b.branch_id, b.branch_name,
-                          b.service_type, (b.rate_cents / 100.0)::numeric(10,2) AS rate,
-                          (b.rate_cents / 100.0)::numeric(10,2) AS price,
+                           b.service_type, b.rate_cents, b.cost_breakdown,
+                           (CASE WHEN b.rate_cents > 0 AND b.rate_cents < 1000
+                             THEN b.rate_cents::numeric ELSE b.rate_cents / 100.0 END)::numeric(10,2) AS rate,
+                           (CASE WHEN b.rate_cents > 0 AND b.rate_cents < 1000
+                             THEN b.rate_cents::numeric ELSE b.rate_cents / 100.0 END)::numeric(10,2) AS price,
                           (b.caregiver_payout_cents / 100.0)::numeric(10,2) AS caregiver_payout
                    FROM bookings b
                    ORDER BY b.date DESC`

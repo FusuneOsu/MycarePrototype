@@ -1,3 +1,5 @@
+import { rateCentsToRm } from '../../shared/pricing.js';
+
 const ALLOWED_VARIABLES = new Set([
   'rate',
   'duration_mins',
@@ -189,7 +191,7 @@ export function calculatePriceSlate(input, booking = {}) {
   if (!normalized.ok) return normalized;
 
   const variables = {
-    rate: Number(booking.rate_cents || 0) / 100,
+    rate: rateCentsToRm(booking.rate_cents),
     duration_mins: Number(booking.duration_mins || 0),
     duration_hrs: Number(booking.duration_mins || 0) / 60,
     branch_facility_fee: Number(booking.branch_facility_fee_cents || 0) / 100,
