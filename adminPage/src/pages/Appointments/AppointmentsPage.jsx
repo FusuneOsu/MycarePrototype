@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import MonthView from '../../components/appointments/MonthView.jsx';
 import WeekView from '../../components/appointments/WeekView.jsx';
@@ -6,6 +7,7 @@ import DayView from '../../components/appointments/DayView.jsx';
 import EditAppointmentModal from '../../components/appointments/EditAppointmentModal.jsx';
 import { Input, Segmented, Select, StatCard, StatGrid, Toolbar } from '../../../../shared/ui/index.js';
 import { fetchAppointments, updateAppointment } from '../../api/appointments.js';
+import { fetchBranches } from '../../api/branches.js';
 import { toISODate, toApiFormat, normalizeAppointment, formatDateLabel, STATUS_OPTIONS } from '../../utils/appointmentUtils.js';
 import './AppointmentsPage.css';
 
@@ -17,16 +19,30 @@ function AppointmentsPage() {
   const [patientFilter, setPatientFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [branches, setBranches] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const branchFilter = searchParams.get('branch_id') || '';
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const loadAppointments = useCallback(() => {
-    fetchAppointments()
+    fetchAppointments(branchFilter)
       .then((data) => setAppointments(data.map(normalizeAppointment)))
       .catch((err) => { console.error('Failed:', err); setAppointments([]); });
-  }, []);
+  }, [branchFilter]);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
+
+  useEffect(() => {
+    fetchBranches().then(setBranches).catch((err) => console.warn('[AppointmentsPage] Branch list unavailable:', err.message));
+  }, []);
+
+  const handleBranchFilter = (value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('branch_id', value);
+    else next.delete('branch_id');
+    setSearchParams(next, { replace: true });
+  };
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((a) => {
@@ -78,6 +94,10 @@ function AppointmentsPage() {
             <option value="All">All appointment types</option>
             <option value="Home Visit">Home Visit</option>
             <option value="Care Center">Care Center</option>
+          </Select>
+          <Select size="sm" value={branchFilter} onChange={(e) => handleBranchFilter(e.target.value)} aria-label="Filter by branch">
+            <option value="">All branches</option>
+            {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
           </Select>
         </Toolbar>
 

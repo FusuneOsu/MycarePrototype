@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { CAREGIVING_SITES } from '../../../../shared/careVocabulary.js';
 import './LocationMap.css';
 
 // Fix default marker icon (webpack/vite bundling issue with Leaflet's default icons).
@@ -56,8 +55,6 @@ function FlyTo({ lat, lng }) {
  *   onChange(lat, lng)   — called when user clicks/drags the marker
  *   readOnly             — if true, marker is not draggable and map cannot be clicked
  *   height               — CSS height (default '250px')
- *   showSiteSelector     — show a dropdown to pick from caregiving sites
- *   siteSelectorLabel    — label for the site dropdown
  *   showOpenInGmaps      — show a link to open coordinates in Google Maps
  */
 export default function LocationMap({
@@ -66,27 +63,20 @@ export default function LocationMap({
   onChange,
   readOnly = false,
   height = '250px',
-  showSiteSelector = false,
-  siteSelectorLabel = 'Select a caregiving site',
   showOpenInGmaps = false,
 }) {
-  const [lat, setLat] = useState(latitude != null ? Number(latitude) : null);
-  const [lng, setLng] = useState(longitude != null ? Number(longitude) : null);
-  const [sites, setSites] = useState(CAREGIVING_SITES);
-
-  // Fetch sites from the API on mount (overrides static list with DB data).
-  useEffect(() => {
-    fetch('/api/caregiving-sites')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setSites(data); })
-      .catch(() => { /* fall back to static CAREGIVING_SITES */ });
-  }, []);
+  const hasInitialCoords = latitude !== '' && longitude !== '' && latitude != null && longitude != null;
+  const [lat, setLat] = useState(hasInitialCoords ? Number(latitude) : null);
+  const [lng, setLng] = useState(hasInitialCoords ? Number(longitude) : null);
 
   // Sync external lat/lng changes (e.g. from a loaded appointment).
   useEffect(() => {
-    if (latitude != null && longitude != null) {
+    if (latitude !== '' && longitude !== '' && latitude != null && longitude != null) {
       setLat(Number(latitude));
       setLng(Number(longitude));
+    } else {
+      setLat(null);
+      setLng(null);
     }
   }, [latitude, longitude]);
 
@@ -99,39 +89,11 @@ export default function LocationMap({
     if (onChange) onChange(nLat, nLng);
   };
 
-  const handleSiteSelect = (e) => {
-    const siteId = e.target.value;
-    if (!siteId) return;
-    const site = sites.find((s) => s.id === siteId);
-    if (site) {
-      const nLat = Number(site.latitude);
-      const nLng = Number(site.longitude);
-      setLat(nLat);
-      setLng(nLng);
-      if (onChange) onChange(nLat, nLng);
-    }
-  };
-
   const hasCoords = lat != null && lng != null;
   const openInGmapsUrl = hasCoords ? `https://www.google.com/maps?q=${lat},${lng}` : null;
 
   return (
     <div className="location-map" style={{ height }}>
-      {showSiteSelector && (
-        <div className="location-map__site-selector">
-          <label>{siteSelectorLabel}</label>
-          <select onChange={handleSiteSelect} defaultValue="">
-            <option value="" disabled>— Choose a site —</option>
-            {sites.map((site) => (
-              <option key={site.id} value={site.id}>
-                {site.name} — {site.area}
-              </option>
-            ))}
-            <option value="custom">Custom pinpoint (click on map)</option>
-          </select>
-        </div>
-      )}
-
       <MapContainer
         center={hasCoords ? [lat, lng] : defaultCenter}
         zoom={hasCoords ? 14 : defaultZoom}

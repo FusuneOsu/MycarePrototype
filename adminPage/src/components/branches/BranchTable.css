@@ -1,0 +1,9 @@
+.branch-table__address {
+  min-width: 220px;
+}
+
+.branch-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

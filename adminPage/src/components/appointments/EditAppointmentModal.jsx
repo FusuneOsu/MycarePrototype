@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Modal from '../common/Modal/Modal.jsx';
 import LocationMap from '../map/LocationMap.jsx';
+import BranchSelect from '../branches/BranchSelect.jsx';
 import { Button } from '../../../../shared/ui/index.js';
 import { STATUS_OPTIONS } from '../../utils/appointmentUtils.js';
 
@@ -142,6 +143,20 @@ export default function EditAppointmentModal({ isOpen, appointment, onClose, onS
               <option value="center">Care center</option>
             </select>
           </div>
+          <div className="form-field">
+            <BranchSelect
+              label="Branch"
+              value={form.branchId || ''}
+              onChange={(branch) => {
+                handleFieldChange('branchId', branch?.id || null);
+                if (branch && form.appointmentType === 'Care Center') {
+                  handleFieldChange('locationText', branch.address || branch.service_area || '');
+                  handleFieldChange('latitude', Number(branch.latitude));
+                  handleFieldChange('longitude', Number(branch.longitude));
+                }
+              }}
+            />
+          </div>
           <div className="form-field form-field--full">
             <label>Location / Address</label>
             <input
@@ -196,7 +211,6 @@ export default function EditAppointmentModal({ isOpen, appointment, onClose, onS
                 handleFieldChange('longitude', lng);
               }}
               height="280px"
-              showSiteSelector
               showOpenInGmaps
             />
           </div>

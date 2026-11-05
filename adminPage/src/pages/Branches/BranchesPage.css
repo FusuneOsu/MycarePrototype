@@ -1,0 +1,14 @@
+.branches-page {
+  display: grid;
+  gap: 18px;
+}
+
+.branches-page__body {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.branches-page__loading {
+  color: var(--color-ink-soft);
+}

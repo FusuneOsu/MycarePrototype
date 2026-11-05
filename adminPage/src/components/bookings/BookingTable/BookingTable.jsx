@@ -46,6 +46,7 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
             <th>Patient</th>
             <th>Caregiver</th>
             <th>Date/Time</th>
+            <th>Branch</th>
             <th>Duration</th>
             <th>Location</th>
             <th>Service type</th>
@@ -63,6 +64,7 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
               <td>{booking.patient_name}</td>
               <td>{booking.caregiver_name}</td>
               <td>{formatDateTime(`${booking.date}T${booking.start_time}`)}</td>
+              <td>{booking.branch_name || '—'}</td>
               <td>{formatDuration(booking.duration_mins)}</td>
               <td>{booking.location}</td>
               <td>{booking.service_type}</td>

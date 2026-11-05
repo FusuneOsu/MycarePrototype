@@ -1,0 +1,31 @@
+.branch-toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: var(--fs-sm);
+}
+
+.branch-toast--success {
+  color: #075e43;
+  background: #e8f7f0;
+  border-color: #b8e6d2;
+}
+
+.branch-toast--error {
+  color: #8f1d17;
+  background: #fff0ef;
+  border-color: #f4c6c3;
+}
+
+.branch-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}

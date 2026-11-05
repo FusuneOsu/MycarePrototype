@@ -3,8 +3,8 @@ import {
   formatDuration,
   buildCostBreakdown, overrideCostBreakdown,
 } from '../../../../../shared/bookingStore.js';
-import { getSiteById } from '../../../../../shared/careVocabulary.js';
 import { Modal } from '../../../../../shared/ui/Modal.jsx';
+import { fetchBranch } from '../../../api/branches.js';
 
 const fmt = (n) => Number(n || 0).toFixed(2);
 
@@ -65,60 +65,70 @@ export default function CostBreakdownModal({ booking, caregiver, onSave, onClose
   const [hourlyRate, setHourlyRate] = useState(40);
   const [travelAllowance, setTravelAllowance] = useState(0);
   const [siteFee, setSiteFee] = useState(0);
+  const [baseBranch, setBaseBranch] = useState(null);
 
   // Initialise from existing breakdown or build a fresh one
   useEffect(() => {
     if (!booking) return;
+    let active = true;
 
-    const raw = booking.costBreakdown || booking.cost_breakdown;
-    let existing = null;
-    if (raw && typeof raw === 'object') existing = raw;
-    else if (raw && typeof raw === 'string') {
-      try { existing = JSON.parse(raw); } catch { /* ignore */ }
-    }
+    const initialize = async () => {
+      const raw = booking.costBreakdown || booking.cost_breakdown;
+      let existing = null;
+      if (raw && typeof raw === 'object') existing = raw;
+      else if (raw && typeof raw === 'string') {
+        try { existing = JSON.parse(raw); } catch { /* ignore */ }
+      }
 
-    // Compute auto distance from caregiver's base site to patient location
-    const baseSiteId = caregiver?.baseSiteId;
-    const patientLat = booking.lat || booking.latitude;
-    const patientLng = booking.lng || booking.longitude;
-    let autoDistance = 0;
-    if (baseSiteId && patientLat != null && patientLng != null) {
-      const site = getSiteById(baseSiteId);
-      if (site) {
+      const branchId = caregiver?.branch_id || caregiver?.branchId || caregiver?.baseSiteId;
+      let branch = null;
+      if (branchId) {
+        try { branch = await fetchBranch(branchId); } catch { /* branch may have been deleted */ }
+      }
+      if (!active) return;
+      setBaseBranch(branch);
+
+      const patientLat = booking.lat || booking.latitude;
+      const patientLng = booking.lng || booking.longitude;
+      let autoDistance = 0;
+      if (branch && patientLat != null && patientLng != null) {
         const rad = (deg) => (deg * Math.PI) / 180;
-        const dLat = rad(patientLng - site.longitude);
-        const dLng = rad(patientLat - site.latitude);
-        const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(site.latitude)) * Math.cos(rad(patientLat)) * Math.sin(dLng / 2) ** 2;
+        const dLat = rad(patientLat - Number(branch.latitude));
+        const dLng = rad(patientLng - Number(branch.longitude));
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(Number(branch.latitude))) * Math.cos(rad(patientLat)) * Math.sin(dLng / 2) ** 2;
         autoDistance = Math.round(6371 * 2 * Math.asin(Math.sqrt(h)) * 10) / 10;
       }
-    }
 
-    if (existing) {
-      setBreakdown(existing);
-      setDistanceKm(existing.travelCost?.distanceKm || autoDistance);
-      setTravelBaseFee(existing.travelCost?.baseFee || 0);
-      setTravelRatePerKm(existing.travelCost?.ratePerKm || 1.50);
-      setTollFee(existing.travelCost?.tollFee || 0);
-      setHourlyRate(existing.serviceFee?.hourlyRate || booking.rate || 40);
-      setTravelAllowance(existing.caregiverPayout?.travelAllowance || 0);
-      setSiteFee(existing.siteFee?.facilityFee || 0);
-    } else {
-      const fresh = buildCostBreakdown({
-        serviceType: booking.serviceType || booking.service_type,
-        durationMins: booking.durationMins || booking.duration_mins || 60,
-        distanceKm: autoDistance,
-        tollFee: 0,
-        siteFee: 0,
-      });
-      setBreakdown(fresh);
-      setDistanceKm(autoDistance);
-      setTravelBaseFee(fresh.travelCost.baseFee);
-      setTravelRatePerKm(fresh.travelCost.ratePerKm);
-      setTollFee(0);
-      setHourlyRate(fresh.serviceFee.hourlyRate);
-      setTravelAllowance(fresh.caregiverPayout.travelAllowance);
-      setSiteFee(0);
-    }
+      if (existing) {
+        setBreakdown(existing);
+        setDistanceKm(existing.travelCost?.distanceKm || autoDistance);
+        setTravelBaseFee(existing.travelCost?.baseFee || 0);
+        setTravelRatePerKm(existing.travelCost?.ratePerKm || 1.50);
+        setTollFee(existing.travelCost?.tollFee || 0);
+        setHourlyRate(existing.serviceFee?.hourlyRate || booking.rate || 40);
+        setTravelAllowance(existing.caregiverPayout?.travelAllowance || 0);
+        setSiteFee(existing.siteFee?.facilityFee || 0);
+      } else {
+        const fresh = buildCostBreakdown({
+          serviceType: booking.serviceType || booking.service_type,
+          durationMins: booking.durationMins || booking.duration_mins || 60,
+          distanceKm: autoDistance,
+          tollFee: 0,
+          siteFee: 0,
+        });
+        setBreakdown(fresh);
+        setDistanceKm(autoDistance);
+        setTravelBaseFee(fresh.travelCost.baseFee);
+        setTravelRatePerKm(fresh.travelCost.ratePerKm);
+        setTollFee(0);
+        setHourlyRate(fresh.serviceFee.hourlyRate);
+        setTravelAllowance(fresh.caregiverPayout.travelAllowance);
+        setSiteFee(0);
+      }
+    };
+
+    initialize();
+    return () => { active = false; };
   }, [booking, caregiver]);
 
   // Recompute breakdown whenever any editable field changes
@@ -158,9 +168,9 @@ export default function CostBreakdownModal({ booking, caregiver, onSave, onClose
         <div className="cbm-summary">
           <span><strong>{booking.patientName || booking.patient_name}</strong></span>
           <span>{booking.serviceType || booking.service_type} · {formatDuration(booking.durationMins || booking.duration_mins || 60)}</span>
-          {caregiver?.baseSiteId && (
+          {(baseBranch || caregiver?.branch_id || caregiver?.branchId || caregiver?.baseSiteId) && (
             <span className="cbm-summary__site">
-              Base: {getSiteById(caregiver.baseSiteId)?.name || caregiver.baseSiteId}
+              Base: {baseBranch?.name || caregiver?.center || 'Unassigned'}
               {distanceKm > 0 && ` · ${distanceKm} km from patient`}
             </span>
           )}

@@ -116,7 +116,7 @@ function BookingRecordsPage() {
       const matchesStatus = status === 'All' || booking.status === status;
       const matchesSearch =
         !query ||
-        [booking.patient_name, booking.caregiver_name, booking.location]
+        [booking.patient_name, booking.caregiver_name, booking.location, booking.branch_name]
           .filter(Boolean)
           .some((field) => field.toLowerCase().includes(query));
       return matchesStatus && matchesSearch;

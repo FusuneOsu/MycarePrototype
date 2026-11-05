@@ -7,6 +7,9 @@ import CaregiversPage from './pages/Caregivers/CaregiversPage.jsx';
 import PatientRequestPage from './pages/PatientRequest/PatientRequestPage.jsx';
 import WhatsAppDemoPage from './pages/WhatsAppDemo/WhatsAppDemoPage.jsx';
 import PaymentsDemoPage from './pages/PaymentsDemo/PaymentsDemoPage.jsx';
+import BranchesPage from './pages/Branches/BranchesPage.jsx';
+import BranchDetailPage from './pages/Branches/BranchDetailPage.jsx';
+import BranchFormPage from './pages/Branches/BranchFormPage.jsx';
 import RequestsPage from './pages/Requests/RequestsPage.jsx';
 import BookingRecordsPage from './pages/BookingRecords/BookingRecordsPage.jsx';
 import AuditTrailPage from './pages/AuditTrail/AuditTrailPage.jsx';
@@ -80,6 +83,10 @@ function App() {
           <Route path="/requests" element={<RequestsPage />} />
           <Route path="/bookings" element={<BookingRecordsPage />} />
           <Route path="/caregivers" element={<CaregiversPage />} />
+          <Route path="/branches" element={<BranchesPage />} />
+          <Route path="/branches/new" element={<BranchFormPage />} />
+          <Route path="/branches/:id/edit" element={<BranchFormPage />} />
+          <Route path="/branches/:id" element={<BranchDetailPage />} />
           <Route path="/requests/:requestId" element={<PatientRequestPage />} />
           <Route path="/whatsapp" element={<WhatsAppDemoPage />} />
           <Route path="/audit-trail" element={<AuditTrailPage />} />

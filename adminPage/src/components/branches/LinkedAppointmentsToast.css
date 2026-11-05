@@ -1,0 +1,38 @@
+.linked-appointments-toast {
+  padding: 14px 16px;
+  border: 1px solid #f1c7a2;
+  border-radius: var(--radius-sm);
+  background: #fff8f0;
+  color: #633a18;
+  box-shadow: var(--shadow-card);
+}
+
+.linked-appointments-toast__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linked-appointments-toast__heading button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.linked-appointments-toast p {
+  margin: 8px 0;
+}
+
+.linked-appointments-toast ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.linked-appointments-toast__others {
+  font-weight: var(--fw-semibold);
+}

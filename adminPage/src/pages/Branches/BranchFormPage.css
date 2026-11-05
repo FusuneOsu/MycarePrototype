@@ -1,0 +1,27 @@
+.branch-form-page {
+  display: grid;
+  gap: 18px;
+}
+
+.branch-form-page__body {
+  display: grid;
+  gap: 18px;
+}
+
+.branch-form-page__columns {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.branch-form-page__map-panel h2 {
+  margin: 0 0 12px;
+  font-size: var(--fs-md);
+}
+
+@media (max-width: 900px) {
+  .branch-form-page__columns {
+    grid-template-columns: 1fr;
+  }
+}

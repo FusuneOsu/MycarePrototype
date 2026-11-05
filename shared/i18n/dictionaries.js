@@ -12,6 +12,7 @@ export const dictionaries = {
     'nav.requests': 'Requests',
     'nav.booking_records': 'Booking Records',
     'nav.caregivers': 'Caregivers',
+    'nav.branches': 'Branches',
     'nav.post_op_patients': 'Post-Op Patients',
     'nav.payments': 'Payments',
 
@@ -67,6 +68,7 @@ export const dictionaries = {
     'nav.requests': 'Permohonan',
     'nav.booking_records': 'Rekod Tempahan',
     'nav.caregivers': 'Penjaga',
+    'nav.branches': 'Cawangan',
     'nav.post_op_patients': 'Pesakit Pasca-Operasi',
     'nav.payments': 'Pembayaran',
 
@@ -119,6 +121,7 @@ export const dictionaries = {
     'nav.requests': '请求',
     'nav.booking_records': '预订记录',
     'nav.caregivers': '护理人员',
+    'nav.branches': '分支机构',
     'nav.post_op_patients': '术后患者',
     'nav.payments': '付款',
 

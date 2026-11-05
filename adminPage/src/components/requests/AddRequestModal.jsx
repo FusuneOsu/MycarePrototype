@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, Button, Input, Select, Textarea } from '../../../../shared/ui/index.js';
 import LocationMap from '../map/LocationMap.jsx';
+import BranchSelect from '../branches/BranchSelect.jsx';
 import {
-  LANGUAGES, CENTERS, SPECIALISATIONS,
+  LANGUAGES, SPECIALISATIONS,
 } from '../../../../shared/careVocabulary.js';
 import { REQUEST_SOURCES } from '../../../../shared/bookingStore.js';
+import { forwardGeocode, reverseGeocode } from '../../utils/geocoding.js';
+import { fetchBranches } from '../../api/branches.js';
 import './AddRequestModal.css';
 
 /** Time options for HH:MM dropdowns (30‑minute slots, 00:00–23:30). */
@@ -22,32 +25,6 @@ function getDurationMinutes(start, end) {
   return (eh * 60 + em) - (sh * 60 + sm);
 }
 
-/** Forward‑geocode via Nominatim. Returns { lat, lng } or null. */
-async function geocodeAddress(address) {
-  if (!address || address.trim().length < 5) return null;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=my`;
-    const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const data = await resp.json();
-    if (data && data.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-/** Reverse‑geocode via Nominatim. Returns a display name or null. */
-async function reverseGeocode(lat, lng) {
-  if (lat == null || lng == null) return null;
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=0`;
-    const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const data = await resp.json();
-    return data?.display_name || null;
-  } catch { /* ignore */ }
-  return null;
-}
-
 const emptyForm = () => ({
   source: 'Website',
   patientName: '',
@@ -56,6 +33,7 @@ const emptyForm = () => ({
   careType: 'Home Visit',
   bookingType: 'One time',
   caregiverId: '',
+  branchId: '',
   genderPreference: 'No preference',
   requiredSkill: '',
   zone: '',
@@ -71,6 +49,7 @@ const emptyForm = () => ({
 export default function AddRequestModal({ isOpen, onClose, onSaved }) {
   const [form, setForm] = useState(emptyForm());
   const [caregivers, setCaregivers] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [geocoding, setGeocoding] = useState(false);
@@ -84,6 +63,13 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
       .catch(() => {});
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchBranches({ status: 'active' })
+      .then(setBranches)
+      .catch((err) => console.warn('[AddRequestModal] Branch list unavailable:', err.message));
+  }, [isOpen]);
+
   // Reset form when modal opens.
   useEffect(() => {
     if (isOpen) setForm(emptyForm());
@@ -95,10 +81,11 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
   const handleLocateAddress = useCallback(async () => {
     if (!form.location || form.location.trim().length < 5) return;
     setGeocoding(true);
-    const coords = await geocodeAddress(form.location);
+    const coords = await forwardGeocode(form.location);
     if (coords) {
       set('latitude', coords.lat);
       set('longitude', coords.lng);
+      set('location', coords.address || form.location);
     }
     setGeocoding(false);
   }, [form.location]);
@@ -110,12 +97,12 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
     const displayName = await reverseGeocode(lat, lng);
     if (displayName) {
       set('location', displayName);
-      const area = CENTERS.find((c) => displayName.toLowerCase().includes(c.toLowerCase()));
-      if (area) set('zone', area);
+      const branch = branches.find((item) => displayName.toLowerCase().includes(String(item.service_area || '').toLowerCase()));
+      if (branch?.service_area) set('zone', branch.service_area);
     } else {
       set('location', `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     }
-  }, []);
+  }, [branches]);
 
   const handleSubmit = async () => {
     setError('');
@@ -127,6 +114,7 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
 
       const payload = {
         source: form.source,
+        branch_id: form.careType === 'Care Center' ? (form.branchId || null) : null,
         patient_name: form.patientName.trim(),
         phone: form.phone.trim() || null,
         preferred_language: form.language || null,
@@ -161,6 +149,7 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
         const existing = JSON.parse(window.localStorage.getItem(REQUESTS_KEY) || '{}');
         existing[result.id] = {
           id: result.id,
+          branchId: form.careType === 'Care Center' ? form.branchId : '',
           source: form.source,
           status: 'New',
           patientName: form.patientName.trim(),
@@ -285,7 +274,9 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
             <label>Zone / Area</label>
             <Select value={form.zone} onChange={(e) => set('zone', e.target.value)}>
               <option value="">— Select zone —</option>
-              {CENTERS.map((z) => <option key={z} value={z}>{z}</option>)}
+              {[...new Set(branches.map((branch) => branch.service_area).filter(Boolean))].sort().map((area) => (
+                <option key={area} value={area}>{area}</option>
+              ))}
             </Select>
           </div>
 
@@ -319,11 +310,27 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* Location section — shows map + address */}
-        <div className="form-field form-field--full">
-          <label>Location</label>
+          {/* Location section — shows map + address */}
+          <div className="form-field form-field--full">
+            <label>Location</label>
 
-          {form.careType === 'Home Visit' ? (
+            {form.careType === 'Care Center' && (
+              <BranchSelect
+                label="Care center branch"
+                value={form.branchId}
+                onChange={(branch) => {
+                  set('branchId', branch?.id || '');
+                  if (branch) {
+                    set('location', branch.address || branch.service_area || '');
+                    set('zone', branch.service_area || '');
+                    set('latitude', Number(branch.latitude));
+                    set('longitude', Number(branch.longitude));
+                  }
+                }}
+              />
+            )}
+
+            {form.careType === 'Home Visit' ? (
             <div className="add-request-modal__location-row">
               <div className="add-request-modal__address-col">
                 <div className="add-request-modal__address-input-row">
@@ -357,7 +364,6 @@ export default function AddRequestModal({ isOpen, onClose, onSaved }) {
             longitude={form.longitude}
             onChange={handleMapChange}
             height="260px"
-            showSiteSelector={form.careType === 'Care Center'}
             showOpenInGmaps={true}
           />
         </div>
