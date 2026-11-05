@@ -23,6 +23,7 @@ DROP TABLE IF EXISTS caregiver_languages CASCADE;
 DROP TABLE IF EXISTS caregiver_skills CASCADE;
 DROP TABLE IF EXISTS caregivers CASCADE;
 DROP TABLE IF EXISTS caregiver_applications CASCADE;
+DROP TABLE IF EXISTS branches CASCADE;
 DROP TABLE IF EXISTS caregiving_sites CASCADE;
 DROP TABLE IF EXISTS password_resets CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
@@ -41,7 +42,7 @@ CREATE TYPE caregiver_availability_enum AS ENUM ('Available', 'On Duty', 'Off Du
 CREATE TYPE account_status_enum AS ENUM ('Draft', 'Pending approval', 'Not approved', 'Active', 'Suspended', 'Deactivated', 'Rejected');
 CREATE TYPE application_status_enum AS ENUM ('Draft', 'Submitted', 'Under review', 'More info needed', 'Approved', 'Rejected');
 CREATE TYPE request_status_enum AS ENUM ('New', 'In Review', 'Booked', 'Rejected');
-CREATE TYPE booking_status_enum AS ENUM ('Caregiver assigned', 'In progress', 'Service completed', 'Payment pending', 'Link sent (Unpaid)', 'Paid - Online', 'Paid - Collected Directly', 'Paid', 'Cancelled', 'Missed');
+CREATE TYPE booking_status_enum AS ENUM ('Caregiver assigned', 'No caregiver assigned', 'In progress', 'Service completed', 'Payment pending', 'Link sent (Unpaid)', 'Paid - Online', 'Paid - Collected Directly', 'Paid', 'Cancelled', 'Missed');
 CREATE TYPE payout_status_enum AS ENUM ('Awaiting payout', 'Ready to pay', 'Paid to caregiver');
 
 -- Updated_at trigger function
@@ -79,18 +80,33 @@ CREATE TABLE password_resets (
     used_at         TIMESTAMPTZ
 );
 
--- 2. SITES
-CREATE TABLE caregiving_sites (
+-- 2. BRANCHES
+CREATE TABLE branches (
     id              VARCHAR(50) PRIMARY KEY, -- 'SITE-001'
     name            VARCHAR(150) NOT NULL,
-    area            VARCHAR(100) NOT NULL,   -- 'Petaling Jaya'
-    latitude        DOUBLE PRECISION NOT NULL,
-    longitude       DOUBLE PRECISION NOT NULL,
-    address         TEXT,
+    address         TEXT NOT NULL,
+    city            VARCHAR(100) NOT NULL,
+    state           VARCHAR(100) NOT NULL,
+    postcode        VARCHAR(20) NOT NULL,
+    service_area    VARCHAR(100) NOT NULL,
+    latitude        DOUBLE PRECISION NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+    longitude       DOUBLE PRECISION NOT NULL CHECK (longitude BETWEEN -180 AND 180),
     phone           VARCHAR(50),
+    email           VARCHAR(255),
+    operating_hours JSONB NOT NULL DEFAULT '{"open":"07:00","close":"23:00"}'::jsonb,
+    capacity        INTEGER NOT NULL DEFAULT 350 CHECK (capacity >= 0),
+    status          VARCHAR(10) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    notes           TEXT,
+    emergency_contact_name  VARCHAR(150),
+    emergency_contact_phone VARCHAR(50),
+    facility_fee_cents INTEGER NOT NULL DEFAULT 0 CHECK (facility_fee_cents >= 0),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX idx_branches_name_unique ON branches (LOWER(name));
+CREATE INDEX idx_branches_service_area ON branches (service_area);
+CREATE INDEX idx_branches_status ON branches (status);
 
 -- 3. APPLICATIONS
 CREATE TABLE caregiver_applications (
@@ -135,8 +151,8 @@ CREATE TABLE caregivers (
     email                   VARCHAR(255) UNIQUE NOT NULL,
     phone                   VARCHAR(50),
     gender                  VARCHAR(20) NOT NULL,
-    center_id               VARCHAR(50) NOT NULL REFERENCES caregiving_sites(id) ON DELETE RESTRICT,
-    center_name             VARCHAR(100) NOT NULL,
+    center_name             VARCHAR(100), -- legacy service-area text; display name is joined from branches
+    branch_id               VARCHAR(50) REFERENCES branches(id) ON DELETE SET NULL,
     availability            caregiver_availability_enum NOT NULL DEFAULT 'Available',
     account_status          account_status_enum NOT NULL DEFAULT 'Active',
     id_number               VARCHAR(50),
@@ -161,6 +177,8 @@ CREATE TABLE caregivers (
     created_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_caregivers_branch ON caregivers (branch_id);
 
 CREATE TABLE caregiver_skills (
     caregiver_id    VARCHAR(50) NOT NULL REFERENCES caregivers(id) ON DELETE CASCADE,
@@ -236,13 +254,14 @@ CREATE TABLE patients (
     phone               VARCHAR(50),
     email               VARCHAR(255),
     preferred_language  VARCHAR(50) DEFAULT 'Malay',
-    center_id           VARCHAR(50) REFERENCES caregiving_sites(id) ON DELETE SET NULL,
-    center_name         VARCHAR(100),
+    branch_id           VARCHAR(50) REFERENCES branches(id) ON DELETE SET NULL,
     address             TEXT,
     date_added          DATE DEFAULT CURRENT_DATE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_patients_branch ON patients (branch_id);
 
 CREATE TABLE patient_languages (
     patient_id          VARCHAR(50) NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
@@ -276,6 +295,7 @@ CREATE TABLE whatsapp_messages (
 -- 7. REQUESTS
 CREATE TABLE requests (
     id                      VARCHAR(50) PRIMARY KEY, -- 'WA-REQ-1001'
+    branch_id               VARCHAR(50) REFERENCES branches(id) ON DELETE SET NULL,
     source                  VARCHAR(50) NOT NULL,
     status                  request_status_enum NOT NULL DEFAULT 'New',
     patient_id              VARCHAR(50) REFERENCES patients(id) ON DELETE SET NULL,
@@ -302,10 +322,14 @@ CREATE TABLE requests (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_requests_branch ON requests (branch_id);
+
 -- 8. BOOKINGS
 CREATE TABLE bookings (
     id                          VARCHAR(50) PRIMARY KEY, -- 'BK-5001'
     request_id                  VARCHAR(50) UNIQUE REFERENCES requests(id) ON DELETE SET NULL,
+    branch_id                   VARCHAR(50) REFERENCES branches(id) ON DELETE SET NULL,
+    branch_name                 VARCHAR(150),
     patient_id                  VARCHAR(50) REFERENCES patients(id) ON DELETE SET NULL,
     patient_name                VARCHAR(150) NOT NULL,
     patient_phone               VARCHAR(50),
@@ -341,6 +365,8 @@ CREATE TABLE bookings (
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_bookings_branch ON bookings (branch_id);
 
 CREATE TABLE booking_history (
     id              SERIAL PRIMARY KEY,
@@ -446,7 +472,7 @@ CREATE TABLE notifications (
 
 -- Auto-update timestamps triggers
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-CREATE TRIGGER trg_sites_updated_at BEFORE UPDATE ON caregiving_sites FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_branches_updated_at BEFORE UPDATE ON branches FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_caregivers_updated_at BEFORE UPDATE ON caregivers FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_applications_updated_at BEFORE UPDATE ON caregiver_applications FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_patients_updated_at BEFORE UPDATE ON patients FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -458,11 +484,17 @@ CREATE TRIGGER trg_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EX
 -- SEED DATA WITH CLEAN IDs
 -- ============================================================================
 
--- Sites
-INSERT INTO caregiving_sites (id, name, area, latitude, longitude) VALUES
-  ('SITE-001', 'Caregiver Center 1', 'Petaling Jaya', 3.1073, 101.6064),
-  ('SITE-002', 'Caregiver Center 2', 'Subang Jaya',    3.0568, 101.5852),
-  ('SITE-003', 'Caregiver Center 3', 'Cheras',         3.1008, 101.7242);
+-- Branches. Contact and emergency-contact details are intentionally blank
+-- until an administrator supplies real contact information.
+INSERT INTO branches (
+  id, name, address, city, state, postcode, service_area, latitude, longitude, facility_fee_cents
+) VALUES
+  ('SITE-001', 'Caregiver Center 1', '12 Jalan SS 21/1, Damansara Utama, 47400 Petaling Jaya', 'Petaling Jaya', 'Selangor', '47400', 'Petaling Jaya', 3.1073, 101.6064, 1000),
+  ('SITE-002', 'Caregiver Center 2', '8 Jalan USJ 10/1, Taipan, 47620 Subang Jaya', 'Subang Jaya', 'Selangor', '47620', 'Subang Jaya', 3.0568, 101.5852, 800),
+  ('SITE-003', 'Caregiver Center 3', '22 Jalan Ceria 2, Taman Ceria, 56100 Cheras', 'Cheras', 'Kuala Lumpur', '56100', 'Cheras', 3.1008, 101.7242, 800),
+  ('SITE-004', 'Caregiver Center 4', '5 Jalan Ampang Indah, Taman Ampang Indah, 68000 Ampang', 'Ampang', 'Selangor', '68000', 'Ampang', 3.1480, 101.7595, 1000),
+  ('SITE-005', 'Caregiver Center 5', '3 Jalan Setiawangsa 11, Taman Setiawangsa, 54200 Kuala Lumpur', 'Kuala Lumpur', 'Kuala Lumpur', '54200', 'Setiawangsa', 3.1905, 101.7380, 700),
+  ('SITE-006', 'Caregiver Center 6', '15 Jalan SA 2, Seksyen 2, 40000 Shah Alam', 'Shah Alam', 'Selangor', '40000', 'Shah Alam', 3.0733, 101.5185, 600);
 
 -- Users: Clean, short IDs
 INSERT INTO users (id, email, password_hash, full_name, role) VALUES
@@ -478,10 +510,10 @@ INSERT INTO caregiver_applications (
 
 -- Active Caregivers
 INSERT INTO caregivers (
-  id, user_id, name, username, email, phone, gender, center_id, center_name, availability, account_status
+  id, user_id, name, username, email, phone, gender, center_name, branch_id, availability, account_status
 ) VALUES
-  ('CG-1001', NULL, 'Adam Tan', 'adam.tan', 'adam.tan@example.com', '+60 12-345 6701', 'Male', 'SITE-001', 'Petaling Jaya', 'Available', 'Active'),
-  ('CG-1013', 'USR-1001', 'Sarah Tan', 'sarah.tan', 'sarah.tan@example.com', '+60 12-345 6789', 'Female', 'SITE-001', 'Petaling Jaya', 'Available', 'Active');
+  ('CG-1001', NULL, 'Adam Tan', 'adam.tan', 'adam.tan@example.com', '+60 12-345 6701', 'Male', 'Petaling Jaya', 'SITE-001', 'Available', 'Active'),
+  ('CG-1013', 'USR-1001', 'Sarah Tan', 'sarah.tan', 'sarah.tan@example.com', '+60 12-345 6789', 'Female', 'Petaling Jaya', 'SITE-001', 'Available', 'Active');
 
 -- Skills
 INSERT INTO caregiver_skills (caregiver_id, skill) VALUES
@@ -490,8 +522,8 @@ INSERT INTO caregiver_skills (caregiver_id, skill) VALUES
   ('CG-1013', 'Medication management');
 
 -- Patients
-INSERT INTO patients (id, name, gender, phone, preferred_language, center_id, center_name, address) VALUES
-  ('PT-1001', 'Nur Aisyah Rahman', 'Female', '+60 12-345 6789', 'Malay', 'SITE-001', 'Petaling Jaya', '24 Jalan Damai, Kuala Lumpur');
+INSERT INTO patients (id, name, gender, phone, preferred_language, branch_id, address) VALUES
+  ('PT-1001', 'Nur Aisyah Rahman', 'Female', '+60 12-345 6789', 'Malay', 'SITE-001', '24 Jalan Damai, Kuala Lumpur');
 
 -- WhatsApp Chat
 INSERT INTO whatsapp_chats (jid, contact_name, contact_phone) VALUES

@@ -60,7 +60,7 @@ try {
     }
   }
 
-  // If tables exist, let's sample users, caregivers, caregiving_sites, requests, bookings
+  // If tables exist, let's sample users, caregivers, branches, requests, bookings
   const tables = tablesRes.rows.map(r => r.table_name);
 
   if (tables.includes('users')) {
@@ -84,13 +84,13 @@ try {
   }
 
   if (tables.includes('caregivers')) {
-    const caregivers = await client.query('SELECT id, name, center_name, availability, account_status FROM caregivers LIMIT 5');
+    const caregivers = await client.query('SELECT id, name, branch_id, availability, account_status FROM caregivers LIMIT 5');
     console.log('\nSample Caregivers:', caregivers.rows);
   }
 
-  if (tables.includes('caregiving_sites')) {
-    const sites = await client.query('SELECT id, name, area FROM caregiving_sites LIMIT 5');
-    console.log('\nSample Sites:', sites.rows);
+  if (tables.includes('branches')) {
+    const branches = await client.query('SELECT id, name, service_area FROM branches LIMIT 5');
+    console.log('\nSample Branches:', branches.rows);
   }
 
   if (tables.includes('bookings')) {

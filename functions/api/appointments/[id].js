@@ -14,7 +14,7 @@ export async function onRequestPut(context) {
   }
 
   const {
-    _patient_id, patient_name, caregiver_id, caregiver_name,
+    _patient_id, patient_name, caregiver_id, caregiver_name, branch_id,
     date, start_time, end_time, status, appointment_type, booking_type,
     caregiver_gender_preference, location_mode, location_text,
     latitude, longitude, tasks, special_instructions, duration_mins,
@@ -27,6 +27,7 @@ export async function onRequestPut(context) {
   if (patient_name !== undefined) { sets.push('patient_name = ?'); values.push(patient_name); }
   if (caregiver_id !== undefined) { sets.push('caregiver_id = ?'); values.push(caregiver_id || null); }
   if (caregiver_name !== undefined) { sets.push('caregiver_name = ?'); values.push(caregiver_name || null); }
+  if (branch_id !== undefined) { sets.push('branch_id = ?'); values.push(branch_id || null); }
   if (date !== undefined) { sets.push('date = ?'); values.push(date); }
   if (start_time !== undefined) { sets.push('start_time = ?'); values.push(start_time); }
   if (end_time !== undefined) { sets.push('end_time = ?'); values.push(end_time); }
@@ -41,6 +42,16 @@ export async function onRequestPut(context) {
   if (tasks !== undefined) { sets.push('tasks = ?'); values.push(JSON.stringify(tasks)); }
   if (special_instructions !== undefined) { sets.push('special_instructions = ?'); values.push(special_instructions); }
   if (duration_mins !== undefined) { sets.push('duration_mins = ?'); values.push(duration_mins); }
+
+  if (['Completed', 'Service completed'].includes(status)) {
+    const existing = await env.DB.prepare('SELECT branch_id, branch_name FROM bookings WHERE id = ?').bind(appointmentId).first();
+    if (!existing) return Response.json({ ok: false, error: 'Appointment not found.' }, { status: 404 });
+    const targetBranchId = branch_id !== undefined ? branch_id : existing.branch_id;
+    if (targetBranchId && !existing.branch_name) {
+      const branch = await env.DB.prepare('SELECT name FROM branches WHERE id = ?').bind(targetBranchId).first();
+      if (branch) { sets.push('branch_name = ?'); values.push(branch.name); }
+    }
+  }
 
   if (sets.length === 0) {
     return Response.json({ ok: false, error: 'No fields to update.' }, { status: 400 });

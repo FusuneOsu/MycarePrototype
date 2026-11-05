@@ -16,12 +16,14 @@ export async function onRequestGet(context) {
 
     // 2. Caregiver availability (with skills aggregated from the join table)
     const { results: caregivers } = await env.DB.prepare(
-      `SELECT c.id, c.name, c.gender, c.center, c.availability,
+      `SELECT c.id, c.name, c.gender, COALESCE(b.name, 'Unassigned') AS center,
+              c.branch_id, c.availability,
               COALESCE(
                 json_group_array(cs.skill) FILTER (WHERE cs.skill IS NOT NULL),
                 '[]'
               ) AS skills
        FROM caregivers c
+       LEFT JOIN branches b ON b.id = c.branch_id
        LEFT JOIN caregiver_skills cs ON cs.caregiver_id = c.id
        GROUP BY c.id
        ORDER BY c.name`
