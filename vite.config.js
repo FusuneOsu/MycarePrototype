@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
-import { hasPgConfig, query as pgQuery, testConnection, verifyUserLogin } from './scripts/db.mjs';
+import { getPool, hasPgConfig, query as pgQuery, testConnection, verifyUserLogin } from './scripts/db.mjs';
+import { registerBranchesApi } from './scripts/branches-api.mjs';
+import { registerPriceSlateApi } from './scripts/price-slate-api.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -31,6 +33,21 @@ function localApiPlugin() {
       // Fresh database — run the full schema + seed.
       db.exec(readFileSync(resolve(dbDir, 'schema.sql'), 'utf8'));
       db.exec(readFileSync(resolve(dbDir, 'seed.sql'), 'utf8'));
+    } else {
+      const hasBranches = db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'branches'")
+        .get();
+      if (!hasBranches) {
+        // Existing local SQLite database — apply the same additive migration
+        // used by Wrangler for D1. Existing bookings are not backfilled.
+        db.exec(readFileSync(resolve(dbDir, 'migrations/0001_branches.sql'), 'utf8'));
+      }
+      const hasPriceSlates = db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'booking_price_slates'")
+        .get();
+      if (!hasPriceSlates) {
+        db.exec(readFileSync(resolve(dbDir, 'migrations/0002_price_slates.sql'), 'utf8'));
+      }
     }
     return db;
   }
@@ -63,6 +80,9 @@ function localApiPlugin() {
   return {
     name: 'mycare-local-api',
     configureServer(server) {
+      registerBranchesApi(server, { getDb, hasPgConfig, getPool, readJsonBody, sendJson });
+      registerPriceSlateApi(server, { getDb, hasPgConfig, getPool, readJsonBody, sendJson });
+
       // ---- Database Health / Connection Test Endpoint ----
       server.middlewares.use('/api/db/test', async (req, res) => {
         if (req.method === 'GET') {
@@ -117,7 +137,8 @@ function localApiPlugin() {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
                 `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.address, b.latitude, b.longitude,
-                        b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
+                        b.branch_id, b.branch_name,
+                        b.service_type, b.status, b.rate_cents, b.cost_breakdown, b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
                         b.caregiver_id, b.caregiver_name
                  FROM bookings b
@@ -130,6 +151,7 @@ function localApiPlugin() {
             const rows = database
               .prepare(
                 `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.address, b.latitude, b.longitude,
+                        b.branch_id, b.branch_name,
                         b.service_type, b.status, b.rate_cents, b.cost_breakdown, b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
                         b.caregiver_id, c.name AS caregiver_name
@@ -153,11 +175,11 @@ function localApiPlugin() {
             catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
 
             const {
-              request_id, caregiver_id, patient_name, date, start_time, end_time,
+              request_id, branch_id, caregiver_id, patient_name, date, start_time, end_time,
               duration_mins, location, address, latitude, longitude, service_type, status,
               appointment_type, booking_type, caregiver_gender_preference,
               location_mode, tasks, special_instructions,
-              rate_cents, service_amount_cents, caregiver_payment_cents,
+               rate_cents,
             } = body;
 
             if (!patient_name || !date || !start_time || !end_time) {
@@ -171,6 +193,8 @@ function localApiPlugin() {
               const maxRow = await pgQuery("SELECT id FROM bookings ORDER BY id DESC LIMIT 1");
               const lastNum = maxRow.rows.length > 0 ? parseInt(maxRow.rows[0].id.replace(/\D/g, ''), 10) : 5000;
               const newId = `BK-${String(lastNum + 1)}`;
+              const requestBranch = request_id ? await pgQuery('SELECT branch_id FROM requests WHERE id = $1', [request_id]) : { rows: [] };
+              const effectiveBranchId = branch_id ?? requestBranch.rows[0]?.branch_id ?? null;
 
               let caregiver_name = body.caregiver_name || null;
               if (caregiver_id && !caregiver_name) {
@@ -180,22 +204,25 @@ function localApiPlugin() {
 
               const validStatus = [
                 'Caregiver assigned', 'In progress', 'Service completed',
-                'Payment pending', 'Link sent (Unpaid)', 'Paid - Online',
+                'Payment pending', 'Link sent (Unpaid)', 'Paid - Online', 'No caregiver assigned',
                 'Paid - Collected Directly', 'Paid', 'Cancelled', 'Missed'
               ].includes(status) ? status : 'Caregiver assigned';
+              const branchName = ['Completed', 'Service completed'].includes(status) && effectiveBranchId
+                ? (await pgQuery('SELECT name FROM branches WHERE id = $1', [effectiveBranchId])).rows[0]?.name || null
+                : null;
 
               const tasksJson = Array.isArray(tasks) ? JSON.stringify(tasks) : (tasks || '[]');
 
               await pgQuery(
                 `INSERT INTO bookings
-                  (id, request_id, caregiver_id, caregiver_name, patient_name, date,
+                  (id, request_id, branch_id, branch_name, caregiver_id, caregiver_name, patient_name, date,
                    start_time, end_time, duration_mins, location, address, latitude, longitude,
                    service_type, status, appointment_type, booking_type,
                    caregiver_gender_preference, location_mode, tasks, special_instructions,
                    rate_cents, caregiver_payout_cents)
-                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
                 [
-                  newId, request_id || null, caregiver_id || null, caregiver_name || 'Assigned Caregiver',
+                  newId, request_id || null, effectiveBranchId, branchName, caregiver_id || null, caregiver_name || 'Assigned Caregiver',
                   patient_name, date, start_time, end_time, duration_mins || 60,
                   location || address || 'Kuala Lumpur', address || location || 'Kuala Lumpur',
                   latitude ?? null, longitude ?? null,
@@ -219,6 +246,12 @@ function localApiPlugin() {
             const maxRow = database.prepare('SELECT id FROM bookings ORDER BY id DESC LIMIT 1').get();
             const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 5000;
             const newId = `BK-${String(lastNum + 1)}`;
+            const requestBranch = request_id ? database.prepare('SELECT branch_id FROM requests WHERE id = ?').get(request_id) : null;
+            const effectiveBranchId = branch_id ?? requestBranch?.branch_id ?? null;
+            const statusValue = status || 'Pending';
+            const branchName = ['Completed', 'Service completed'].includes(statusValue) && effectiveBranchId
+              ? database.prepare('SELECT name FROM branches WHERE id = ?').get(effectiveBranchId)?.name || null
+              : null;
 
             // If caregiver_id is provided, get caregiver name
             let caregiver_name = null;
@@ -229,28 +262,27 @@ function localApiPlugin() {
 
             database
               .prepare(`INSERT INTO bookings
-                (id, request_id, caregiver_id, caregiver_name, patient_name, date,
+                (id, request_id, branch_id, branch_name, patient_name, caregiver_id, caregiver_name, date,
                  start_time, end_time, duration_mins, location, address, latitude, longitude,
                  service_type, status, appointment_type, booking_type,
                  caregiver_gender_preference, location_mode, tasks, special_instructions,
-                 rate_cents, service_amount_cents, caregiver_payment_cents)
+                 rate_cents)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(
-                newId, request_id || null, caregiver_id || null, caregiver_name,
-                patient_name, date, start_time, end_time, duration_mins || null,
+                newId, request_id || null, effectiveBranchId, branchName, patient_name, caregiver_id || null, caregiver_name,
+                date, start_time, end_time, duration_mins || null,
                 location || '', address || location || '', latitude ?? null, longitude ?? null,
-                service_type || 'General Care', status || 'Pending',
+                service_type || 'General Care', statusValue,
                 appointment_type || null, booking_type || 'standard',
                 caregiver_gender_preference || 'No preference',
                 location_mode || 'address', tasks ? JSON.stringify(tasks) : null,
-                special_instructions || null, rate_cents ?? null,
-                service_amount_cents ?? null, caregiver_payment_cents ?? null
+                special_instructions || null, rate_cents ?? null
               );
 
             // Update the request status to 'Assigned' if request_id is provided
             if (request_id) {
               database
-                .prepare("UPDATE requests SET status = 'Assigned', updated_at = datetime('now') WHERE id = ?")
+                .prepare("UPDATE requests SET status = 'Booked', updated_at = datetime('now') WHERE id = ?")
                 .run(request_id);
             }
 
@@ -374,6 +406,13 @@ function localApiPlugin() {
             }
 
             const database = await getDb();
+            const priceSlate = database.prepare('SELECT booking_id FROM booking_price_slates WHERE booking_id = ?').get(bookingId);
+            if (priceSlate) {
+              return sendJson(res, 409, {
+                ok: false,
+                error: 'This booking uses a patient price slate; update it through the price-slate endpoint.',
+              });
+            }
             const result = database
               .prepare(`UPDATE bookings SET cost_breakdown = ?, updated_at = datetime('now') WHERE id = ?`)
               .run(costBreakdown, bookingId);
@@ -394,28 +433,6 @@ function localApiPlugin() {
         res.end();
       });
 
-      // ---- Caregiving Sites API middleware ----
-      server.middlewares.use('/api/caregiving-sites', async (req, res) => {
-        try {
-          if (req.method === 'GET') {
-            if (hasPgConfig()) {
-              const pgRes = await pgQuery(
-                'SELECT id, name, area, latitude, longitude, address, phone FROM caregiving_sites ORDER BY area'
-              );
-              return sendJson(res, 200, pgRes.rows);
-            }
-            const database = await getDb();
-            const rows = database.prepare('SELECT id, name, area, latitude, longitude FROM caregiving_sites ORDER BY area').all();
-            return sendJson(res, 200, rows);
-          }
-          res.statusCode = 405;
-          res.end();
-        } catch (err) {
-          console.error('[caregiving-sites]', err);
-          return sendJson(res, 500, { ok: false, error: err.message });
-        }
-      });
-
       // ---- Requests API middleware ----
       server.middlewares.use('/api/requests', async (req, res) => {
         const [pathname] = req.url.split('?');
@@ -426,7 +443,7 @@ function localApiPlugin() {
           try {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
-                `SELECT pr.id, pr.source, pr.status, pr.patient_name, pr.phone,
+                `SELECT pr.id, pr.branch_id, pr.source, pr.status, pr.patient_name, pr.phone,
                         pr.preferred_language, pr.care_type, pr.gender_preference,
                         pr.required_skill, pr.zone, pr.location,
                         pr.latitude, pr.longitude,
@@ -440,7 +457,7 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT pr.id, pr.source, pr.status, pr.patient_name, pr.phone,
+                `SELECT pr.id, pr.branch_id, pr.source, pr.status, pr.patient_name, pr.phone,
                         pr.preferred_language, pr.care_type, pr.gender_preference,
                         pr.required_skill, pr.zone, pr.location,
                         pr.latitude, pr.longitude,
@@ -462,7 +479,7 @@ function localApiPlugin() {
           try {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
-                `SELECT pr.id, pr.source, pr.status, pr.patient_name, pr.phone,
+                `SELECT pr.id, pr.branch_id, pr.source, pr.status, pr.patient_name, pr.phone,
                         pr.preferred_language, pr.care_type, pr.gender_preference,
                         pr.required_skill, pr.zone, pr.location,
                         pr.latitude, pr.longitude,
@@ -486,7 +503,7 @@ function localApiPlugin() {
                         pr.required_skill, pr.zone, pr.location,
                         pr.latitude, pr.longitude,
                         pr.requested_date, pr.preferred_start, pr.preferred_end,
-                        pr.notes, pr.service_amount_cents, pr.caregiver_payment_cents,
+                        pr.branch_id, pr.notes, pr.service_amount_cents, pr.caregiver_payment_cents,
                         pr.created_at, pr.updated_at
                  FROM requests pr
                  WHERE pr.id = ?`
@@ -511,7 +528,7 @@ function localApiPlugin() {
 
             if (hasPgConfig()) {
               const allowed = {
-                status: null, patient_name: null, phone: null, preferred_language: null,
+                status: null, branch_id: null, patient_name: null, phone: null, preferred_language: null,
                 care_type: null, gender_preference: null, required_skill: null,
                 zone: null, location: null, latitude: null, longitude: null,
                 requested_date: null, preferred_start: null, preferred_end: null,
@@ -546,7 +563,7 @@ function localApiPlugin() {
 
             // Build dynamic SET clause from allowed fields
             const allowed = {
-              status: null, patient_name: null, phone: null, preferred_language: null,
+              status: null, branch_id: null, patient_name: null, phone: null, preferred_language: null,
               care_type: null, gender_preference: null, required_skill: null,
               zone: null, location: null, latitude: null, longitude: null,
               requested_date: null, preferred_start: null, preferred_end: null,
@@ -580,7 +597,7 @@ function localApiPlugin() {
             catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
 
             const {
-              source, patient_name, phone, preferred_language, care_type,
+              source, branch_id, patient_name, phone, preferred_language, care_type,
               gender_preference, required_skill, zone, location,
               latitude, longitude, requested_date, preferred_start, preferred_end,
               notes, _assigned_caregiver_id
@@ -601,13 +618,13 @@ function localApiPlugin() {
 
               await pgQuery(
                 `INSERT INTO requests
-                  (id, source, status, patient_name, phone, preferred_language, care_type,
+                  (id, branch_id, source, status, patient_name, phone, preferred_language, care_type,
                    gender_preference, required_skill, zone, location,
                    latitude, longitude, requested_date, preferred_start, preferred_end,
                    notes)
-                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
                 [
-                  newId, source || 'Website', 'New', patient_name, phone || null,
+                  newId, branch_id || null, source || 'Website', 'New', patient_name, phone || null,
                   preferred_language || null, care_type || 'General Care',
                   gender_preference || 'No preference', required_skill || null,
                   zone || '', location || '', latitude ?? null, longitude ?? null,
@@ -626,13 +643,13 @@ function localApiPlugin() {
 
             database
               .prepare(`INSERT INTO requests
-                (id, source, status, patient_name, phone, preferred_language, care_type,
+                (id, branch_id, source, status, patient_name, phone, preferred_language, care_type,
                  gender_preference, required_skill, zone, location,
                  latitude, longitude, requested_date, preferred_start, preferred_end,
                  notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(
-                newId, source || 'Website', 'New', patient_name, phone || null,
+                newId, branch_id || null, source || 'Website', 'New', patient_name, phone || null,
                 preferred_language || null, care_type || 'General Care',
                 gender_preference || 'No preference', required_skill || null,
                 zone || '', location || '', latitude ?? null, longitude ?? null,
@@ -657,13 +674,17 @@ function localApiPlugin() {
           try {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
-                'SELECT id, name, center_name AS center FROM caregivers ORDER BY name'
+                `SELECT c.id, c.name, COALESCE(b.name, 'Unassigned') AS center, c.branch_id
+                 FROM caregivers c LEFT JOIN branches b ON b.id = c.branch_id
+                 ORDER BY c.name`
               );
               return sendJson(res, 200, pgRes.rows);
             }
             const database = await getDb();
             const rows = database
-              .prepare('SELECT id, name, center FROM caregivers ORDER BY name')
+              .prepare(`SELECT c.id, c.name, COALESCE(b.name, 'Unassigned') AS center, c.branch_id
+                        FROM caregivers c LEFT JOIN branches b ON b.id = c.branch_id
+                        ORDER BY c.name`)
               .all();
             return sendJson(res, 200, rows);
           } catch (err) {
@@ -679,19 +700,24 @@ function localApiPlugin() {
       server.middlewares.use('/api/caregivers', async (req, res) => {
         const [pathname] = req.url.split('?');
         const segments = pathname.split('/').filter(Boolean);
+        const branchId = new URL(req.url, 'http://localhost').searchParams.get('branch_id');
 
         if (segments.length === 0 && req.method === 'GET') {
           try {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
-                `SELECT c.id, c.name, c.gender, c.center_name AS center, c.availability, c.phone, c.email, c.account_status,
+                `SELECT c.id, c.name, c.gender, COALESCE(b.name, 'Unassigned') AS center, c.branch_id,
+                        c.availability, c.phone, c.email, c.account_status,
                         c.experience_band, c.bio, c.shift_preference, c.travel_mode,
                         COALESCE(
                           (SELECT json_agg(skill) FROM caregiver_skills WHERE caregiver_id = c.id),
                           '[]'::json
                         ) as skills
                  FROM caregivers c
-                 ORDER BY c.name`
+                 LEFT JOIN branches b ON b.id = c.branch_id
+                 ${branchId ? 'WHERE c.branch_id = $1' : ''}
+                 ORDER BY c.name`,
+                branchId ? [branchId] : []
               );
               return sendJson(res, 200, pgRes.rows);
             }
@@ -699,11 +725,14 @@ function localApiPlugin() {
             const database = await getDb();
             const rows = database
               .prepare(
-                `SELECT c.id, c.name, c.gender, c.center, c.availability, c.phone, c.email
+                `SELECT c.id, c.name, c.gender, COALESCE(b.name, 'Unassigned') AS center, c.branch_id,
+                        c.availability, c.phone, c.email
                  FROM caregivers c
+                 LEFT JOIN branches b ON b.id = c.branch_id
+                 ${branchId ? 'WHERE c.branch_id = ?' : ''}
                  ORDER BY c.name`
               )
-              .all();
+              .all(...(branchId ? [branchId] : []));
             return sendJson(res, 200, rows);
           } catch (err) {
             console.error('[caregivers GET]', err);
@@ -716,7 +745,8 @@ function localApiPlugin() {
           try {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
-                `SELECT c.id, c.name, c.gender, c.center_name AS center, c.availability, c.phone, c.email, c.account_status,
+                `SELECT c.id, c.name, c.gender, COALESCE(b.name, 'Unassigned') AS center, c.branch_id,
+                        c.availability, c.phone, c.email, c.account_status,
                         c.dob, c.nationality, c.address, c.city, c.state, c.postcode, c.emergency_name, c.emergency_phone,
                         c.experience_band, c.bio, c.shift_preference, c.travel_mode,
                         COALESCE(
@@ -724,6 +754,7 @@ function localApiPlugin() {
                           '[]'::json
                         ) as skills
                  FROM caregivers c
+                 LEFT JOIN branches b ON b.id = c.branch_id
                  WHERE c.id = $1`,
                 [segments[0]]
               );
@@ -734,8 +765,10 @@ function localApiPlugin() {
             const database = await getDb();
             const row = database
               .prepare(
-                `SELECT c.id, c.name, c.gender, c.center, c.availability, c.phone, c.email
+                `SELECT c.id, c.name, c.gender, COALESCE(b.name, 'Unassigned') AS center, c.branch_id,
+                        c.availability, c.phone, c.email
                  FROM caregivers c
+                 LEFT JOIN branches b ON b.id = c.branch_id
                  WHERE c.id = ?`
               )
               .get(segments[0]);
@@ -755,7 +788,7 @@ function localApiPlugin() {
             catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
 
             const {
-              name, gender, center, availability, username, email, phone,
+              name, gender, center, branch_id, availability, username, email, phone,
               languages, skills, travelMode, workAccommodations, autoAssigned
             } = body;
 
@@ -768,20 +801,20 @@ function localApiPlugin() {
               const lastNum = maxRow.rows.length > 0 ? parseInt(maxRow.rows[0].id.replace(/\D/g, ''), 10) : 1000;
               const newId = `CG-${String(lastNum + 1)}`;
 
-              // Find center site
-              const siteRes = await pgQuery("SELECT id, name FROM caregiving_sites LIMIT 5");
-              let siteId = 'SITE-1001';
-              let siteName = 'Kuala Lumpur Main Centre';
-              if (center && siteRes.rows.length > 0) {
-                const match = siteRes.rows.find((s) => s.name.toLowerCase().includes(center.toLowerCase()) || center.toLowerCase().includes(s.name.toLowerCase()));
-                if (match) {
-                  siteId = match.id;
-                  siteName = match.name;
-                } else {
-                  siteName = center;
-                  siteId = siteRes.rows[0].id;
-                }
-              }
+              const requestedBranch = branch_id || center || null;
+              const branchRes = requestedBranch
+                ? await pgQuery(
+                  `SELECT id, name, service_area FROM branches
+                   WHERE id = $1 OR LOWER(name) = LOWER($1) OR LOWER(service_area) = LOWER($1)
+                   LIMIT 1`,
+                  [requestedBranch]
+                )
+                : { rows: [] };
+              const branch = branchRes.rows[0] || null;
+              if (requestedBranch && !branch) return sendJson(res, 400, { ok: false, error: 'branch_id must identify an existing branch.' });
+              const siteId = branch?.id || null;
+              const siteName = branch?.name || 'Unassigned';
+              const legacyCenter = branch?.service_area || center || 'Unassigned';
 
               const safeUsername = username || name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
               const safeEmail = email || `${safeUsername}@mycaregivers.com`;
@@ -792,11 +825,11 @@ function localApiPlugin() {
 
               await pgQuery(
                 `INSERT INTO caregivers
-                  (id, name, username, email, gender, center_id, center_name,
+                  (id, name, username, email, gender, branch_id, center_name,
                    availability, account_status, travel_mode, work_accommodations, auto_assigned, phone)
                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
-                  newId, name, safeUsername, safeEmail, safeGender, siteId, siteName,
+                   newId, name, safeUsername, safeEmail, safeGender, siteId, legacyCenter,
                   safeAvailability, 'Active', travelMode || 'Car',
                   workAccommodations || '', autoAssigned || 'No', phone || null
                 ]
@@ -835,6 +868,7 @@ function localApiPlugin() {
                   email: safeEmail,
                   gender: safeGender,
                   center: siteName,
+                  branch_id: siteId,
                   availability: safeAvailability,
                   accountStatus: 'Active',
                 }
@@ -846,12 +880,21 @@ function localApiPlugin() {
             const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 1000;
             const newId = `CG-${String(lastNum + 1)}`;
 
+            const requestedBranch = branch_id || center || null;
+            const branch = requestedBranch
+              ? database.prepare(
+                `SELECT id, name, service_area FROM branches
+                 WHERE id = ? OR LOWER(name) = LOWER(?) OR LOWER(service_area) = LOWER(?) LIMIT 1`
+              ).get(requestedBranch, requestedBranch, requestedBranch)
+              : null;
+            if (requestedBranch && !branch) return sendJson(res, 400, { ok: false, error: 'branch_id must identify an existing branch.' });
             database.prepare(
-              `INSERT INTO caregivers (id, name, gender, center, availability, phone, email)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`
+              `INSERT INTO caregivers (id, name, gender, center, branch_id, availability, phone, email)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
             ).run(
-              newId, name, gender || 'Female', center || 'Kuala Lumpur',
-              availability || 'Available', phone || null, email || `${name.toLowerCase().replace(/\s+/g, '.')}@mycaregivers.com`
+              newId, name, gender || 'Female', branch?.service_area || center || 'Unassigned',
+              branch?.id || null, availability || 'Available', phone || null,
+              email || `${name.toLowerCase().replace(/\s+/g, '.')}@mycaregivers.com`
             );
 
             return sendJson(res, 201, { ok: true, id: newId });
@@ -903,6 +946,7 @@ function localApiPlugin() {
       server.middlewares.use('/api/appointments', async (req, res) => {
         const [pathname] = req.url.split('?');
         const segments = pathname.split('/').filter(Boolean);
+        const branchId = new URL(req.url, 'http://localhost').searchParams.get('branch_id');
 
         // GET /api/appointments — read from bookings, map to appointment shape
         if (segments.length === 0 && req.method === 'GET') {
@@ -910,6 +954,7 @@ function localApiPlugin() {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
                 `SELECT b.id, b.patient_id, b.patient_name, b.caregiver_id, b.caregiver_name,
+                        b.branch_id, b.branch_name,
                         TO_CHAR(b.date, 'YYYY-MM-DD') AS date,
                         b.start_time::text AS start_time,
                         b.end_time::text AS end_time,
@@ -918,7 +963,9 @@ function localApiPlugin() {
                         b.caregiver_gender_preference, b.location_mode, b.location AS location_text,
                         b.latitude, b.longitude, b.tasks, b.special_instructions, b.duration_mins
                  FROM bookings b
-                 ORDER BY b.date DESC, b.start_time ASC`
+                 ${branchId ? 'WHERE b.branch_id = $1' : ''}
+                 ORDER BY b.date DESC, b.start_time ASC`,
+                branchId ? [branchId] : []
               );
               const parsed = pgRes.rows.map((row) => ({
                 ...row,
@@ -931,14 +978,16 @@ function localApiPlugin() {
             const rows = database
               .prepare(
                 `SELECT b.id, NULL AS patient_id, b.patient_name, b.caregiver_id, b.caregiver_name,
+                        b.branch_id, b.branch_name,
                         b.date, b.start_time, b.end_time, b.status,
                         b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.location AS location_text,
                         b.latitude, b.longitude, b.tasks, b.special_instructions, b.duration_mins
                  FROM bookings b
+                 ${branchId ? 'WHERE b.branch_id = ?' : ''}
                  ORDER BY b.date DESC, b.start_time ASC`
               )
-              .all();
+              .all(...(branchId ? [branchId] : []));
             const parsed = rows.map((row) => ({
               ...row,
               tasks: row.tasks ? JSON.parse(row.tasks) : [],
@@ -957,7 +1006,7 @@ function localApiPlugin() {
             try { body = await readJsonBody(req); }
             catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
 
-            const { patient_id, patient_name, caregiver_id, caregiver_name,
+            const { patient_id, patient_name, caregiver_id, caregiver_name, branch_id,
               date, start_time, end_time, status, appointment_type, booking_type,
               caregiver_gender_preference, location_mode, location_text,
               latitude, longitude, tasks, special_instructions, duration_mins } = body;
@@ -975,18 +1024,22 @@ function localApiPlugin() {
               const lastNum = maxRow.rows.length > 0 ? parseInt(maxRow.rows[0].id.replace(/\D/g, ''), 10) : 5000;
               const newId = `BK-${String(lastNum + 1)}`;
               const tasksJson = Array.isArray(tasks) ? JSON.stringify(tasks) : (tasks || '[]');
+              const pgStatus = status === 'Completed' ? 'Service completed' : (status === 'Scheduled' ? 'Caregiver assigned' : (status || 'Caregiver assigned'));
+              const branchName = ['Completed', 'Service completed'].includes(status) && branch_id
+                ? (await pgQuery('SELECT name FROM branches WHERE id = $1', [branch_id])).rows[0]?.name || null
+                : null;
 
               await pgQuery(
                 `INSERT INTO bookings
-                  (id, patient_id, patient_name, caregiver_id, caregiver_name,
+                  (id, patient_id, patient_name, caregiver_id, caregiver_name, branch_id, branch_name,
                    date, start_time, end_time, status, appointment_type, booking_type,
                    caregiver_gender_preference, location_mode, location,
                    latitude, longitude, tasks, special_instructions, duration_mins,
                    service_type, rate_cents)
-                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
                 [
                   newId, patient_id || null, patient_name, caregiver_id || null, caregiver_name || null,
-                  date, start_time, end_time, status || 'Caregiver assigned', appointment_type || 'Home Visit',
+                  branch_id || null, branchName, date, start_time, end_time, pgStatus, appointment_type || 'Home Visit',
                   booking_type || 'One time', caregiver_gender_preference || 'No preference',
                   location_mode || 'address', location_text || '',
                   latitude || null, longitude || null, tasksJson, special_instructions || '', calcDuration,
@@ -1001,17 +1054,20 @@ function localApiPlugin() {
             const lastNum = maxRow ? parseInt(maxRow.id.replace(/\D/g, ''), 10) : 5000;
             const newId = `BK-${String(lastNum + 1)}`;
             const tasksJson = tasks ? JSON.stringify(tasks) : '[]';
+            const branchName = ['Completed', 'Service completed'].includes(status) && branch_id
+              ? database.prepare('SELECT name FROM branches WHERE id = ?').get(branch_id)?.name || null
+              : null;
 
             database
               .prepare(`INSERT INTO bookings
-                (id, patient_name, caregiver_id, caregiver_name,
+                (id, patient_name, caregiver_id, caregiver_name, branch_id, branch_name,
                  date, start_time, end_time, status, appointment_type, booking_type,
                  caregiver_gender_preference, location_mode, location,
                  latitude, longitude, tasks, special_instructions, duration_mins,
                  service_type, rate_cents)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(newId, patient_name, caregiver_id || null, caregiver_name || null,
-                date, start_time, end_time, status || 'Scheduled', appointment_type || 'Home Visit',
+                branch_id || null, branchName, date, start_time, end_time, status || 'Scheduled', appointment_type || 'Home Visit',
                 booking_type || 'One time', caregiver_gender_preference || 'No preference',
                 location_mode || 'address', location_text || '',
                 latitude || null, longitude || null, tasksJson, special_instructions || '', calcDuration,
@@ -1032,7 +1088,7 @@ function localApiPlugin() {
             try { body = await readJsonBody(req); }
             catch (err) { return sendJson(res, 400, { ok: false, error: err.message }); }
 
-            const { _patient_id, patient_name, caregiver_id, caregiver_name,
+            const { _patient_id, patient_name, caregiver_id, caregiver_name, branch_id,
               date, start_time, end_time, status, appointment_type, booking_type,
               caregiver_gender_preference, location_mode, location_text,
               latitude, longitude, tasks, special_instructions, duration_mins } = body;
@@ -1045,10 +1101,12 @@ function localApiPlugin() {
               if (patient_name !== undefined) { sets.push(`patient_name = $${pIdx++}`); values.push(patient_name); }
               if (caregiver_id !== undefined) { sets.push(`caregiver_id = $${pIdx++}`); values.push(caregiver_id || null); }
               if (caregiver_name !== undefined) { sets.push(`caregiver_name = $${pIdx++}`); values.push(caregiver_name || null); }
+              if (branch_id !== undefined) { sets.push(`branch_id = $${pIdx++}`); values.push(branch_id || null); }
               if (date !== undefined) { sets.push(`date = $${pIdx++}`); values.push(date); }
               if (start_time !== undefined) { sets.push(`start_time = $${pIdx++}`); values.push(start_time); }
               if (end_time !== undefined) { sets.push(`end_time = $${pIdx++}`); values.push(end_time); }
-              if (status !== undefined) { sets.push(`status = $${pIdx++}`); values.push(status); }
+              const pgStatus = status === 'Completed' ? 'Service completed' : (status === 'Scheduled' ? 'Caregiver assigned' : status);
+              if (pgStatus !== undefined) { sets.push(`status = $${pIdx++}`); values.push(pgStatus); }
               if (appointment_type !== undefined) { sets.push(`appointment_type = $${pIdx++}`); values.push(appointment_type); }
               if (booking_type !== undefined) { sets.push(`booking_type = $${pIdx++}`); values.push(booking_type); }
               if (caregiver_gender_preference !== undefined) { sets.push(`caregiver_gender_preference = $${pIdx++}`); values.push(caregiver_gender_preference); }
@@ -1059,6 +1117,16 @@ function localApiPlugin() {
               if (tasks !== undefined) { sets.push(`tasks = $${pIdx++}`); values.push(Array.isArray(tasks) ? JSON.stringify(tasks) : tasks); }
               if (special_instructions !== undefined) { sets.push(`special_instructions = $${pIdx++}`); values.push(special_instructions); }
               if (duration_mins !== undefined) { sets.push(`duration_mins = $${pIdx++}`); values.push(duration_mins); }
+
+              if (['Completed', 'Service completed'].includes(status)) {
+                const existing = await pgQuery('SELECT branch_id, branch_name FROM bookings WHERE id = $1', [appointmentId]);
+                if (!existing.rows.length) return sendJson(res, 404, { ok: false, error: 'Appointment not found.' });
+                const targetBranchId = branch_id !== undefined ? branch_id : existing.rows[0].branch_id;
+                if (targetBranchId && !existing.rows[0].branch_name) {
+                  const branch = await pgQuery('SELECT name FROM branches WHERE id = $1', [targetBranchId]);
+                  if (branch.rows[0]) { sets.push(`branch_name = $${pIdx++}`); values.push(branch.rows[0].name); }
+                }
+              }
 
               if (sets.length === 0) return sendJson(res, 400, { ok: false, error: 'No fields to update.' });
               sets.push(`updated_at = NOW()`);
@@ -1074,10 +1142,12 @@ function localApiPlugin() {
 
             const sets = [];
             const values = [];
+            const database = await getDb();
 
             if (patient_name !== undefined) { sets.push('patient_name = ?'); values.push(patient_name); }
             if (caregiver_id !== undefined) { sets.push('caregiver_id = ?'); values.push(caregiver_id || null); }
             if (caregiver_name !== undefined) { sets.push('caregiver_name = ?'); values.push(caregiver_name || null); }
+            if (branch_id !== undefined) { sets.push('branch_id = ?'); values.push(branch_id || null); }
             if (date !== undefined) { sets.push('date = ?'); values.push(date); }
             if (start_time !== undefined) { sets.push('start_time = ?'); values.push(start_time); }
             if (end_time !== undefined) { sets.push('end_time = ?'); values.push(end_time); }
@@ -1093,11 +1163,20 @@ function localApiPlugin() {
             if (special_instructions !== undefined) { sets.push('special_instructions = ?'); values.push(special_instructions); }
             if (duration_mins !== undefined) { sets.push('duration_mins = ?'); values.push(duration_mins); }
 
+            if (['Completed', 'Service completed'].includes(status)) {
+              const existing = database.prepare('SELECT branch_id, branch_name FROM bookings WHERE id = ?').get(appointmentId);
+              if (!existing) return sendJson(res, 404, { ok: false, error: 'Appointment not found.' });
+              const targetBranchId = branch_id !== undefined ? branch_id : existing.branch_id;
+              if (targetBranchId && !existing.branch_name) {
+                const branch = database.prepare('SELECT name FROM branches WHERE id = ?').get(targetBranchId);
+                if (branch) { sets.push('branch_name = ?'); values.push(branch.name); }
+              }
+            }
+
             if (sets.length === 0) return sendJson(res, 400, { ok: false, error: 'No fields to update.' });
             sets.push("updated_at = datetime('now')");
             values.push(appointmentId);
 
-            const database = await getDb();
             const result = database.prepare(`UPDATE bookings SET ${sets.join(', ')} WHERE id = ?`).run(...values);
             if (result.changes === 0) return sendJson(res, 404, { ok: false, error: 'Appointment not found.' });
             return sendJson(res, 200, { ok: true, id: appointmentId });
@@ -1118,9 +1197,10 @@ function localApiPlugin() {
             if (hasPgConfig()) {
               const pgRes = await pgQuery(
                 `SELECT p.id, p.name, p.gender, p.preferred_language AS "preferredLanguage",
-                        p.center_name AS center, p.phone, p.email, p.address,
+                        COALESCE(b.name, 'Unassigned') AS center, p.branch_id, p.phone, p.email, p.address,
                         TO_CHAR(COALESCE(p.date_added, p.created_at), 'YYYY-MM-DD') AS "dateAdded"
                  FROM patients p
+                 LEFT JOIN branches b ON b.id = p.branch_id
                  ORDER BY p.name`
               );
               return sendJson(res, 200, pgRes.rows);
@@ -1172,20 +1252,24 @@ function localApiPlugin() {
                 pgQuery(
                   `SELECT b.id, b.patient_name, TO_CHAR(b.date, 'YYYY-MM-DD') AS date,
                           b.start_time::text AS start_time, b.end_time::text AS end_time,
-                          b.duration_mins, b.location, b.status, b.caregiver_id, b.caregiver_name,
-                          b.service_type, (b.rate_cents / 100.0)::numeric(10,2) AS rate,
-                          (b.rate_cents / 100.0)::numeric(10,2) AS price,
+                           b.duration_mins, b.location, b.status, b.caregiver_id, b.caregiver_name,
+                           b.branch_id, b.branch_name,
+                           b.service_type, b.rate_cents, b.cost_breakdown,
+                           (CASE WHEN b.rate_cents > 0 AND b.rate_cents < 1000
+                             THEN b.rate_cents::numeric ELSE b.rate_cents / 100.0 END)::numeric(10,2) AS rate,
+                           (CASE WHEN b.rate_cents > 0 AND b.rate_cents < 1000
+                             THEN b.rate_cents::numeric ELSE b.rate_cents / 100.0 END)::numeric(10,2) AS price,
                           (b.caregiver_payout_cents / 100.0)::numeric(10,2) AS caregiver_payout
                    FROM bookings b
                    ORDER BY b.date DESC`
                 ),
                 pgQuery(
-                  `SELECT c.id, c.name, c.gender, c.center_name AS center, c.availability, c.account_status,
+                  `SELECT c.id, c.name, c.gender, COALESCE(br.name, 'Unassigned') AS center, c.branch_id, c.availability, c.account_status,
                           COALESCE(
                             (SELECT json_agg(skill) FROM caregiver_skills WHERE caregiver_id = c.id),
                             '[]'::json
                           ) as skills
-                   FROM caregivers c
+                   FROM caregivers c LEFT JOIN branches br ON br.id = c.branch_id
                    ORDER BY c.name`
                 )
               ]);

@@ -51,7 +51,7 @@
   white-space: normal;
 }
 
-/* Cost column */
+/* Price breakdown and final-price columns */
 .booking-table__cost-total {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -62,18 +62,30 @@
   color: var(--color-ink-faint, #94a3b8);
 }
 
-.booking-table__cost-btn {
+.booking-table__price-slate-btn {
   display: inline-block;
-  margin-top: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
-  color: var(--color-primary, #6366f1);
-  background: transparent;
-  border: 1px solid var(--color-primary, #6366f1);
-  border-radius: 4px;
+  padding: 6px 9px;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
 }
 
-.booking-table__cost-btn:hover {
+.booking-table__price-slate-btn:hover {
   background: var(--color-primary-soft, #eef2ff);
+}
+
+.booking-table__price-slate-count {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+}
+
+.booking-table__price-slate-count--empty {
+  color: var(--color-ink-faint);
 }

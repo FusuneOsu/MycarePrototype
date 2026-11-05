@@ -8,34 +8,34 @@ export const PROFILE_UPDATE_PENDING = 'Profile update pending';
 const INITIAL_FILTERS = {
   search: '',
   gender: 'All',
-  center: 'All',
+  branchId: 'All',
   availability: 'All',
   accountStatus: 'All',
 };
 
-export function useCaregiverFilters(caregivers) {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+export function useCaregiverFilters(caregivers, branches = [], selectedBranchId = '') {
+  const [filters, setFilters] = useState({ ...INITIAL_FILTERS, branchId: selectedBranchId || 'All' });
+  const branchIdFilter = selectedBranchId !== null ? (selectedBranchId || 'All') : filters.branchId;
+  const resolvedFilters = { ...filters, branchId: branchIdFilter };
 
   const options = useMemo(() => {
     const genders = new Set();
-    const centers = new Set();
     const availabilities = new Set();
     const accountStatuses = new Set();
 
     caregivers.forEach((c) => {
       genders.add(c.gender);
-      centers.add(c.center);
       if (c.availability) availabilities.add(c.availability);
       accountStatuses.add(c.accountStatus);
     });
 
     return {
       genders: Array.from(genders).sort(),
-      centers: Array.from(centers).sort(),
+      branches,
       availabilities: Array.from(availabilities).sort(),
       accountStatuses: Array.from(accountStatuses).sort(),
     };
-  }, [caregivers]);
+  }, [caregivers, branches]);
 
   const awaitingCount = useMemo(() => caregivers.filter(isAwaitingAction).length, [caregivers]);
 
@@ -44,7 +44,7 @@ export function useCaregiverFilters(caregivers) {
 
     return caregivers.filter((c) => {
       if (filters.gender !== 'All' && c.gender !== filters.gender) return false;
-      if (filters.center !== 'All' && c.center !== filters.center) return false;
+      if (branchIdFilter !== 'All' && (c.branchId || c.branch_id || '') !== branchIdFilter) return false;
       if (filters.availability !== 'All' && c.availability !== filters.availability) return false;
 
       if (filters.accountStatus === AWAITING_ACTION) {
@@ -61,7 +61,7 @@ export function useCaregiverFilters(caregivers) {
       const haystack = `${c.id} ${c.name} ${c.gender} ${c.center} ${c.availability} ${c.accountStatus} ${c.email}`.toLowerCase();
       return haystack.includes(term);
     });
-  }, [caregivers, filters]);
+  }, [caregivers, filters, branchIdFilter]);
 
   const setFilter = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -69,5 +69,5 @@ export function useCaregiverFilters(caregivers) {
 
   const resetFilters = () => setFilters(INITIAL_FILTERS);
 
-  return { filters, setFilter, resetFilters, options, filteredCaregivers, awaitingCount };
+  return { filters: resolvedFilters, setFilter, resetFilters, options, filteredCaregivers, awaitingCount };
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Topbar from '../../components/common/Topbar/Topbar.jsx';
 import CaregiverActionBar from '../../components/caregivers/CaregiverActionBar/CaregiverActionBar.jsx';
 import CaregiverFilters from '../../components/caregivers/CaregiverFilters/CaregiverFilters.jsx';
@@ -8,6 +9,7 @@ import CaregiverDetailModal from '../../components/caregivers/CaregiverDetailMod
 import CaregiverReviewModal from '../../components/caregivers/CaregiverReviewModal/CaregiverReviewModal.jsx';
 import ApplicationLinkModal from '../../components/caregivers/ApplicationLinkModal/ApplicationLinkModal.jsx';
 import { fetchCaregiverAccounts } from '../../data/caregiverAccounts.js';
+import { fetchBranches } from '../../api/branches.js';
 import {
   approveApplication, approveProfileChanges, clearAccountHold, rejectProfileChanges,
   returnApplication, saveManualCaregiver, setAccountHold, setAvailability,
@@ -17,19 +19,32 @@ import './CaregiversPage.css';
 
 function CaregiversPage() {
   const [caregivers, setCaregivers] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const branchFilter = searchParams.get('branch_id') || '';
+  const selectedBranchId = searchParams.get('branch_id') || 'All';
 
   const [isNewCaregiverOpen, setIsNewCaregiverOpen] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState(null);
   const [reviewing, setReviewing] = useState(null);
   const [isLinkOpen, setIsLinkOpen] = useState(false);
 
-  const load = useCallback(() => fetchCaregiverAccounts().then((data) => {
-    setCaregivers(data);
-    setLoading(false);
-  }), []);
+  const load = useCallback(() => {
+    return fetchCaregiverAccounts(branchFilter).then((data) => {
+      setCaregivers(data);
+      setLoading(false);
+    }).catch((err) => {
+      console.warn('[CaregiversPage] Could not load caregivers:', err.message);
+      setCaregivers([]);
+      setLoading(false);
+    });
+  }, [branchFilter]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    fetchBranches().then(setBranches).catch((err) => console.warn('[CaregiversPage] Could not load branches:', err.message));
+  }, []);
 
   // Applications and profile edits are written by the caregiver app, which runs
   // on the same origin — refresh the queue when it changes or the tab regains focus.
@@ -43,7 +58,24 @@ function CaregiversPage() {
   }, [load]);
 
   const { filters, setFilter, resetFilters, options, filteredCaregivers, awaitingCount } =
-    useCaregiverFilters(caregivers);
+    useCaregiverFilters(caregivers, branches, selectedBranchId);
+
+  const handleFilterChange = (field, value) => {
+    if (field === 'branchId') {
+      const next = new URLSearchParams(searchParams);
+      if (value && value !== 'All') next.set('branch_id', value);
+      else next.delete('branch_id');
+      setSearchParams(next, { replace: true });
+    }
+    setFilter(field, value);
+  };
+
+  const handleResetFilters = () => {
+    resetFilters();
+    const next = new URLSearchParams(searchParams);
+    next.delete('branch_id');
+    setSearchParams(next, { replace: true });
+  };
 
   // Admin-added caregivers are already vetted, so they go straight in as Active
   // — and are saved, so they survive a reload and reach the booking pool.
@@ -110,7 +142,7 @@ function CaregiversPage() {
     <div className="caregivers-page">
       <Topbar
         title="Caregivers"
-        subtitle="View, search and manage every caregiver across your centers."
+        subtitle="View, search and manage every caregiver across your branches."
         actions={(
           <CaregiverActionBar
             onNewCaregiverClick={() => setIsNewCaregiverOpen(true)}
@@ -126,8 +158,8 @@ function CaregiversPage() {
           <>
             <CaregiverFilters
               filters={filters}
-              onFilterChange={setFilter}
-              onReset={resetFilters}
+              onFilterChange={handleFilterChange}
+              onReset={handleResetFilters}
               options={options}
               resultCount={filteredCaregivers.length}
               awaitingCount={awaitingCount}

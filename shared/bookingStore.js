@@ -8,6 +8,7 @@
 // (e.g. caregiver app running without the Vite API plugin).
 
 import { diff, logAudit } from './auditStore.js';
+import { hourlyRateToCents } from './pricing.js';
 
 export const REQUESTS_KEY = 'mycare.patientRequests';
 export const BOOKINGS_KEY = 'mycare.bookings';
@@ -598,7 +599,7 @@ export function confirmBooking({ request, caregiver, date, startTime, durationMi
     location_mode: locationMode || 'address',
     tasks: tasks || [],
     special_instructions: specialInstructions || request.notes || '',
-    rate_cents: Number(rate),
+    rate_cents: hourlyRateToCents(rate),
     service_amount_cents: null,
     caregiver_payment_cents: null,
   };

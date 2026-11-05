@@ -10,7 +10,7 @@ function CaregiverFilters({ filters, onFilterChange, onReset, options, resultCou
   const hasActiveFilters =
     filters.search ||
     filters.gender !== 'All' ||
-    filters.center !== 'All' ||
+    filters.branchId !== 'All' ||
     filters.availability !== 'All' ||
     filters.accountStatus !== 'All';
 
@@ -35,7 +35,7 @@ function CaregiverFilters({ filters, onFilterChange, onReset, options, resultCou
         <Input
           size="sm"
           type="text"
-          placeholder="Search by name, ID, email, center..."
+          placeholder="Search by name, ID, email, branch..."
           value={filters.search}
           onChange={handleChange('search')}
           aria-label="Search caregivers"
@@ -53,9 +53,9 @@ function CaregiverFilters({ filters, onFilterChange, onReset, options, resultCou
           {options.genders.map((g) => <option key={g} value={g}>{g}</option>)}
         </Select>
 
-        <Select size="sm" value={filters.center} onChange={handleChange('center')} aria-label="Filter by center">
-          <option value="All">All centers</option>
-          {options.centers.map((c) => <option key={c} value={c}>{c}</option>)}
+        <Select size="sm" value={filters.branchId} onChange={handleChange('branchId')} aria-label="Filter by branch">
+          <option value="All">All branches</option>
+          {options.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
         </Select>
 
         <Select size="sm" value={filters.availability} onChange={handleChange('availability')} aria-label="Filter by availability">

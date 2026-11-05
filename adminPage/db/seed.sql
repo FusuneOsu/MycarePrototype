@@ -2,27 +2,29 @@
 -- while you wire up real API calls.
 -- Run with: wrangler d1 execute mycarePrototypeRDBMS --file=./db/seed.sql
 
-INSERT INTO caregiving_sites (id, name, area, latitude, longitude) VALUES
-  ('SITE-001', 'Caregiver Center 1', 'Petaling Jaya', 3.1073, 101.6064),
-  ('SITE-002', 'Caregiver Center 2', 'Subang Jaya', 3.0568, 101.5852),
-  ('SITE-003', 'Caregiver Center 3', 'Cheras', 3.1008, 101.7242),
-  ('SITE-004', 'Caregiver Center 4', 'Ampang', 3.1480, 101.7595),
-  ('SITE-005', 'Caregiver Center 5', 'Setiawangsa', 3.1905, 101.7380),
-  ('SITE-006', 'Caregiver Center 6', 'Shah Alam', 3.0733, 101.5185);
+INSERT INTO branches (
+  id, name, address, city, state, postcode, service_area, latitude, longitude, facility_fee_cents
+) VALUES
+  ('SITE-001', 'Caregiver Center 1', '12 Jalan SS 21/1, Damansara Utama, 47400 Petaling Jaya', 'Petaling Jaya', 'Selangor', '47400', 'Petaling Jaya', 3.1073, 101.6064, 1000),
+  ('SITE-002', 'Caregiver Center 2', '8 Jalan USJ 10/1, Taipan, 47620 Subang Jaya', 'Subang Jaya', 'Selangor', '47620', 'Subang Jaya', 3.0568, 101.5852, 800),
+  ('SITE-003', 'Caregiver Center 3', '22 Jalan Ceria 2, Taman Ceria, 56100 Cheras', 'Cheras', 'Kuala Lumpur', '56100', 'Cheras', 3.1008, 101.7242, 800),
+  ('SITE-004', 'Caregiver Center 4', '5 Jalan Ampang Indah, Taman Ampang Indah, 68000 Ampang', 'Ampang', 'Selangor', '68000', 'Ampang', 3.1480, 101.7595, 1000),
+  ('SITE-005', 'Caregiver Center 5', '3 Jalan Setiawangsa 11, Taman Setiawangsa, 54200 Kuala Lumpur', 'Kuala Lumpur', 'Kuala Lumpur', '54200', 'Setiawangsa', 3.1905, 101.7380, 700),
+  ('SITE-006', 'Caregiver Center 6', '15 Jalan SA 2, Seksyen 2, 40000 Shah Alam', 'Shah Alam', 'Selangor', '40000', 'Shah Alam', 3.0733, 101.5185, 600);
 
-INSERT INTO caregivers (id, name, gender, center, availability) VALUES
-  ('CG-1001', 'Adam Tan', 'Male', 'Petaling Jaya', 'Available'),
-  ('CG-1002', 'Nurul Huda', 'Female', 'Subang Jaya', 'On Duty'),
-  ('CG-1003', 'Adam Krishnan', 'Male', 'Cheras', 'Off Duty'),
-  ('CG-1004', 'Siti Aminah', 'Female', 'Petaling Jaya', 'Available'),
-  ('CG-1005', 'Wei Ling Chong', 'Female', 'Ampang', 'On Leave'),
-  ('CG-1006', 'Rajesh Kumar', 'Male', 'Subang Jaya', 'On Duty'),
-  ('CG-1007', 'Farah Aziz', 'Female', 'Cheras', 'Available'),
-  ('CG-1008', 'Adam Osei', 'Male', 'Ampang', 'Off Duty'),
-  ('CG-1009', 'Mei Ling Ong', 'Female', 'Petaling Jaya', 'On Duty'),
-  ('CG-1010', 'Hafiz Rahman', 'Male', 'Ampang', 'Available'),
-  ('CG-1011', 'Priya Sharma', 'Female', 'Cheras', 'On Leave'),
-  ('CG-1012', 'Marcus D''Souza', 'Male', 'Subang Jaya', 'Available');
+INSERT INTO caregivers (id, name, gender, center, branch_id, availability) VALUES
+  ('CG-1001', 'Adam Tan', 'Male', 'Petaling Jaya', 'SITE-001', 'Available'),
+  ('CG-1002', 'Nurul Huda', 'Female', 'Subang Jaya', 'SITE-002', 'On Duty'),
+  ('CG-1003', 'Adam Krishnan', 'Male', 'Cheras', 'SITE-003', 'Off Duty'),
+  ('CG-1004', 'Siti Aminah', 'Female', 'Petaling Jaya', 'SITE-001', 'Available'),
+  ('CG-1005', 'Wei Ling Chong', 'Female', 'Ampang', 'SITE-004', 'On Leave'),
+  ('CG-1006', 'Rajesh Kumar', 'Male', 'Subang Jaya', 'SITE-002', 'On Duty'),
+  ('CG-1007', 'Farah Aziz', 'Female', 'Cheras', 'SITE-003', 'Available'),
+  ('CG-1008', 'Adam Osei', 'Male', 'Ampang', 'SITE-004', 'Off Duty'),
+  ('CG-1009', 'Mei Ling Ong', 'Female', 'Petaling Jaya', 'SITE-001', 'On Duty'),
+  ('CG-1010', 'Hafiz Rahman', 'Male', 'Ampang', 'SITE-004', 'Available'),
+  ('CG-1011', 'Priya Sharma', 'Female', 'Cheras', 'SITE-003', 'On Leave'),
+  ('CG-1012', 'Marcus D''Souza', 'Male', 'Subang Jaya', 'SITE-002', 'Available');
 
 INSERT INTO caregiver_skills (caregiver_id, skill) VALUES
   ('CG-1001', 'Post-surgery care'),

@@ -1,5 +1,6 @@
 import BookingStatusPill from '../BookingStatusPill/BookingStatusPill.jsx';
 import { Button } from '../../../../../shared/ui/index.js';
+import { getPriceSlateSnapshot } from '../../../utils/priceSlateDefaults.js';
 import './BookingTable.css';
 
 function formatDateTime(isoString) {
@@ -15,21 +16,7 @@ function formatDuration(minutes) {
   return `${minutes} min`;
 }
 
-function formatRate(cents) {
-  return `RM ${(cents / 100).toFixed(2)}`;
-}
-
-/**
- * Try to parse a cost_breakdown from a booking.
- */
-function getCostTotal(booking) {
-  const raw = booking.cost_breakdown || booking.costBreakdown;
-  if (!raw) return null;
-  if (typeof raw === 'object') return raw.total || null;
-  try { return JSON.parse(raw).total || null; } catch { return null; }
-}
-
-function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onViewDocuments, onViewCosts, actionBusyId }) {
+function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onViewDocuments, onViewPriceSlate, actionBusyId }) {
   if (bookings.length === 0) {
     return (
       <div className="booking-table__empty">
@@ -46,41 +33,46 @@ function BookingTable({ bookings, onGeneratePaymentLink, onMarkCollected, onView
             <th>Patient</th>
             <th>Caregiver</th>
             <th>Date/Time</th>
+            <th>Branch</th>
             <th>Duration</th>
             <th>Location</th>
             <th>Service type</th>
             <th>Status</th>
-            <th>Price</th>
-            <th>Costs</th>
+            <th>Price breakdown</th>
+            <th>Final price</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {bookings.map((booking) => {
-            const costTotal = getCostTotal(booking);
+            const priceSlate = getPriceSlateSnapshot(booking);
             return (
             <tr key={booking.id}>
               <td>{booking.patient_name}</td>
               <td>{booking.caregiver_name}</td>
               <td>{formatDateTime(`${booking.date}T${booking.start_time}`)}</td>
+              <td>{booking.branch_name || '—'}</td>
               <td>{formatDuration(booking.duration_mins)}</td>
               <td>{booking.location}</td>
               <td>{booking.service_type}</td>
               <td><BookingStatusPill status={booking.status} /></td>
-              <td>{formatRate(booking.rate_cents)}</td>
               <td>
-                {costTotal != null ? (
-                  <span className="booking-table__cost-total">RM {costTotal.toFixed(2)}</span>
-                ) : (
-                  <span className="booking-table__cost-na">—</span>
-                )}
                 <button
-                  className="booking-table__cost-btn"
-                  onClick={() => onViewCosts(booking)}
-                  title="View cost breakdown"
+                  type="button"
+                  className="booking-table__price-slate-btn"
+                  onClick={() => onViewPriceSlate(booking)}
+                  title="Edit the patient-facing price breakdown"
                 >
-                  Details
+                  {priceSlate ? 'Edit breakdown' : 'Set breakdown'}
                 </button>
+                <span className={`booking-table__price-slate-count${priceSlate ? '' : ' booking-table__price-slate-count--empty'}`}>
+                  {priceSlate ? `${priceSlate.items.length} ${priceSlate.items.length === 1 ? 'item' : 'items'}` : 'Not set'}
+                </span>
+              </td>
+              <td>
+                {priceSlate ? (
+                  <span className="booking-table__cost-total">RM {(priceSlate.total_cents / 100).toFixed(2)}</span>
+                ) : <span className="booking-table__cost-na">—</span>}
               </td>
               <td className="booking-table__actions">
                 {booking.status === 'Service completed' && (

@@ -1,6 +1,7 @@
 // Pure aggregation and formatting functions for the Admin Dashboard.
 // These work on raw booking/caregiver/request arrays, so they can be used
 // both client-side (fallback from localStorage) and server-side (D1 queries).
+import { rateCentsToCents } from '../../../shared/pricing.js';
 
 /* Date helpers ------------------------------------------------------------ */
 
@@ -78,6 +79,17 @@ function parseBreakdown(booking) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
+function bookingPriceCents(booking) {
+  const breakdown = parseBreakdown(booking);
+  if (breakdown) {
+    const storedCents = Number(breakdown.total_cents);
+    if (Number.isSafeInteger(storedCents) && storedCents >= 0) return storedCents;
+    const total = Number(breakdown.total);
+    if (Number.isFinite(total) && total >= 0) return Math.round(total * 100);
+  }
+  return rateCentsToCents(booking?.rate_cents);
+}
+
 export function aggregateRevenue(bookings, range) {
   const filtered = range
     ? bookings.filter((b) => PAYMENT_RELEVANT.includes(b.status) && inRange(b.date, range))
@@ -102,7 +114,7 @@ export function aggregateRevenue(bookings, range) {
       travelCents = Math.round((breakdown.travelCost?.subtotal || 0) * 100);
       siteCents = Math.round((breakdown.siteFee?.subtotal || 0) * 100);
     } else {
-      cents = b.rate_cents || 0;
+      cents = rateCentsToCents(b.rate_cents);
     }
 
     if (isPaid) {
@@ -202,10 +214,10 @@ export function buildTrendSeries(bookings, days = 7) {
     const dayBookings = bookings.filter((b) => String(b.date).slice(0, 10) === key);
     series.push({
       date: key, label, total: dayBookings.length,
-      paid: dayBookings.filter((b) => PAID_STATUSES.includes(b.status))
-        .reduce((sum, b) => sum + (b.rate_cents || 0), 0),
+       paid: dayBookings.filter((b) => PAID_STATUSES.includes(b.status))
+        .reduce((sum, b) => sum + bookingPriceCents(b), 0),
       unpaid: dayBookings.filter((b) => UNPAID_STATUSES.includes(b.status))
-        .reduce((sum, b) => sum + (b.rate_cents || 0), 0),
+        .reduce((sum, b) => sum + bookingPriceCents(b), 0),
     });
   }
   return series;

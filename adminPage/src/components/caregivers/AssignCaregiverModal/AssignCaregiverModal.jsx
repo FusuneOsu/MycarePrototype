@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from '../../common/Modal/Modal.jsx';
 import StatusPill from '../StatusPill/StatusPill.jsx';
 import { fetchCaregivers } from '../../../data/mockCaregivers.js';
+import { fetchBranches } from '../../../api/branches.js';
 import { getAllAppointments } from '../../../data/mockAppointments.js';
 import './AssignCaregiverModal.css';
 
@@ -29,7 +30,13 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
 
   useEffect(() => {
     if (isOpen) {
-      fetchCaregivers().then(setCaregivers);
+      Promise.all([fetchCaregivers(), fetchBranches()]).then(([rows, branches]) => {
+        const branchById = new Map(branches.map((branch) => [branch.id, branch]));
+        setCaregivers(rows.map((caregiver) => ({
+          ...caregiver,
+          serviceArea: branchById.get(caregiver.branch_id)?.service_area || '',
+        })));
+      }).catch((err) => console.warn('[AssignCaregiverModal] API error:', err.message));
     }
   }, [isOpen]);
 
@@ -46,7 +53,7 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
     setSelectedCaregiver('');
   }, [isOpen, request]);
 
-  const zoneOptions = useMemo(() => Array.from(new Set(caregivers.map((c) => c.center))).sort(), [caregivers]);
+  const zoneOptions = useMemo(() => Array.from(new Set(caregivers.map((c) => c.serviceArea).filter(Boolean))).sort(), [caregivers]);
   const genderOptions = useMemo(() => Array.from(new Set(caregivers.map((c) => c.gender))).sort(), [caregivers]);
   const skillOptions = useMemo(() => Array.from(new Set(caregivers.flatMap((c) => c.skills || []))).sort(), [caregivers]);
 
@@ -54,7 +61,7 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
   // nearest, free-at-the-requested-time matches first.
   const rows = useMemo(() => {
     return caregivers
-      .filter((c) => filters.zone === ANY_OPTION || c.center === filters.zone)
+      .filter((c) => filters.zone === ANY_OPTION || c.serviceArea === filters.zone)
       .filter((c) => filters.gender === ANY_OPTION || c.gender === filters.gender)
       .filter((c) => filters.skill === ANY_OPTION || (c.skills || []).includes(filters.skill))
       .map((c) => {
@@ -64,8 +71,8 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
       })
       .filter((c) => !filters.onlyAvailable || c.isAssignable)
       .sort((a, b) => {
-        const aNearby = request && a.center === request.zone ? 0 : 1;
-        const bNearby = request && b.center === request.zone ? 0 : 1;
+        const aNearby = request && a.serviceArea === request.zone ? 0 : 1;
+        const bNearby = request && b.serviceArea === request.zone ? 0 : 1;
         if (aNearby !== bNearby) return aNearby - bNearby;
         if (a.isAssignable !== b.isAssignable) return a.isAssignable ? -1 : 1;
         return a.name.localeCompare(b.name);
@@ -125,7 +132,7 @@ function AssignCaregiverModal({ isOpen, onClose, request, onAssign }) {
               <th>ID</th>
               <th>Name</th>
               <th>Gender</th>
-              <th>Zone</th>
+              <th>Branch</th>
               <th>Specialization</th>
               <th>Availability</th>
             </tr>

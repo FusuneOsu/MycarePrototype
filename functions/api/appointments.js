@@ -6,17 +6,20 @@
 // shape the frontend (AppointmentsPage) expects.
 
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { env, request } = context;
+  const branchId = new URL(request.url).searchParams.get('branch_id');
 
   const { results } = await env.DB.prepare(
     `SELECT b.id, NULL AS patient_id, b.patient_name, b.caregiver_id, b.caregiver_name,
+            b.branch_id, b.branch_name,
             b.date, b.start_time, b.end_time, b.status,
             b.appointment_type, b.booking_type,
             b.caregiver_gender_preference, b.location_mode, b.location AS location_text,
             b.latitude, b.longitude, b.tasks, b.special_instructions, b.duration_mins
      FROM bookings b
+     WHERE (? IS NULL OR b.branch_id = ?)
      ORDER BY b.date DESC, b.start_time ASC`
-  ).all();
+  ).bind(branchId, branchId).all();
 
   // Parse tasks JSON string into array for each row
   const parsed = results.map((row) => ({
@@ -38,7 +41,7 @@ export async function onRequestPost(context) {
   }
 
   const {
-    _patient_id, patient_name, caregiver_id, caregiver_name,
+    _patient_id, patient_name, caregiver_id, caregiver_name, branch_id,
     date, start_time, end_time, status, appointment_type, booking_type,
     caregiver_gender_preference, location_mode, location_text,
     latitude, longitude, tasks, special_instructions, duration_mins,
@@ -60,6 +63,11 @@ export async function onRequestPost(context) {
   const newId = `BK-${String(lastNum + 1)}`;
 
   const tasksJson = tasks ? JSON.stringify(tasks) : '[]';
+  const statusValue = status || 'Scheduled';
+  let branchName = null;
+  if (branch_id && ['Completed', 'Service completed'].includes(statusValue)) {
+    branchName = (await env.DB.prepare('SELECT name FROM branches WHERE id = ?').bind(branch_id).first())?.name || null;
+  }
   const calcDuration = duration_mins || (() => {
     const [sh, sm] = start_time.split(':').map(Number);
     const [eh, em] = end_time.split(':').map(Number);
@@ -68,15 +76,15 @@ export async function onRequestPost(context) {
 
   await env.DB.prepare(
     `INSERT INTO bookings
-     (id, patient_name, caregiver_id, caregiver_name,
+     (id, patient_name, caregiver_id, caregiver_name, branch_id, branch_name,
       date, start_time, end_time, status, appointment_type, booking_type,
       caregiver_gender_preference, location_mode, location,
       latitude, longitude, tasks, special_instructions, duration_mins,
       service_type, rate_cents)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId, patient_name, caregiver_id || null, caregiver_name || null,
-    date, start_time, end_time, status || 'Scheduled', appointment_type || 'Home Visit',
+    branch_id || null, branchName, date, start_time, end_time, statusValue, appointment_type || 'Home Visit',
     booking_type || 'One time', caregiver_gender_preference || 'No preference',
     location_mode || 'address', location_text || '',
     latitude || null, longitude || null,

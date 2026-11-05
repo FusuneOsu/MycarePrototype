@@ -3,7 +3,7 @@ import StatusPill from '../StatusPill/StatusPill.jsx';
 import { ACCOUNT_STATUS, isAwaitingAction } from '../../../data/caregiverAccounts.js';
 import { AVAILABILITY } from '../../../../../shared/careVocabulary.js';
 
-const COLUMNS = ['ID', 'Name', 'Gender', 'Center', 'Account status', 'Availability', ''];
+const COLUMNS = ['ID', 'Name', 'Gender', 'Branch', 'Account status', 'Availability', ''];
 
 function CaregiverTable({ caregivers, onSeeMore, onReview, onAvailabilityChange }) {
   return (

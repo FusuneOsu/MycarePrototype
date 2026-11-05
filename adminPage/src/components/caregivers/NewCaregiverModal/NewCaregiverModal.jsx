@@ -78,6 +78,7 @@ function NewCaregiverModal({ isOpen, onClose, caregivers, onCreateCaregiver }) {
       gender: formData.gender,
       center: formData.centerPlace,
       baseSiteId: formData.baseSiteId || null,
+      branch_id: formData.baseSiteId || null,
       availability: 'Available',
       username: formData.username.trim(),
       languages: formData.languages,

@@ -1,0 +1,123 @@
+.price-slate-row {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.price-slate-row legend {
+  padding: 0 5px;
+  color: var(--color-ink-faint);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+
+.price-slate-row__fields {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.4fr) minmax(100px, 0.55fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.price-slate-row label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.price-slate-row label > span,
+.price-slate-row__amount > span {
+  color: var(--color-ink-soft);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+
+.price-slate-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.price-slate-row input[aria-invalid="true"] {
+  border-color: var(--color-danger, #b42318);
+}
+
+.price-slate-row small {
+  color: var(--color-danger, #b42318);
+  font-size: var(--fs-xs);
+}
+
+.price-slate-row em {
+  color: var(--color-ink-faint);
+  font-style: normal;
+  font-weight: var(--fw-regular, 400);
+}
+
+.price-slate-row__amount {
+  display: grid;
+  gap: 5px;
+  min-height: 38px;
+  align-content: center;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-slate-row__footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.price-slate-row__note {
+  flex: 1;
+}
+
+.price-slate-row__buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.price-slate-row__buttons button {
+  min-height: 32px;
+  padding: 4px 9px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.price-slate-row__buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.price-slate-row__buttons .price-slate-row__remove {
+  color: var(--color-danger, #b42318);
+}
+
+@media (max-width: 640px) {
+  .price-slate-row__fields {
+    grid-template-columns: 1fr;
+  }
+  .price-slate-row__amount {
+    text-align: left;
+  }
+  .price-slate-row__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .price-slate-row__buttons {
+    justify-content: flex-end;
+  }
+}

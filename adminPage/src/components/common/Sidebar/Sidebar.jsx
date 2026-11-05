@@ -8,6 +8,7 @@ const ALL_NAV_ITEMS = [
   { to: '/requests', labelKey: 'nav.requests', icon: 'chat' },
   { to: '/bookings', labelKey: 'nav.booking_records', icon: 'clipboard' },
   { to: '/caregivers', labelKey: 'nav.caregivers', icon: 'users' },
+  { to: '/branches', labelKey: 'nav.branches', icon: 'mapPin' },
   { to: '/payments', labelKey: 'nav.payments', icon: 'card' },
   { to: '/audit-trail', labelKey: 'nav.audit_trail', icon: 'shield' },
 ];

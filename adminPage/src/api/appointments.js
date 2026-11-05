@@ -10,8 +10,9 @@
  * Fetch all appointments from the server.
  * @returns {Promise<Array>} Array of appointment objects.
  */
-export async function fetchAppointments() {
-  const response = await fetch('/api/appointments');
+export async function fetchAppointments(branchId = '') {
+  const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : '';
+  const response = await fetch(`/api/appointments${query}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch appointments: ${response.status}`);
   }

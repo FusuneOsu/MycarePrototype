@@ -199,3 +199,4 @@ env
 
 # WhatsApp Baileys Auth Session Files
 whatsapp-service/baileys_auth_info/
+docs/branches-api.md

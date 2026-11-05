@@ -44,7 +44,7 @@ function CaregiverDetailModal({ isOpen, onClose, caregiver, onHold, onRelease })
         <div className="caregiver-detail-modal__summary">
           <StatusPill status={caregiver.accountStatus} />
           {caregiver.availability && !onHoldNow && <StatusPill status={caregiver.availability} />}
-          <span className="caregiver-detail-modal__meta">{caregiver.id} · {caregiver.center || 'No center'} · {formatRating(summary)} · {summary.completed} completed</span>
+          <span className="caregiver-detail-modal__meta">{caregiver.id} · {caregiver.center || 'Unassigned'} · {formatRating(summary)} · {summary.completed} completed</span>
         </div>
 
         <Tabs tabs={TABS.map((name) => ({ id: name, label: name }))} value={tab} onChange={setTab} label="Caregiver profile sections" />
@@ -65,7 +65,7 @@ function CaregiverDetailModal({ isOpen, onClose, caregiver, onHold, onRelease })
 
               <section className="caregiver-detail-modal__section">
                 <h3>Assignment</h3>
-                <DetailRow label="Center" value={caregiver.center} />
+                <DetailRow label="Branch" value={caregiver.center || 'Unassigned'} />
                 <DetailRow label="Username" value={caregiver.username} />
                 <DetailRow label="Auto-assigned" value={caregiver.autoAssigned} />
                 <DetailRow label="Manager" value={caregiver.managerName ? `${caregiver.managerName} · ${caregiver.managerId}` : 'Not assigned'} />

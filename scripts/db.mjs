@@ -70,7 +70,7 @@ export async function testConnection() {
       `);
       const userCount = await client.query('SELECT COUNT(*)::int as count FROM users;');
       const cgCount = await client.query('SELECT COUNT(*)::int as count FROM caregivers;');
-      const siteCount = await client.query('SELECT COUNT(*)::int as count FROM caregiving_sites;');
+      const branchCount = await client.query('SELECT COUNT(*)::int as count FROM branches;');
       const bkCount = await client.query('SELECT COUNT(*)::int as count FROM bookings;');
       const reqCount = await client.query('SELECT COUNT(*)::int as count FROM requests;');
 
@@ -83,7 +83,7 @@ export async function testConnection() {
           tables: tableCount.rows[0].count,
           users: userCount.rows[0].count,
           caregivers: cgCount.rows[0].count,
-          caregivingSites: siteCount.rows[0].count,
+          branches: branchCount.rows[0].count,
           bookings: bkCount.rows[0].count,
           requests: reqCount.rows[0].count,
         },

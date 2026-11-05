@@ -1,0 +1,7 @@
+.branch-search-filters {
+  align-items: center;
+}
+
+.branch-search-filters .ui-input {
+  min-width: 220px;
+}

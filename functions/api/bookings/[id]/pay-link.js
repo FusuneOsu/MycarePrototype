@@ -6,6 +6,7 @@
 //
 // Requires the D1 binding named DB and the STRIPE_SECRET_KEY secret
 // (see wrangler.toml / `npx wrangler secret put STRIPE_SECRET_KEY`).
+import { rateCentsToCents } from '../../../../shared/pricing.js';
 
 const stripeEndpoint = 'https://api.stripe.com/v1/checkout/sessions';
 
@@ -18,8 +19,11 @@ export async function onRequestPost(context) {
   const bookingId = params.id;
 
   const booking = await env.DB.prepare(
-    `SELECT b.id, b.patient_name, b.service_type, b.rate_cents, b.status
-     FROM bookings b WHERE b.id = ?`
+    `SELECT b.id, b.patient_name, b.service_type, b.rate_cents, b.status,
+            s.total_cents AS slate_total_cents
+     FROM bookings b
+     LEFT JOIN booking_price_slates s ON s.booking_id = b.id
+     WHERE b.id = ?`
   ).bind(bookingId).first();
 
   if (!booking) {
@@ -62,7 +66,7 @@ export async function onRequestPost(context) {
       cancel_url: `${origin}/bookings?payment=cancelled&booking=${encodeURIComponent(bookingId)}`,
       'line_items[0][price_data][currency]': 'myr',
       'line_items[0][price_data][product_data][name]': `${booking.service_type} for ${booking.patient_name}`,
-      'line_items[0][price_data][unit_amount]': String(booking.rate_cents),
+      'line_items[0][price_data][unit_amount]': String(booking.slate_total_cents ?? rateCentsToCents(booking.rate_cents)),
       'line_items[0][quantity]': '1',
       'metadata[booking_id]': bookingId,
       // Checkout always collects the payer's email, and Stripe emails a

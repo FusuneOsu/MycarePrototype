@@ -60,7 +60,8 @@ function fromApplication(application) {
     id: application.id.replace('APP-', 'CG-'),
     name: data.fullName,
     gender: data.gender,
-    center: assignment?.center || data.preferredCenter,
+    center: assignment?.branchName || 'Unassigned',
+    branchId: assignment?.branchId || assignment?.baseSiteId || '',
     availability: approved ? (getAvailability(data.email) || 'Available') : '',
     username: String(data.fullName || '').trim().toLowerCase().split(/\s+/).slice(0, 2).join('.'),
     email: data.email,
@@ -103,6 +104,8 @@ function fromDirectory(caregiver, source) {
   return withHold({
     ...merged,
     email,
+    branchId: caregiver.branchId || caregiver.baseSiteId || '',
+    center: caregiver.branchName || caregiver.branch_name || 'Unassigned',
     availability: getAvailability(email) || caregiver.availability || 'Available',
     coverageAreas: merged.coverageAreas || (caregiver.center ? [caregiver.center] : []),
     specialisations: merged.specialisations || [],
@@ -137,9 +140,10 @@ export function listCaregiverAccounts() {
 }
 
 // Async fetch with PostgreSQL API integration.
-export async function fetchCaregiverAccounts() {
+export async function fetchCaregiverAccounts(branchId = '') {
   try {
-    const res = await fetch('/api/caregivers');
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : '';
+    const res = await fetch(`/api/caregivers${query}`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -147,7 +151,8 @@ export async function fetchCaregiverAccounts() {
           id: cg.id,
           name: cg.name,
           gender: cg.gender,
-          center: cg.center || cg.center_name,
+          center: cg.center || 'Unassigned',
+          branchId: cg.branch_id || '',
           availability: cg.availability || 'Available',
           username: cg.username || cg.email?.split('@')[0],
           email: cg.email,
@@ -170,7 +175,8 @@ export async function fetchCaregiverAccounts() {
   } catch (err) {
     console.warn('[fetchCaregiverAccounts] API fetch error:', err.message);
   }
-  return listCaregiverAccounts();
+  const fallback = listCaregiverAccounts();
+  return branchId ? fallback.filter((caregiver) => (caregiver.branchId || caregiver.baseSiteId || '') === branchId) : fallback;
 }
 
 /**

@@ -7,12 +7,15 @@
 -- Disable FK enforcement during DROP so tables can be dropped in any order.
 PRAGMA foreign_keys = OFF;
 
+DROP TABLE IF EXISTS booking_price_slates;
+DROP TABLE IF EXISTS price_slate_templates;
 DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS pto_requests;
 DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS post_op_patients;
 DROP TABLE IF EXISTS caregiver_skills;
 DROP TABLE IF EXISTS caregivers;
+DROP TABLE IF EXISTS branches;
 DROP TABLE IF EXISTS caregiving_sites;
 
 -- Re-enable FK enforcement for the CREATE statements and future operations.
@@ -23,8 +26,8 @@ CREATE TABLE caregivers (
   id            TEXT PRIMARY KEY,            -- e.g. 'CG-1001'
   name          TEXT NOT NULL,
   gender        TEXT NOT NULL,
-  center        TEXT NOT NULL,               -- area/zone, kept for backward compat / display
-  base_site_id  TEXT REFERENCES caregiving_sites (id),  -- the site where caregiver is stationed
+  center        TEXT,                         -- legacy service-area text; display name is joined from branches
+  branch_id     TEXT REFERENCES branches (id) ON DELETE SET NULL,
   availability  TEXT NOT NULL DEFAULT 'Available',
     -- one of: Available, On Duty, Off Duty, On Leave
   phone         TEXT,
@@ -33,9 +36,8 @@ CREATE TABLE caregivers (
   updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_caregivers_center ON caregivers (center);
+CREATE INDEX idx_caregivers_branch ON caregivers (branch_id);
 CREATE INDEX idx_caregivers_availability ON caregivers (availability);
-CREATE INDEX idx_caregivers_base_site ON caregivers (base_site_id);
 
 -- Caregiver skills / specializations (many-to-many) ----------------------
 CREATE TABLE caregiver_skills (
@@ -79,23 +81,33 @@ CREATE TABLE pto_requests (
 
 CREATE INDEX idx_pto_caregiver ON pto_requests (caregiver_id);
 
--- Caregiving sites (locations with GPS coordinates for OpenStreetMap) ------
--- A caregiving site is a physical location where services can happen.
--- A caregiver's "base" (their reporting branch) references one of these sites.
-CREATE TABLE caregiving_sites (
-  id              TEXT PRIMARY KEY,            -- e.g. 'SITE-001'
-  name            TEXT NOT NULL,               -- e.g. 'Caregiver Center 1'
-  area            TEXT NOT NULL,               -- e.g. 'Petaling Jaya'
-  address         TEXT,                        -- full street address
-  latitude        REAL NOT NULL,
-  longitude       REAL NOT NULL,
-  phone           TEXT,                        -- site contact number
-  facility_fee    INTEGER NOT NULL DEFAULT 0,  -- RM per hour for center-based care
-  operating_hours TEXT,                        -- JSON: { "open": "07:00", "close": "23:00" }
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+-- Branches -----------------------------------------------------------------
+CREATE TABLE branches (
+  id                       TEXT PRIMARY KEY, -- existing SITE-* IDs are retained
+  name                     TEXT NOT NULL,
+  address                  TEXT NOT NULL,
+  city                     TEXT NOT NULL,
+  state                    TEXT NOT NULL,
+  postcode                 TEXT NOT NULL,
+  service_area             TEXT NOT NULL,
+  latitude                 REAL NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+  longitude                REAL NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+  phone                    TEXT,
+  email                    TEXT,
+  operating_hours          TEXT NOT NULL DEFAULT '{"open":"07:00","close":"23:00"}',
+  capacity                 INTEGER NOT NULL DEFAULT 350 CHECK (capacity >= 0),
+  status                   TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  notes                    TEXT,
+  emergency_contact_name   TEXT,
+  emergency_contact_phone  TEXT,
+  facility_fee_cents       INTEGER NOT NULL DEFAULT 0 CHECK (facility_fee_cents >= 0),
+  created_at               TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at               TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_caregiving_sites_area ON caregiving_sites (area);
+CREATE UNIQUE INDEX idx_branches_name_unique ON branches (name COLLATE NOCASE);
+CREATE INDEX idx_branches_service_area ON branches (service_area);
+CREATE INDEX idx_branches_status ON branches (status);
 
 -- Requests (WhatsApp / website intake) ------------------------------------
 -- The intake table: every incoming request lands here. Once a caregiver is
@@ -103,6 +115,7 @@ CREATE INDEX idx_caregiving_sites_area ON caregiving_sites (area);
 -- this request's status moves to 'Booked'.
 CREATE TABLE requests (
   id                      TEXT PRIMARY KEY,        -- e.g. 'WA-REQ-1001'
+  branch_id               TEXT REFERENCES branches (id) ON DELETE SET NULL,
   source                  TEXT NOT NULL,           -- WhatsApp, Website
   status                  TEXT NOT NULL DEFAULT 'New',
     -- one of: New, In Review, Booked, Rejected
@@ -138,6 +151,8 @@ CREATE INDEX idx_requests_zone ON requests (zone);
 CREATE TABLE bookings (
   id                TEXT PRIMARY KEY,          -- e.g. 'BK-5001'
   request_id        TEXT REFERENCES requests (id),
+  branch_id         TEXT REFERENCES branches (id) ON DELETE SET NULL,
+  branch_name       TEXT,                     -- completion/deletion snapshot; retained for history
   patient_name      TEXT NOT NULL,
   caregiver_id      TEXT NOT NULL REFERENCES caregivers (id),
   caregiver_name    TEXT,
@@ -180,4 +195,55 @@ CREATE TABLE bookings (
 CREATE INDEX idx_bookings_caregiver ON bookings (caregiver_id);
 CREATE INDEX idx_bookings_status ON bookings (status);
 CREATE INDEX idx_bookings_date ON bookings (date);
+
+-- Admin-authored patient-facing price calculations --------------------------
+CREATE TABLE booking_price_slates (
+  booking_id  TEXT PRIMARY KEY REFERENCES bookings (id) ON DELETE CASCADE,
+  items       TEXT NOT NULL CHECK (json_valid(items)),
+  total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE price_slate_templates (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  items      TEXT NOT NULL CHECK (json_valid(items)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX idx_price_slate_templates_name_unique
+  ON price_slate_templates (name COLLATE NOCASE);
+
+-- Backend branch changes use the same append-only audit shape as NeonDB.
+CREATE TABLE audit_logs (
+  id              TEXT PRIMARY KEY,
+  at              TEXT NOT NULL DEFAULT (datetime('now')),
+  actor_id        TEXT,
+  actor_name      TEXT NOT NULL DEFAULT 'System',
+  actor_email     TEXT,
+  actor_role      TEXT NOT NULL DEFAULT 'system',
+  action          TEXT NOT NULL,
+  record_type     TEXT NOT NULL,
+  record_id       TEXT NOT NULL,
+  summary         TEXT NOT NULL,
+  changes         TEXT,
+  previous_hash   TEXT,
+  hash            TEXT NOT NULL,
+  ip_address      TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TRIGGER trg_no_update_or_delete_audit
+BEFORE UPDATE ON audit_logs
+BEGIN
+  SELECT RAISE(ABORT, 'Audit trail is append-only.');
+END;
+
+CREATE TRIGGER trg_no_delete_audit
+BEFORE DELETE ON audit_logs
+BEGIN
+  SELECT RAISE(ABORT, 'Audit trail is append-only.');
+END;
 

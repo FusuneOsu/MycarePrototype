@@ -2,6 +2,7 @@
 // Used when an admin/caregiver generates a payment link for a
 // "Service completed" booking (Module 8 — Payment).
 import { jsPDF } from 'jspdf';
+import { rateCentsToCents } from '../../../shared/pricing.js';
 
 function formatDateTime(isoString) {
   const date = new Date(isoString);
@@ -11,11 +12,6 @@ function formatDateTime(isoString) {
 
 function formatMoney(cents) {
   return `RM ${(cents / 100).toFixed(2)}`;
-}
-
-/** Format a raw RM amount (not in cents). */
-function fmtRm(amount) {
-  return `RM ${Number(amount || 0).toFixed(2)}`;
 }
 
 /**
@@ -68,42 +64,55 @@ export function buildInvoicePdf(booking) {
   doc.text(`Duration: ${booking.duration_mins} min`, margin, y);
   y += 24;
 
-  // Cost breakdown section
+  // Patient-facing price only. Never print caregiver payout components.
   const breakdown = parseCostBreakdown(booking);
-  if (breakdown) {
+  if (breakdown?.version === 'slate-v1' && Array.isArray(breakdown.items)) {
     doc.setFontSize(12);
-    doc.text('Cost breakdown', margin, y);
+    doc.text('Price breakdown', margin, y);
     y += 18;
     doc.setFontSize(10);
-
-    const items = [
-      { label: 'Service fee', value: fmtRm(breakdown.serviceFee?.subtotal) },
-    ];
-    if (breakdown.travelCost?.subtotal > 0) {
-      items.push({ label: 'Travel cost', value: fmtRm(breakdown.travelCost.subtotal) });
-    }
-    if (breakdown.siteFee?.subtotal > 0) {
-      items.push({ label: 'Site fee', value: fmtRm(breakdown.siteFee.subtotal) });
-    }
-    items.push({ label: 'Caregiver payout', value: fmtRm(breakdown.caregiverPayout?.subtotal) });
-
-    items.forEach((item) => {
-      doc.text(item.label, margin, y);
-      doc.text(item.value, doc.internal.pageSize.width - margin, y, { align: 'right' });
-      y += 16;
+    const right = doc.internal.pageSize.width - margin;
+    breakdown.items.forEach((item) => {
+      const label = doc.splitTextToSize(String(item.label || 'Item'), right - margin - 110);
+      const note = item.note ? doc.splitTextToSize(String(item.note), right - margin - 110) : [];
+      const height = label.length * 13 + note.length * 10 + 6;
+      if (y + height > doc.internal.pageSize.height - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, margin, y);
+      doc.setFont('helvetica', 'normal');
+      if (note.length) {
+        doc.setFontSize(8);
+        doc.setTextColor(105, 115, 111);
+        doc.text(note, margin, y + label.length * 13);
+        doc.setTextColor(20, 30, 28);
+        doc.setFontSize(10);
+      }
+      doc.text(formatMoney(item.amount_cents), right, y, { align: 'right' });
+      y += height;
     });
 
-    y += 8;
+    y += 10;
+    if (y + 28 > doc.internal.pageSize.height - margin) {
+      doc.addPage();
+      y = margin;
+    }
     doc.setFontSize(14);
     doc.text('Total due', margin, y);
-    doc.text(fmtRm(breakdown.total), doc.internal.pageSize.width - margin, y, { align: 'right' });
+    const totalCents = Number.isSafeInteger(Number(breakdown.total_cents))
+      ? Number(breakdown.total_cents)
+      : Math.round(Number(breakdown.total || 0) * 100);
+    doc.text(formatMoney(totalCents), right, y, { align: 'right' });
   } else {
-    // Fallback to flat rate
+    // Old cost breakdowns included payout amounts and are not reused as
+    // patient-facing prices. Use the booking rate fallback until a slate exists.
     doc.setFontSize(12);
     doc.text('Amount due', margin, y);
     y += 20;
     doc.setFontSize(16);
-    doc.text(formatMoney(booking.rate_cents), margin, y);
+    doc.text(formatMoney(rateCentsToCents(booking.rate_cents)), margin, y);
   }
 
   y += 32;
