@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { getPool, hasPgConfig, query as pgQuery, testConnection, verifyUserLogin } from './scripts/db.mjs';
 import { registerBranchesApi } from './scripts/branches-api.mjs';
+import { registerPriceSlateApi } from './scripts/price-slate-api.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +42,12 @@ function localApiPlugin() {
         // used by Wrangler for D1. Existing bookings are not backfilled.
         db.exec(readFileSync(resolve(dbDir, 'migrations/0001_branches.sql'), 'utf8'));
       }
+      const hasPriceSlates = db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'booking_price_slates'")
+        .get();
+      if (!hasPriceSlates) {
+        db.exec(readFileSync(resolve(dbDir, 'migrations/0002_price_slates.sql'), 'utf8'));
+      }
     }
     return db;
   }
@@ -74,6 +81,7 @@ function localApiPlugin() {
     name: 'mycare-local-api',
     configureServer(server) {
       registerBranchesApi(server, { getDb, hasPgConfig, getPool, readJsonBody, sendJson });
+      registerPriceSlateApi(server, { getDb, hasPgConfig, getPool, readJsonBody, sendJson });
 
       // ---- Database Health / Connection Test Endpoint ----
       server.middlewares.use('/api/db/test', async (req, res) => {
@@ -130,7 +138,7 @@ function localApiPlugin() {
               const pgRes = await pgQuery(
                 `SELECT b.id, b.patient_name, b.date, b.start_time, b.end_time, b.duration_mins, b.location, b.address, b.latitude, b.longitude,
                         b.branch_id, b.branch_name,
-                        b.service_type, b.status, b.rate_cents, b.appointment_type, b.booking_type,
+                        b.service_type, b.status, b.rate_cents, b.cost_breakdown, b.appointment_type, b.booking_type,
                         b.caregiver_gender_preference, b.location_mode, b.tasks, b.special_instructions,
                         b.caregiver_id, b.caregiver_name
                  FROM bookings b
@@ -398,6 +406,13 @@ function localApiPlugin() {
             }
 
             const database = await getDb();
+            const priceSlate = database.prepare('SELECT booking_id FROM booking_price_slates WHERE booking_id = ?').get(bookingId);
+            if (priceSlate) {
+              return sendJson(res, 409, {
+                ok: false,
+                error: 'This booking uses a patient price slate; update it through the price-slate endpoint.',
+              });
+            }
             const result = database
               .prepare(`UPDATE bookings SET cost_breakdown = ?, updated_at = datetime('now') WHERE id = ?`)
               .run(costBreakdown, bookingId);

@@ -16,6 +16,9 @@
     "admin:db:setup:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/schema.sql && wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/seed.sql",
     "admin:db:migrate:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/migrations/0001_branches.sql",
     "admin:db:migrate:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/migrations/0001_branches.sql",
+    "admin:db:migrate:price-slates:local": "wrangler d1 execute mycarePrototypeRDBMS --local --file=./adminPage/db/migrations/0002_price_slates.sql",
+    "admin:db:migrate:price-slates:remote": "wrangler d1 execute mycarePrototypeRDBMS --remote --file=./adminPage/db/migrations/0002_price_slates.sql",
+    "test:price-slates": "node scripts/test-price-slates.mjs",
     "test:db": "node scripts/test-db.mjs",
     "lint": "oxlint"
   },

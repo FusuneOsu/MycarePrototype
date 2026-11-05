@@ -19,6 +19,16 @@ export async function onRequestPut(context) {
   }
 
   try {
+    const priceSlate = await env.DB.prepare(
+      'SELECT booking_id FROM booking_price_slates WHERE booking_id = ?'
+    ).bind(bookingId).first();
+    if (priceSlate) {
+      return Response.json({
+        ok: false,
+        error: 'This booking uses a patient price slate; update it through the price-slate endpoint.',
+      }, { status: 409 });
+    }
+
     const { success } = await env.DB.prepare(
       `UPDATE bookings SET cost_breakdown = ?, updated_at = datetime('now') WHERE id = ?`
     ).bind(costBreakdown, bookingId).run();

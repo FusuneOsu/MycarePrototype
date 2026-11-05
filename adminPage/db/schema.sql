@@ -7,6 +7,8 @@
 -- Disable FK enforcement during DROP so tables can be dropped in any order.
 PRAGMA foreign_keys = OFF;
 
+DROP TABLE IF EXISTS booking_price_slates;
+DROP TABLE IF EXISTS price_slate_templates;
 DROP TABLE IF EXISTS bookings;
 DROP TABLE IF EXISTS pto_requests;
 DROP TABLE IF EXISTS requests;
@@ -193,6 +195,26 @@ CREATE TABLE bookings (
 CREATE INDEX idx_bookings_caregiver ON bookings (caregiver_id);
 CREATE INDEX idx_bookings_status ON bookings (status);
 CREATE INDEX idx_bookings_date ON bookings (date);
+
+-- Admin-authored patient-facing price calculations --------------------------
+CREATE TABLE booking_price_slates (
+  booking_id  TEXT PRIMARY KEY REFERENCES bookings (id) ON DELETE CASCADE,
+  items       TEXT NOT NULL CHECK (json_valid(items)),
+  total_cents INTEGER NOT NULL CHECK (total_cents >= 0),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE price_slate_templates (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  items      TEXT NOT NULL CHECK (json_valid(items)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX idx_price_slate_templates_name_unique
+  ON price_slate_templates (name COLLATE NOCASE);
 
 -- Backend branch changes use the same append-only audit shape as NeonDB.
 CREATE TABLE audit_logs (
